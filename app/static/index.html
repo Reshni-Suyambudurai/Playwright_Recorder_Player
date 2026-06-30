@@ -1,0 +1,778 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Playwright Recorder Player</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            padding: 25px;
+            overflow: hidden;
+        }
+
+        h1 {
+            color: white;
+            margin-bottom: 30px;
+            text-align: center;
+            grid-column: 1 / -1;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 10px;
+        }
+
+        .control-section {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 600;
+            font-size: 0.95em;
+        }
+
+        input[type="text"],
+        input[type="number"],
+        textarea {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 10px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 0.95em;
+            transition: border-color 0.3s;
+            font-family: 'Courier New', monospace;
+        }
+
+        input[type="text"]:focus,
+        input[type="number"]:focus,
+        textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 8px rgba(102, 126, 234, 0.3);
+        }
+
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.95em;
+            transition: transform 0.2s, box-shadow 0.2s;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button.secondary {
+            background: #f0f0f0;
+            color: #333;
+            border: 2px solid #e0e0e0;
+        }
+
+        button.secondary:hover {
+            background: #e0e0e0;
+            border-color: #667eea;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 10px;
+        }
+
+        .status {
+            padding: 15px;
+            border-radius: 6px;
+            margin: 15px 0;
+            font-size: 0.9em;
+            word-break: break-all;
+        }
+
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border-left: 4px solid #28a745;
+        }
+
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border-left: 4px solid #dc3545;
+        }
+
+        .status.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border-left: 4px solid #17a2b8;
+        }
+
+        .preview-area {
+            background: #f9f9f9;
+            border: 2px dashed #ddd;
+            border-radius: 6px;
+            padding: 15px;
+            margin: 15px 0;
+            max-height: 400px;
+            overflow: auto;
+        }
+
+        .screenshot {
+            max-width: 100%;
+            border-radius: 6px;
+            margin: 10px 0;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .element-info {
+            background: #f5f5f5;
+            padding: 15px;
+            border-radius: 6px;
+            margin: 10px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85em;
+            overflow-x: auto;
+        }
+
+        .info-row {
+            margin: 8px 0;
+            display: grid;
+            grid-template-columns: 120px 1fr;
+            gap: 10px;
+        }
+
+        .info-label {
+            font-weight: 600;
+            color: #667eea;
+        }
+
+        .info-value {
+            color: #333;
+            word-break: break-all;
+        }
+
+        .info-value.selector,
+        .info-value.xpath {
+            background: #fff;
+            padding: 5px;
+            border-radius: 3px;
+            border: 1px solid #e0e0e0;
+        }
+
+        .grid-icon {
+            width: 100%;
+            height: 400px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            position: relative;
+            background-color: #f5f5f5;
+            cursor: crosshair;
+            margin: 15px 0;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .grid-icon img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            cursor: crosshair;
+        }
+
+        .grid-icon.no-screenshot {
+            background: linear-gradient(45deg, #f9f9f9 25%, transparent 25%, transparent 75%, #f9f9f9 75%, #f9f9f9),
+                        linear-gradient(45deg, #f9f9f9 25%, transparent 25%, transparent 75%, #f9f9f9 75%, #f9f9f9);
+            background-size: 40px 40px;
+            background-position: 0 0, 20px 20px;
+        }
+
+        .coordinates-display {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(0, 0, 0, 0.7);
+            color: #fff;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 0.9em;
+        }
+
+        .crosshair {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            border: 2px solid #667eea;
+            border-radius: 50%;
+            transform: translate(-10px, -10px);
+            pointer-events: none;
+            box-shadow: inset 0 0 0 2px white;
+        }
+
+        @media (max-width: 1200px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .code-block {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 15px;
+            border-radius: 6px;
+            overflow-x: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85em;
+            margin: 10px 0;
+            line-height: 1.5;
+        }
+
+        .success-text {
+            color: #28a745;
+            font-weight: 600;
+        }
+
+        .error-text {
+            color: #dc3545;
+            font-weight: 600;
+        }
+
+        .loading {
+            display: inline-block;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .viewport-info {
+            background: #f0f4ff;
+            padding: 12px;
+            border-left: 4px solid #667eea;
+            margin: 15px 0;
+            border-radius: 4px;
+        }
+
+        .divider {
+            height: 1px;
+            background: #e0e0e0;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>🎬 Playwright Recorder Player</h1>
+
+    <div class="container">
+        <!-- Left Column: Controls -->
+        <div class="card">
+            <h2>📋 Browser Controls</h2>
+
+            <!-- Initialize Browser -->
+            <div class="control-section">
+                <button onclick="initializeBrowser()">🚀 Initialize Browser</button>
+                <div id="initStatus"></div>
+            </div>
+
+            <div class="divider"></div>
+
+            <!-- URL Input -->
+            <div class="control-section">
+                <label for="urlInput">Enter Website URL:</label>
+                <input type="text" id="urlInput" placeholder="https://example.com or example.com">
+                <button onclick="openURL()">🌐 Open URL</button>
+                <div id="urlStatus"></div>
+            </div>
+
+            <div class="divider"></div>
+
+            <!-- Screenshot Controls -->
+            <div class="control-section">
+                <button onclick="takeScreenshot()">📸 Take Screenshot</button>
+                <button class="secondary" onclick="listScreenshots()">📁 List Screenshots</button>
+                <div id="screenshotStatus"></div>
+            </div>
+
+            <div class="divider"></div>
+
+            <!-- DOM Fetch -->
+            <div class="control-section">
+                <button onclick="fetchDOM()">📄 Fetch DOM</button>
+                <div id="domStatus"></div>
+            </div>
+
+            <div class="divider"></div>
+
+            <!-- Close Browser -->
+            <div class="control-section">
+                <button class="secondary" onclick="closeBrowser()">❌ Close Browser</button>
+                <div id="closeStatus"></div>
+            </div>
+        </div>
+
+        <!-- Right Column: Element Selector & Info -->
+        <div class="card">
+            <h2>🎯 Element Selector</h2>
+
+            <!-- Viewport Info -->
+            <div class="viewport-info">
+                <strong>Viewport:</strong> 1280 × 720 px
+            </div>
+
+            <!-- Coordinate Input -->
+            <div class="control-section">
+                <label for="xCoord">X Coordinate:</label>
+                <input type="number" id="xCoord" placeholder="e.g., 640" min="0" max="1280">
+                
+                <label for="yCoord">Y Coordinate:</label>
+                <input type="number" id="yCoord" placeholder="e.g., 360" min="0" max="720">
+                
+                <button onclick="getElementAtCoordinates()">🔍 Find Element</button>
+                <div id="coordStatus"></div>
+            </div>
+
+            <div class="divider"></div>
+
+            <!-- Interactive Grid for Coordinates -->
+            <div class="control-section">
+                <label>💡 Click on the screenshot below to get coordinates:</label>
+                <div class="grid-icon no-screenshot" id="coordinateGrid">
+                    <div class="coordinates-display" id="gridCoordinates">X: --, Y: --</div>
+                    <div class="crosshair" id="gridCrosshair" style="display: none;"></div>
+                </div>
+            </div>
+
+            <div class="divider"></div>
+
+            <!-- Element Information Display -->
+            <div class="control-section">
+                <label>Element Information:</label>
+                <div id="elementInfo" class="element-info" style="display: none;">
+                    <!-- Element details will be populated here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Full Width: Output and Previews -->
+        <div class="card" style="grid-column: 1 / -1;">
+            <h2>📊 Output & Preview</h2>
+            <div id="output" class="preview-area">
+                <p style="color: #999;">Output and previews will appear here...</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const BASE_URL = "http://localhost:8000/api";
+
+        // ==================== UTILITY FUNCTIONS ====================
+
+        function showStatus(elementId, message, type = "info") {
+            const element = document.getElementById(elementId);
+            element.innerHTML = `<div class="status ${type}">${message}</div>`;
+        }
+
+        function log(message) {
+            const output = document.getElementById("output");
+            const timestamp = new Date().toLocaleTimeString();
+            output.innerHTML += `<p><span style="color: #667eea; font-weight: 600;">[${timestamp}]</span> ${message}</p>`;
+            output.scrollTop = output.scrollHeight;
+        }
+
+        // ==================== API FUNCTIONS ====================
+
+        async function initializeBrowser() {
+            try {
+                showStatus("initStatus", '<span class="loading">⏳</span> Initializing...', "info");
+                const response = await fetch(`${BASE_URL}/initialize`, { method: "POST" });
+                const data = await response.json();
+
+                if (response.ok) {
+                    showStatus("initStatus", `<span class="success-text">✓ Browser initialized (${data.viewport.width}x${data.viewport.height})</span>`, "success");
+                    log("✓ Browser initialized with viewport: " + data.viewport.width + "x" + data.viewport.height);
+                } else {
+                    showStatus("initStatus", `<span class="error-text">✗ Error: ${data.detail}</span>`, "error");
+                }
+            } catch (error) {
+                showStatus("initStatus", `<span class="error-text">✗ Error: ${error.message}</span>`, "error");
+                log(`✗ Error initializing browser: ${error.message}`);
+            }
+        }
+
+        async function openURL() {
+            const url = document.getElementById("urlInput").value.trim();
+            
+            if (!url) {
+                showStatus("urlStatus", '<span class="error-text">✗ Please enter a URL</span>', "error");
+                return;
+            }
+
+            try {
+                showStatus("urlStatus", '<span class="loading">⏳</span> Opening URL...', "info");
+                const response = await fetch(`${BASE_URL}/open-url`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ url: url })
+                });
+                const data = await response.json();
+
+                if (response.ok) {
+                    showStatus("urlStatus", `<span class="success-text">✓ URL opened: ${data.url}</span>`, "success");
+                    log(`✓ Successfully opened: <strong>${data.url}</strong>`);
+                } else {
+                    showStatus("urlStatus", `<span class="error-text">✗ Error: ${data.detail}</span>`, "error");
+                }
+            } catch (error) {
+                showStatus("urlStatus", `<span class="error-text">✗ Error: ${error.message}</span>`, "error");
+            }
+        }
+
+        async function takeScreenshot() {
+            try {
+                showStatus("screenshotStatus", '<span class="loading">⏳</span> Taking screenshot...', "info");
+                const response = await fetch(`${BASE_URL}/screenshot`, { method: "POST" });
+                const data = await response.json();
+
+                if (response.ok) {
+                    showStatus("screenshotStatus", `<span class="success-text">✓ Screenshot saved: ${data.filename}</span>`, "success");
+                    log(`✓ Screenshot saved: <strong>${data.filename}</strong>`);
+                    
+                    // Display screenshot in output area
+                    const output = document.getElementById("output");
+                    output.innerHTML = `<img src="/static/screenshots/${data.filename}" class="screenshot" alt="screenshot">` + output.innerHTML;
+                    
+                    // Load screenshot in grid for coordinate selection
+                    setTimeout(() => loadScreenshotInGrid(), 500);
+                } else {
+                    showStatus("screenshotStatus", `<span class="error-text">✗ Error: ${data.detail}</span>`, "error");
+                }
+            } catch (error) {
+                showStatus("screenshotStatus", `<span class="error-text">✗ Error: ${error.message}</span>`, "error");
+            }
+        }
+
+        async function listScreenshots() {
+            try {
+                const response = await fetch(`${BASE_URL}/screenshots`);
+                const data = await response.json();
+
+                if (response.ok) {
+                    const output = document.getElementById("output");
+                    let html = `<h3>📸 Screenshots (${data.count})</h3>`;
+                    if (data.screenshots.length > 0) {
+                        html += "<ul>";
+                        data.screenshots.forEach(screenshot => {
+                            html += `<li><a href="/app/screenshots/${screenshot}" target="_blank">${screenshot}</a></li>`;
+                        });
+                        html += "</ul>";
+                    } else {
+                        html += "<p>No screenshots found.</p>";
+                    }
+                    output.innerHTML = html + output.innerHTML;
+                    log(`✓ Found <strong>${data.count}</strong> screenshot(s)`);
+                }
+            } catch (error) {
+                log(`✗ Error listing screenshots: ${error.message}`);
+            }
+        }
+
+        async function fetchDOM() {
+            try {
+                showStatus("domStatus", '<span class="loading">⏳</span> Fetching DOM...', "info");
+                const response = await fetch(`${BASE_URL}/dom`);
+                const data = await response.json();
+
+                if (response.ok) {
+                    showStatus("domStatus", `<span class="success-text">✓ DOM fetched</span>`, "success");
+                    
+                    const output = document.getElementById("output");
+                    const domPreview = data.html.substring(0, 500) + "...";
+                    output.innerHTML = `
+                        <div>
+                            <h3>📄 DOM Content</h3>
+                            <p><strong>Viewport:</strong> ${data.viewport.width}x${data.viewport.height}</p>
+                            <div class="code-block">${escapeHtml(domPreview)}</div>
+                        </div>
+                    ` + output.innerHTML;
+                    log("✓ DOM fetched successfully");
+                } else {
+                    showStatus("domStatus", `<span class="error-text">✗ Error: ${data.detail}</span>`, "error");
+                }
+            } catch (error) {
+                showStatus("domStatus", `<span class="error-text">✗ Error: ${error.message}</span>`, "error");
+            }
+        }
+
+        async function getElementAtCoordinates() {
+            const x = parseInt(document.getElementById("xCoord").value);
+            const y = parseInt(document.getElementById("yCoord").value);
+
+            if (isNaN(x) || isNaN(y)) {
+                showStatus("coordStatus", '<span class="error-text">✗ Please enter valid coordinates</span>', "error");
+                return;
+            }
+
+            try {
+                showStatus("coordStatus", '<span class="loading">⏳</span> Finding element...', "info");
+                const response = await fetch(`${BASE_URL}/element-at-coordinates`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ x: x, y: y })
+                });
+                const data = await response.json();
+
+                if (response.ok) {
+                    showStatus("coordStatus", '<span class="success-text">✓ Element found</span>', "success");
+                    displayElementInfo(data.element);
+                    log(`✓ Element found at (${x}, ${y}): <strong>${data.element.tagName}</strong>`);
+                } else {
+                    showStatus("coordStatus", `<span class="error-text">✗ ${data.message}</span>`, "error");
+                }
+            } catch (error) {
+                showStatus("coordStatus", `<span class="error-text">✗ Error: ${error.message}</span>`, "error");
+            }
+        }
+
+        function displayElementInfo(element) {
+            const infoDiv = document.getElementById("elementInfo");
+            
+            let html = `
+                <div class="info-row">
+                    <div class="info-label">Tag Name:</div>
+                    <div class="info-value">&lt;${element.tagName}&gt;</div>
+                </div>
+                <div class="info-row">
+                    <div class="info-label">ID:</div>
+                    <div class="info-value">${element.id || "-"}</div>
+                </div>
+                <div class="info-row">
+                    <div class="info-label">Class:</div>
+                    <div class="info-value">${element.className || "-"}</div>
+                </div>
+                <div class="info-row">
+                    <div class="info-label">Text:</div>
+                    <div class="info-value">${escapeHtml(element.text.substring(0, 50))}</div>
+                </div>
+                <div class="info-row">
+                    <div class="info-label">Selector:</div>
+                    <div class="info-value selector" onclick="copyToClipboard(this)">${escapeHtml(element.selector)}</div>
+                </div>
+                <div class="info-row">
+                    <div class="info-label">XPath:</div>
+                    <div class="info-value xpath" onclick="copyToClipboard(this)">${escapeHtml(element.xpath)}</div>
+                </div>
+            `;
+
+            if (element.attributes.href) {
+                html += `<div class="info-row"><div class="info-label">href:</div><div class="info-value">${escapeHtml(element.attributes.href)}</div></div>`;
+            }
+            if (element.attributes.name) {
+                html += `<div class="info-row"><div class="info-label">name:</div><div class="info-value">${escapeHtml(element.attributes.name)}</div></div>`;
+            }
+            if (element.attributes.type) {
+                html += `<div class="info-row"><div class="info-label">type:</div><div class="info-value">${escapeHtml(element.attributes.type)}</div></div>`;
+            }
+            if (element.attributes.placeholder) {
+                html += `<div class="info-row"><div class="info-label">placeholder:</div><div class="info-value">${escapeHtml(element.attributes.placeholder)}</div></div>`;
+            }
+
+            html += `
+                <div class="info-row">
+                    <div class="info-label">Position:</div>
+                    <div class="info-value">x: ${Math.round(element.boundingRect.x)}, y: ${Math.round(element.boundingRect.y)}</div>
+                </div>
+                <div class="info-row">
+                    <div class="info-label">Size:</div>
+                    <div class="info-value">width: ${Math.round(element.boundingRect.width)}, height: ${Math.round(element.boundingRect.height)}</div>
+                </div>
+            `;
+
+            infoDiv.innerHTML = html;
+            infoDiv.style.display = "block";
+        }
+
+        async function closeBrowser() {
+            try {
+                showStatus("closeStatus", '<span class="loading">⏳</span> Closing browser...', "info");
+                const response = await fetch(`${BASE_URL}/close`, { method: "POST" });
+                const data = await response.json();
+
+                if (response.ok) {
+                    showStatus("closeStatus", `<span class="success-text">✓ Browser closed</span>`, "success");
+                    log("✓ Browser closed and resources cleaned up");
+                } else {
+                    showStatus("closeStatus", `<span class="error-text">✗ Error: ${data.detail}</span>`, "error");
+                }
+            } catch (error) {
+                showStatus("closeStatus", `<span class="error-text">✗ Error: ${error.message}</span>`, "error");
+            }
+        }
+
+        // ==================== SCREENSHOT DISPLAY & GRID COORDINATE SELECTOR ====================
+
+        const grid = document.getElementById("coordinateGrid");
+        const crosshair = document.getElementById("gridCrosshair");
+        const coordinatesDisplay = document.getElementById("gridCoordinates");
+        let screenshotImg = null;
+        let imageWidth = 1280;
+        let imageHeight = 720;
+
+        // Load screenshot on screenshot taken
+        async function loadScreenshotInGrid() {
+            try {
+                const response = await fetch(`${BASE_URL}/screenshot-base64`);
+                const data = await response.json();
+                
+                if (data.status === "success") {
+                    // Clear grid and add image
+                    grid.innerHTML = '';
+                    grid.classList.remove('no-screenshot');
+                    
+                    screenshotImg = document.createElement('img');
+                    screenshotImg.src = data.base64;
+                    screenshotImg.style.cssText = `
+                        max-width: 100%;
+                        max-height: 100%;
+                        object-fit: contain;
+                        cursor: crosshair;
+                    `;
+                    
+                    grid.appendChild(screenshotImg);
+                    
+                    // Re-add overlays
+                    const coordDisplay = document.createElement('div');
+                    coordDisplay.id = 'gridCoordinates';
+                    coordDisplay.className = 'coordinates-display';
+                    coordDisplay.textContent = 'X: --, Y: --';
+                    grid.appendChild(coordDisplay);
+                    
+                    const ch = document.createElement('div');
+                    ch.id = 'gridCrosshair';
+                    ch.className = 'crosshair';
+                    ch.style.display = 'none';
+                    grid.appendChild(ch);
+                    
+                    // Get image dimensions
+                    screenshotImg.onload = function() {
+                        imageWidth = screenshotImg.naturalWidth;
+                        imageHeight = screenshotImg.naturalHeight;
+                    };
+                    
+                    log("✓ Screenshot loaded in grid for coordinate selection");
+                }
+            } catch (error) {
+                log(`⚠️ Could not load screenshot in grid: ${error.message}`);
+            }
+        }
+
+        grid.addEventListener("mousemove", (e) => {
+            if (!screenshotImg) return;
+            
+            const rect = grid.getBoundingClientRect();
+            const imgRect = screenshotImg.getBoundingClientRect();
+            
+            // Calculate position relative to image
+            const x = Math.round((e.clientX - imgRect.left) * (imageWidth / imgRect.width));
+            const y = Math.round((e.clientY - imgRect.top) * (imageHeight / imgRect.height));
+            
+            // Clamp to viewport
+            const clampedX = Math.max(0, Math.min(x, 1280));
+            const clampedY = Math.max(0, Math.min(y, 720));
+            
+            document.getElementById("gridCoordinates").textContent = `X: ${clampedX}, Y: ${clampedY}`;
+            document.getElementById("gridCrosshair").style.left = (e.clientX - rect.left) + "px";
+            document.getElementById("gridCrosshair").style.top = (e.clientY - rect.top) + "px";
+            document.getElementById("gridCrosshair").style.display = "block";
+        });
+
+        grid.addEventListener("mouseleave", () => {
+            document.getElementById("gridCrosshair").style.display = "none";
+        });
+
+        grid.addEventListener("click", (e) => {
+            if (!screenshotImg) return;
+            
+            const imgRect = screenshotImg.getBoundingClientRect();
+            const rect = grid.getBoundingClientRect();
+            
+            // Calculate position relative to original image
+            const x = Math.round((e.clientX - imgRect.left) * (imageWidth / imgRect.width));
+            const y = Math.round((e.clientY - imgRect.top) * (imageHeight / imgRect.height));
+            
+            // Clamp to viewport dimensions
+            const clampedX = Math.max(0, Math.min(x, 1280));
+            const clampedY = Math.max(0, Math.min(y, 720));
+            
+            document.getElementById("xCoord").value = clampedX;
+            document.getElementById("yCoord").value = clampedY;
+            log(`📍 Coordinates selected from screenshot: X=${clampedX}, Y=${clampedY}`);
+        })
+
+        // ==================== UTILITY FUNCTIONS ====================
+
+        function escapeHtml(text) {
+            const div = document.createElement("div");
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function copyToClipboard(element) {
+            const text = element.textContent;
+            navigator.clipboard.writeText(text).then(() => {
+                alert("Copied: " + text);
+            });
+        }
+
+        // Initial log
+        log("🎬 <strong>Playwright Recorder Player</strong> ready! Start by clicking '🚀 Initialize Browser'");
+    </script>
+</body>
+</html>

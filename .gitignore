@@ -1,0 +1,78 @@
+# Python Environment
+venv/
+env/
+ENV/
+.env
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+
+Pipfile.lock
+poetry.lock
+setup.py
+setup.cfg
+
+# Virtual Environments
+venv/
+.venv
+env/
+.env
+
+# IDE / Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*.sublime-project
+*.sublime-workspace
+.DS_Store
+*.iml
+
+# Project Specific
+debug.log
+app/screenshots/*.png
+app/screenshots/
+*.log
+.cache/
+
+# OS Files
+Thumbs.db
+.DS_Store
+.directory
+
+# Playwright & Browser Cache
+browsers/
+.playwright/
+
+# Test & Temp
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.hypothesis/
+*.cover
+*.tar.gz
+tempfile*
+
+*.md
+*.txt
