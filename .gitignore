@@ -55,6 +55,11 @@ app/screenshots/
 *.log
 .cache/
 
+# Markdown Files (ignore all except README.md)
+*.md
+*.txt
+!README.md
+
 # OS Files
 Thumbs.db
 .DS_Store
@@ -74,5 +79,3 @@ htmlcov/
 *.tar.gz
 tempfile*
 
-*.md
-*.txt
