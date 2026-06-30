@@ -1,6 +1,7 @@
 """API routes for screenshot operations"""
 from fastapi import APIRouter, HTTPException
 from fastapi.concurrency import run_in_threadpool
+from fastapi.responses import FileResponse
 from pathlib import Path
 import base64
 import logging
@@ -59,6 +60,44 @@ async def list_screenshots():
         }
     except Exception as e:
         logger.error(f"Error listing screenshots: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/screenshot/{filename}")
+async def get_screenshot_file(filename: str):
+    """
+    Get a specific screenshot file
+    
+    Args:
+        filename: screenshot filename (e.g., screenshot_20260630_215008.png)
+    
+    Returns:
+        PNG image file
+    """
+    try:
+        logger.info(f"Get screenshot file endpoint called: {filename}")
+        screenshots_dir = Path(__file__).parent.parent / "screenshots"
+        file_path = screenshots_dir / filename
+        
+        # Security: Prevent directory traversal
+        if not file_path.exists() or not file_path.is_file():
+            logger.warning(f"Screenshot file not found: {filename}")
+            raise HTTPException(status_code=404, detail="Screenshot not found")
+        
+        if not file_path.suffix.lower() == ".png":
+            logger.warning(f"Invalid file type requested: {filename}")
+            raise HTTPException(status_code=400, detail="Only PNG files allowed")
+        
+        logger.debug(f"Serving screenshot: {filename}")
+        return FileResponse(
+            path=file_path,
+            filename=filename,
+            media_type="image/png"
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting screenshot file: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 

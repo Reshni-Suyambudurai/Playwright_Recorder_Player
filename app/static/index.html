@@ -13,7 +13,7 @@
 
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #d666ea 0%, #764ba2 100%);
             min-height: 100vh;
             padding: 20px;
         }
@@ -485,10 +485,6 @@
                     showStatus("screenshotStatus", `<span class="success-text">✓ Screenshot saved: ${data.filename}</span>`, "success");
                     log(`✓ Screenshot saved: <strong>${data.filename}</strong>`);
                     
-                    // Display screenshot in output area
-                    const output = document.getElementById("output");
-                    output.innerHTML = `<img src="/static/screenshots/${data.filename}" class="screenshot" alt="screenshot">` + output.innerHTML;
-                    
                     // Load screenshot in grid for coordinate selection
                     setTimeout(() => loadScreenshotInGrid(), 500);
                 } else {
@@ -510,7 +506,7 @@
                     if (data.screenshots.length > 0) {
                         html += "<ul>";
                         data.screenshots.forEach(screenshot => {
-                            html += `<li><a href="/app/screenshots/${screenshot}" target="_blank">${screenshot}</a></li>`;
+                            html += `<li><a href="${BASE_URL}/screenshot/${screenshot}" target="_blank">${screenshot}</a></li>`;
                         });
                         html += "</ul>";
                     } else {
