@@ -21,6 +21,8 @@ from app.routes import (
     screenshot_router,
     dom_router,
     health_router,
+    recording_router,
+    playback_router,
 )
 from app.services.launchWeb import browser_manager
 
@@ -50,11 +52,13 @@ if static_dir.exists():
     app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
 
 # Register API routers
-app.include_router(browser_router)
-app.include_router(navigation_router)
-app.include_router(screenshot_router)
-app.include_router(dom_router)
-app.include_router(health_router)
+app.include_router(browser_router, prefix="/api")
+app.include_router(navigation_router, prefix="/api")
+app.include_router(screenshot_router, prefix="/api")
+app.include_router(dom_router, prefix="/api")
+app.include_router(health_router, prefix="/api")
+app.include_router(recording_router, prefix="/api")
+app.include_router(playback_router, prefix="/api")
 
 # ==================== ROOT ROUTES ====================
 
@@ -72,17 +76,17 @@ async def root():
 async def startup_event():
     """Initialize application on startup"""
     logger.info("Application startup")
-    print("✓ Playwright Recorder Player API started")
-    print(f"✓ Viewport: {browser_manager.viewport['width']}x{browser_manager.viewport['height']}")
-    print("✓ Using Synchronous Playwright API (No asyncio issues!)")
-    print("✓ API Docs: http://localhost:8000/api/docs")
+    print("[OK] Playwright Recorder Player API started")
+    print(f"[OK] Viewport: {browser_manager.viewport['width']}x{browser_manager.viewport['height']}")
+    print("[OK] Using Synchronous Playwright API (No asyncio issues!)")
+    print("[OK] API Docs: http://localhost:8000/api/docs")
 
 @app.on_event("shutdown")
 async def shutdown_event():
     """Cleanup on application shutdown"""
     logger.info("Application shutdown")
     await run_in_threadpool(browser_manager.close)
-    print("✓ Browser closed and resources cleaned up")
+    print("[OK] Browser closed and resources cleaned up")
 
 if __name__ == "__main__":
     import uvicorn

@@ -7,7 +7,7 @@ from app.models.schemas import CoordinatesRequest
 from app.services.launchWeb import browser_manager
 
 logger = logging.getLogger(__name__)
-router = APIRouter(prefix="/api", tags=["dom"])
+router = APIRouter(tags=["dom"])
 
 
 @router.get("/dom")

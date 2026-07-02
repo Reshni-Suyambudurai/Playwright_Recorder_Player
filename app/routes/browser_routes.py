@@ -6,7 +6,7 @@ import traceback
 from app.services.launchWeb import browser_manager
 
 logger = logging.getLogger(__name__)
-router = APIRouter(prefix="/api", tags=["browser"])
+router = APIRouter(tags=["browser"])
 
 
 @router.post("/initialize")
@@ -21,7 +21,9 @@ async def initialize_browser():
     """
     try:
         logger.info("Initialize endpoint called")
-        result = await run_in_threadpool(browser_manager.initialize)
+        # Call initialize() directly - it uses threading.Thread internally
+        # to avoid asyncio event loop conflicts on Windows
+        result = browser_manager.initialize()
         logger.debug(f"Initialize result: {result}")
         if result.get("status") == "success":
             logger.info("Browser initialization successful")

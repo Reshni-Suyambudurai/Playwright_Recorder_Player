@@ -1,14 +1,14 @@
 """API routes for screenshot operations"""
 from fastapi import APIRouter, HTTPException
-from fastapi.concurrency import run_in_threadpool
 from fastapi.responses import FileResponse
+from fastapi.concurrency import run_in_threadpool
 from pathlib import Path
 import base64
 import logging
 from app.services.launchWeb import browser_manager
 
 logger = logging.getLogger(__name__)
-router = APIRouter(prefix="/api", tags=["screenshots"])
+router = APIRouter(tags=["screenshot"])
 
 
 @router.post("/screenshot")

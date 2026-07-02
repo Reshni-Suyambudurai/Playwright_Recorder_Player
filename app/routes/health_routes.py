@@ -3,7 +3,7 @@ from fastapi import APIRouter
 import logging
 
 logger = logging.getLogger(__name__)
-router = APIRouter(prefix="/api", tags=["health"])
+router = APIRouter(tags=["health"])
 
 
 @router.get("/health")

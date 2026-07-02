@@ -5,12 +5,26 @@ No asyncio complexity - simple, straightforward synchronous calls
 """
 import logging
 import traceback
+import threading
+import asyncio
+import sys
+import subprocess
+import queue
 from pathlib import Path
 from datetime import datetime
 from playwright.sync_api import sync_playwright
 
 # Configure logging
 logger = logging.getLogger(__name__)
+
+# Set Windows event loop policy at module import time (before any asyncio contexts)
+# Use ProactorEventLoopPolicy which supports subprocess on Windows
+if sys.platform == "win32":
+    try:
+        asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
+        logger.debug("Windows detected: Set event loop policy to WindowsProactorEventLoopPolicy at import time")
+    except Exception as e:
+        logger.warning(f"Could not set event loop policy: {e}")
 
 class BrowserManager:
     def __init__(self):
@@ -19,33 +33,185 @@ class BrowserManager:
         self.playwright = None
         self.screenshots_dir = Path(__file__).parent.parent / "screenshots"
         self.screenshots_dir.mkdir(exist_ok=True)
+        self._lock = threading.Lock()
+        self._init_event = threading.Event()
+        self._init_result = None
+        self._browser_thread = None
+        self._operation_queue = queue.Queue()
+        self._running = False
         
-        # Predefined viewport settings
         self.viewport = {
             "width": 1280,
             "height": 720
         }
 
-    def initialize(self):
-        """Initialize Playwright browser (Synchronous)"""
+    def _browser_thread_main(self):
+        """Main loop for browser thread"""
         try:
-            logger.info("Starting Playwright initialization")
+            logger.info("Browser thread started")
+            
+            if sys.platform == "win32":
+                asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+                logger.debug("Created fresh ProactorEventLoop for browser thread")
+            
             self.playwright = sync_playwright().start()
             logger.debug("Playwright context started")
             self.browser = self.playwright.chromium.launch(headless=True)
             logger.debug("Chromium browser launched")
             self.page = self.browser.new_page(viewport=self.viewport)
             logger.info(f"Browser initialized with viewport {self.viewport}")
-            return {"status": "success", "message": "Browser initialized"}
+            
+            self._init_result = {"status": "success", "message": "Browser initialized"}
+            self._running = True
+            self._init_event.set()
+            
+            while self._running:
+                try:
+                    operation, args, result_event = self._operation_queue.get(timeout=1)
+                    logger.debug(f"Processing: {operation}")
+                    try:
+                        result = self._execute_operation(operation, args)
+                        result_event.result = result
+                    except Exception as e:
+                        logger.error(f"Operation error: {str(e)}")
+                        result_event.result = {"status": "error", "message": str(e)}
+                    finally:
+                        result_event.set()
+                except queue.Empty:
+                    continue
+                except Exception as e:
+                    logger.error(f"Browser thread error: {str(e)}")
+                    
         except Exception as e:
-            logger.error(f"Error during browser initialization: {str(e)}")
+            logger.error(f"Fatal error: {str(e)}")
             logger.error(f"Traceback: {traceback.format_exc()}")
-            return {"status": "error", "message": str(e)}
+            self._init_result = {"status": "error", "message": str(e)}
+            self._init_event.set()
+        finally:
+            self._cleanup_browser()
 
-    def close(self):
-        """Close browser and cleanup"""
+    def _execute_operation(self, operation, args):
+        """Execute operation in browser thread"""
+        if operation == "open_url":
+            url = args[0]
+            if not url.startswith(("http://", "https://")):
+                url = "https://" + url
+            logger.info(f"Navigating to: {url}")
+            result = self.page.goto(url, wait_until="domcontentloaded", timeout=30000)
+            return {
+                "status": "success",
+                "url": str(result.url) if result else url,
+                "message": "URL opened successfully"
+            }
+        
+        elif operation == "screenshot":
+            filename = args[0] if args else f"screenshot_{datetime.now().strftime('%Y%m%d_%H%M%S')}.png"
+            screenshot_path = self.screenshots_dir / filename
+            self.page.screenshot(path=str(screenshot_path))
+            return {
+                "status": "success",
+                "filename": filename,
+                "screenshot_path": str(screenshot_path)
+            }
+        
+        elif operation == "get_dom":
+            html = self.page.content()
+            viewport_size = self.page.evaluate("() => ({ width: window.innerWidth, height: window.innerHeight })")
+            return {
+                "status": "success",
+                "html": html,
+                "viewport": {**self.viewport, **viewport_size}
+            }
+        
+        elif operation == "get_element_at_coordinates":
+            x, y = args[0], args[1]
+            result = self.page.evaluate(f"""
+                (() => {{
+                    const element = document.elementFromPoint({x}, {y});
+                    if (!element) return {{ error: 'No element found' }};
+                    
+                    function getSelector(el) {{
+                        if (el.id) return '#' + el.id;
+                        let path = [];
+                        while (el.parentElement) {{
+                            let selector = el.tagName.toLowerCase();
+                            if (el.id) {{
+                                selector += '#' + el.id;
+                                path.unshift(selector);
+                                break;
+                            }} else {{
+                                let sibling = el;
+                                let nth = 1;
+                                while (sibling = sibling.previousElementSibling) {{
+                                    if (sibling.tagName.toLowerCase() === selector) nth++;
+                                }}
+                                if (nth > 1) selector += `:nth-of-type(${{nth}})`;
+                                path.unshift(selector);
+                            }}
+                            el = el.parentElement;
+                        }}
+                        return path.join(' > ');
+                    }}
+                    
+                    function getXPath(el) {{
+                        if (el.id !== '')
+                            return "//*[@id='" + el.id + "']";
+                        if (el === document.body)
+                            return "//" + el.tagName.toLowerCase();
+                        var ix = 0;
+                        var siblings = el.parentNode.childNodes;
+                        for (var i = 0; i < siblings.length; i++) {{
+                            var sibling = siblings[i];
+                            if (sibling === el)
+                                return getXPath(el.parentNode) + "/" + el.tagName.toLowerCase() + "[" + (ix + 1) + "]";
+                            if (sibling.nodeType === 1 && sibling.tagName.toLowerCase() === el.tagName.toLowerCase())
+                                ix++;
+                        }}
+                    }}
+                    
+                    const rect = element.getBoundingClientRect();
+                    
+                    return {{
+                        tagName: element.tagName,
+                        text: element.textContent.substring(0, 100),
+                        id: element.id || '',
+                        class: element.className || '',
+                        selector: getSelector(element),
+                        xpath: getXPath(element),
+                        boundingRect: {{
+                            x: Math.round(rect.left),
+                            y: Math.round(rect.top),
+                            width: Math.round(rect.width),
+                            height: Math.round(rect.height)
+                        }},
+                        attributes: {{
+                            href: element.getAttribute('href'),
+                            name: element.getAttribute('name'),
+                            type: element.getAttribute('type'),
+                            placeholder: element.getAttribute('placeholder'),
+                            value: element.getAttribute('value'),
+                            title: element.getAttribute('title'),
+                            label: element.getAttribute('aria-label')
+                        }},
+                        innerHTML: element.innerHTML.substring(0, 500),
+                        outerHTML: element.outerHTML.substring(0, 500)
+                    }};
+                }})()
+            """)
+            return {
+                "status": "success",
+                "element": result,
+                "coordinates": {"x": x, "y": y}
+            }
+        
+        else:
+            return {"status": "error", "message": f"Unknown operation: {operation}"}
+
+    def _cleanup_browser(self):
+        """Clean up browser resources"""
         try:
-            logger.info("Closing browser")
             if self.page:
                 self.page.close()
                 logger.debug("Page closed")
@@ -55,179 +221,63 @@ class BrowserManager:
             if self.playwright:
                 self.playwright.stop()
                 logger.debug("Playwright context stopped")
+        except Exception as e:
+            logger.error(f"Cleanup error: {str(e)}")
+
+    def _execute_in_browser_thread(self, operation, args=None):
+        """Execute operation in browser thread"""
+        if args is None:
+            args = []
+        result_event = threading.Event()
+        self._operation_queue.put((operation, args, result_event))
+        if not result_event.wait(timeout=60):
+            return {"status": "error", "message": "Operation timed out"}
+        return result_event.result
+
+    def initialize(self):
+        """Initialize browser"""
+        with self._lock:
+            if self._browser_thread and self._browser_thread.is_alive():
+                return {"status": "success", "message": "Browser already initialized"}
+            self._browser_thread = threading.Thread(target=self._browser_thread_main, daemon=False)
+            self._browser_thread.start()
+            self._init_event.wait(timeout=60)
+            if self._init_result is None:
+                return {"status": "error", "message": "Browser initialization timed out"}
+            return self._init_result
+
+    def open_url(self, url: str):
+        """Open URL"""
+        return self._execute_in_browser_thread("open_url", [url])
+
+    def take_screenshot(self, name: str = None):
+        """Take screenshot"""
+        if name is None:
+            name = f"screenshot_{datetime.now().strftime('%Y%m%d_%H%M%S')}.png"
+        return self._execute_in_browser_thread("screenshot", [name])
+
+    def get_dom(self):
+        """Fetch page DOM"""
+        return self._execute_in_browser_thread("get_dom", [])
+
+    def get_element_at_coordinates(self, x: int, y: int):
+        """Get element at coordinates"""
+        return self._execute_in_browser_thread("get_element_at_coordinates", [x, y])
+
+    def close(self):
+        """Close browser"""
+        try:
+            logger.info("Closing browser")
+            self._running = False
+            if self._browser_thread:
+                self._browser_thread.join(timeout=10)
             logger.info("Browser closed successfully")
             return {"status": "success", "message": "Browser closed"}
         except Exception as e:
             logger.error(f"Error closing browser: {str(e)}")
-            logger.error(f"Traceback: {traceback.format_exc()}")
             return {"status": "error", "message": str(e)}
 
-    def open_url(self, url: str):
-        """Open a URL in the browser"""
-        if not self.page:
-            logger.error("Attempted to open URL but browser not initialized")
-            return {"status": "error", "message": "Browser not initialized"}
-        
-        try:
-            logger.info(f"Opening URL: {url}")
-            # Ensure URL has protocol
-            if not url.startswith(("http://", "https://")):
-                url = "https://" + url
-                logger.debug(f"Added https protocol to URL: {url}")
-            
-            logger.debug(f"Navigating to: {url}")
-            self.page.goto(url, wait_until="networkidle")
-            logger.info(f"Successfully navigated to: {url}")
-            return {"status": "success", "url": url}
-        except Exception as e:
-            logger.error(f"Error opening URL {url}: {str(e)}")
-            logger.error(f"Traceback: {traceback.format_exc()}")
-            return {"status": "error", "message": str(e)}
 
-    def take_screenshot(self, name: str = None):
-        """Take a screenshot and save to screenshots folder"""
-        if not self.page:
-            return {"status": "error", "message": "Browser not initialized"}
-        
-        try:
-            if name is None:
-                name = f"screenshot_{datetime.now().strftime('%Y%m%d_%H%M%S')}.png"
-            
-            screenshot_path = self.screenshots_dir / name
-            self.page.screenshot(path=str(screenshot_path))
-            
-            return {
-                "status": "success",
-                "screenshot_path": str(screenshot_path),
-                "filename": name
-            }
-        except Exception as e:
-            return {"status": "error", "message": str(e)}
-
-    def get_dom(self):
-        """Fetch the DOM of the current page"""
-        if not self.page:
-            return {"status": "error", "message": "Browser not initialized"}
-        
-        try:
-            # Get HTML content
-            html = self.page.content()
-            
-            # Get viewport dimensions
-            viewport_size = self.page.evaluate("() => ({ width: window.innerWidth, height: window.innerHeight })")
-            
-            return {
-                "status": "success",
-                "html": html,
-                "viewport": {
-                    **self.viewport,
-                    "actual_inner_width": viewport_size["width"],
-                    "actual_inner_height": viewport_size["height"]
-                }
-            }
-        except Exception as e:
-            return {"status": "error", "message": str(e)}
-
-    def get_element_at_coordinates(self, x: int, y: int):
-        """
-        Get element information at specific coordinates (x, y)
-        Returns: selector, xpath, element name, and element details
-        """
-        if not self.page:
-            return {"status": "error", "message": "Browser not initialized"}
-        
-        try:
-            # Execute script to find element at coordinates
-            result = self.page.evaluate(f"""
-            (() => {{
-                const element = document.elementFromPoint({x}, {y});
-                
-                if (!element) {{
-                    return {{ error: 'No element found at coordinates' }};
-                }}
-                
-                // Generate CSS selector
-                function getSelector(el) {{
-                    if (el.id) return '#' + el.id;
-                    
-                    let path = [];
-                    while (el.parentElement) {{
-                        let selector = el.tagName.toLowerCase();
-                        if (el.id) {{
-                            selector += '#' + el.id;
-                            path.unshift(selector);
-                            break;
-                        }} else {{
-                            let sibling = el;
-                            let nth = 1;
-                            while (sibling = sibling.previousElementSibling) {{
-                                if (sibling.tagName.toLowerCase() === selector) nth++;
-                            }}
-                            if (nth > 1) selector += ':nth-of-type(' + nth + ')';
-                        }}
-                        path.unshift(selector);
-                        el = el.parentElement;
-                    }}
-                    return path.join(' > ');
-                }}
-                
-                // Generate XPath
-                function getXPath(el) {{
-                    if (el.id)
-                        return "//*[@id='" + el.id + "']";
-                    if (el === document.body)
-                        return "/body";
-                    
-                    var index = 0;
-                    var sibling = el.previousSibling;
-                    while (sibling) {{
-                        if (sibling.nodeType === 1 && sibling.tagName.toLowerCase() === el.tagName.toLowerCase())
-                            index++;
-                        sibling = sibling.previousSibling;
-                    }}
-                    
-                    var tagName = el.tagName.toLowerCase();
-                    var position = (index + 1);
-                    var parentPath = getXPath(el.parentNode);
-                    return parentPath + '/' + tagName + '[' + position + ']';
-                }}
-                
-                return {{
-                    success: true,
-                    tagName: element.tagName,
-                    className: element.className,
-                    id: element.id,
-                    text: element.textContent.substring(0, 100),
-                    selector: getSelector(element),
-                    xpath: getXPath(element),
-                    attributes: {{
-                        href: element.getAttribute('href'),
-                        name: element.getAttribute('name'),
-                        type: element.getAttribute('type'),
-                        placeholder: element.getAttribute('placeholder'),
-                        value: element.getAttribute('value')
-                    }},
-                    html: element.outerHTML.substring(0, 500),
-                    boundingRect: element.getBoundingClientRect()
-                }};
-            }})()
-            """)
-            
-            if "error" in result:
-                return {"status": "error", "message": result["error"], "coordinates": {"x": x, "y": y}}
-            
-            return {
-                "status": "success",
-                "coordinates": {"x": x, "y": y},
-                "element": result
-            }
-            
-        except Exception as e:
-            return {
-                "status": "error",
-                "message": str(e),
-                "coordinates": {"x": x, "y": y}
-            }
-
-# Global browser manager instance
+# Global instance
 browser_manager = BrowserManager()
+

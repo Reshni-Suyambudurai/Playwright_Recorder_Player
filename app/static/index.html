@@ -301,6 +301,76 @@
             border-radius: 4px;
         }
 
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+        }
+
+        .modal-content {
+            background-color: white;
+            margin: 10% auto;
+            padding: 25px;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .modal-header {
+            font-size: 1.5em;
+            font-weight: 600;
+            color: #667eea;
+            margin-bottom: 20px;
+        }
+
+        .modal-body {
+            margin-bottom: 20px;
+        }
+
+        .modal-footer {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+
+        .modal input[type="text"],
+        .modal textarea {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 0.95em;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .modal textarea {
+            resize: vertical;
+            min-height: 80px;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .modal input[type="text"]:focus,
+        .modal textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 8px rgba(102, 126, 234, 0.3);
+        }
+
+        .modal label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 600;
+            font-size: 0.95em;
+        }
+
         .divider {
             height: 1px;
             background: #e0e0e0;
@@ -399,6 +469,29 @@
                     <!-- Element details will be populated here -->
                 </div>
             </div>
+
+            <div class="divider"></div>
+
+            <!-- Recording Controls -->
+            <div class="control-section">
+                <label>🎥 Recording:</label>
+                <button id="saveRecordingBtn" onclick="saveRecording()" disabled>💾 Save Recording</button>
+                <div id="recordingStatus"></div>
+            </div>
+
+            <div class="divider"></div>
+
+            <!-- Playback Controls -->
+            <div class="control-section">
+                <label>▶️ Playback:</label>
+                <button onclick="loadRecordingsList()">📋 Load Recordings</button>
+                <select id="recordingsDropdown" style="display: none; width: 100%; padding: 10px; margin: 10px 0; border: 2px solid #e0e0e0; border-radius: 6px;">
+                    <option value="">-- Select a recording --</option>
+                </select>
+                <div id="playbackInfo" style="display: none; background: #f0f0f0; padding: 10px; border-radius: 6px; margin: 10px 0; font-size: 0.9em;"></div>
+                <button id="playRecordingBtn" onclick="playRecording()" disabled style="display: none;">▶️ Play Recording</button>
+                <div id="playbackStatus"></div>
+            </div>
         </div>
 
         <!-- Full Width: Output and Previews -->
@@ -410,8 +503,66 @@
         </div>
     </div>
 
+    <!-- Save Recording Modal -->
+    <div id="saveRecordingModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">💾 Save Recording</div>
+            <div class="modal-body">
+                <label for="recordingTitle">Recording Title:</label>
+                <input type="text" id="recordingTitle" placeholder="e.g., GitHub Login Test" value="User Recording">
+                
+                <label for="recordingDescription">Description:</label>
+                <textarea id="recordingDescription" placeholder="Describe what this recording does..."></textarea>
+                
+                <label for="recordingIntent">Intent/Purpose:</label>
+                <input type="text" id="recordingIntent" placeholder="e.g., Verify OAuth login flow">
+            </div>
+            <div class="modal-footer">
+                <button class="secondary" onclick="closeRecordingModal()">❌ Cancel</button>
+                <button onclick="confirmSaveRecording()">✓ Save Recording</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         const BASE_URL = "http://localhost:8000/api";
+
+        // ==================== RECORDING TRACKING ====================
+        
+        let recordingMetadata = {
+            title: "User Recording",
+            description: "",
+            intent: "",
+            createdAt: Date.now(),
+            id: generateUUID()
+        };
+        
+        let recordedActions = [];
+        let actionCounter = 0;
+        let currentViewport = { width: 1280, height: 720, deviceScaleFactor: 1.0 };
+
+        function generateUUID() {
+            return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+                const r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
+                return v.toString(16);
+            });
+        }
+
+        function recordAction(type, actionData = {}) {
+            actionCounter++;
+            const action = {
+                id: actionCounter,
+                type: type,
+                timestamp: Date.now(),
+                viewport: currentViewport,
+                shouldRun: true,
+                required: false,
+                ...actionData
+            };
+            recordedActions.push(action);
+            log(`🎥 Action recorded: <strong>${type}</strong> (Total: ${recordedActions.length})`);
+            return action;
+        }
 
         // ==================== UTILITY FUNCTIONS ====================
 
@@ -455,18 +606,27 @@
                 return;
             }
 
+            const fullUrl = url.startsWith("http") ? url : "https://" + url;
+
             try {
                 showStatus("urlStatus", '<span class="loading">⏳</span> Opening URL...', "info");
                 const response = await fetch(`${BASE_URL}/open-url`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ url: url })
+                    body: JSON.stringify({ url: fullUrl })
                 });
                 const data = await response.json();
 
                 if (response.ok) {
                     showStatus("urlStatus", `<span class="success-text">✓ URL opened: ${data.url}</span>`, "success");
                     log(`✓ Successfully opened: <strong>${data.url}</strong>`);
+                    
+                    // Record NAVIGATE action
+                    recordAction("NAVIGATE", {
+                        url: fullUrl,
+                        waitUntil: "networkidle",
+                        waitAfterMs: 100
+                    });
                 } else {
                     showStatus("urlStatus", `<span class="error-text">✗ Error: ${data.detail}</span>`, "error");
                 }
@@ -569,6 +729,19 @@
                     showStatus("coordStatus", '<span class="success-text">✓ Element found</span>', "success");
                     displayElementInfo(data.element);
                     log(`✓ Element found at (${x}, ${y}): <strong>${data.element.tagName}</strong>`);
+                    
+                    // Record CLICK action
+                    recordAction("CLICK", {
+                        coords: { x: x, y: y },
+                        selector: {
+                            strategy: "css",
+                            value: data.element.selector,
+                            frameSelector: null
+                        },
+                        label: data.element.text ? data.element.text.substring(0, 50) : null,
+                        tag: data.element.tagName,
+                        waitAfterMs: 300
+                    });
                 } else {
                     showStatus("coordStatus", `<span class="error-text">✗ ${data.message}</span>`, "error");
                 }
@@ -633,6 +806,10 @@
 
             infoDiv.innerHTML = html;
             infoDiv.style.display = "block";
+            
+            // Enable Save Recording button when element is found
+            document.getElementById("saveRecordingBtn").disabled = false;
+            log("✓ Save Recording button enabled");
         }
 
         async function closeBrowser() {
@@ -769,6 +946,261 @@
 
         // Initial log
         log("🎬 <strong>Playwright Recorder Player</strong> ready! Start by clicking '🚀 Initialize Browser'");
+
+        // ==================== RECORDING FUNCTIONS ====================
+
+        async function saveRecording() {
+            if (recordedActions.length === 0) {
+                showStatus("recordingStatus", '<span class="error-text">✗ No actions to save</span>', "error");
+                return;
+            }
+
+            // Show modal to get metadata
+            document.getElementById("saveRecordingModal").style.display = "block";
+        }
+
+        function closeRecordingModal() {
+            document.getElementById("saveRecordingModal").style.display = "none";
+        }
+
+        async function confirmSaveRecording() {
+            try {
+                showStatus("recordingStatus", '<span class="loading">⏳</span> Saving recording...', "info");
+                
+                const title = document.getElementById("recordingTitle").value || "User Recording";
+                const description = document.getElementById("recordingDescription").value || "";
+                const intent = document.getElementById("recordingIntent").value || "";
+
+                // Close modal
+                closeRecordingModal();
+                
+                const recording = {
+                    version: "1.0",
+                    meta: {
+                        id: recordingMetadata.id,
+                        title: title,
+                        description: description,
+                        intent: intent,
+                        createdAt: recordingMetadata.createdAt,
+                        updatedAt: Date.now()
+                    },
+                    steps: {
+                        "tab-1": [recordedActions]
+                    }
+                };
+
+                const response = await fetch(`${BASE_URL}/save-recording`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        recording: recording,
+                        title: title,
+                        description: description,
+                        intent: intent
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    showStatus("recordingStatus", `<span class="success-text">✓ Recording saved: ${data.filename}</span>`, "success");
+                    log(`✓ Recording saved successfully!<br>
+                        <strong>Title:</strong> ${escapeHtml(title)}<br>
+                        <strong>ID:</strong> ${data.recording_id.substring(0, 12)}...<br>
+                        <strong>File:</strong> ${data.filename}<br>
+                        <strong>Actions:</strong> ${recordedActions.length}`);
+                    
+                    // Reset recording
+                    recordedActions = [];
+                    actionCounter = 0;
+                    recordingMetadata = {
+                        title: "User Recording",
+                        description: "",
+                        intent: "",
+                        createdAt: Date.now(),
+                        id: generateUUID()
+                    };
+                    
+                    // Disable save button
+                    document.getElementById("saveRecordingBtn").disabled = true;
+                    
+                    // Reset modal fields
+                    document.getElementById("recordingTitle").value = "User Recording";
+                    document.getElementById("recordingDescription").value = "";
+                    document.getElementById("recordingIntent").value = "";
+                } else {
+                    showStatus("recordingStatus", `<span class="error-text">✗ Error: ${data.message || data.detail}</span>`, "error");
+                }
+            } catch (error) {
+                showStatus("recordingStatus", `<span class="error-text">✗ Error: ${error.message}</span>`, "error");
+                log(`✗ Error saving recording: ${error.message}`);
+            }
+        }
+
+        // Close modal when clicking outside of it
+        window.onclick = function(event) {
+            const modal = document.getElementById("saveRecordingModal");
+            if (event.target === modal) {
+                closeRecordingModal();
+            }
+        }
+
+        // ==================== PLAYBACK FUNCTIONS ====================
+
+        let recordingsList = [];
+        let selectedRecordingId = null;
+
+        async function loadRecordingsList() {
+            try {
+                showStatus("playbackStatus", '<span class="loading">[LOADING]</span> Loading recordings...', "info");
+                const response = await fetch(`${BASE_URL}/recordings?limit=20`);
+                const data = await response.json();
+
+                if (response.ok && data.recordings && data.recordings.length > 0) {
+                    recordingsList = data.recordings;
+                    
+                    // Populate dropdown
+                    const dropdown = document.getElementById("recordingsDropdown");
+                    dropdown.innerHTML = '<option value="">-- Select a recording --</option>';
+                    
+                    data.recordings.forEach(recording => {
+                        const option = document.createElement("option");
+                        option.value = recording.id;
+                        const date = new Date(recording.created_at).toLocaleString();
+                        option.textContent = `${recording.title} (${date})`;
+                        dropdown.appendChild(option);
+                    });
+                    
+                    dropdown.style.display = "block";
+                    document.getElementById("playRecordingBtn").style.display = "inline-block";
+                    showStatus("playbackStatus", `<span class="success-text">[OK] Found ${data.recordings.length} recording(s)</span>`, "success");
+                    log(`[OK] Loaded ${data.recordings.length} recording(s)`);
+                } else {
+                    showStatus("playbackStatus", '<span class="error-text">[NO RECORDINGS] No recordings found</span>', "error");
+                    log("[NO RECORDINGS] No recordings available");
+                }
+            } catch (error) {
+                showStatus("playbackStatus", `<span class="error-text">[ERROR] Error: ${error.message}</span>`, "error");
+                log(`[ERROR] Error loading recordings: ${error.message}`);
+            }
+        }
+
+        document.getElementById("recordingsDropdown").addEventListener("change", (e) => {
+            selectedRecordingId = e.target.value;
+            const infoDiv = document.getElementById("playbackInfo");
+            
+            if (selectedRecordingId) {
+                const recording = recordingsList.find(r => r.id === selectedRecordingId);
+                if (recording) {
+                    const date = new Date(recording.created_at).toLocaleString();
+                    infoDiv.innerHTML = `
+                        <strong>${recording.title}</strong><br>
+                        ID: ${recording.id.substring(0, 8)}...<br>
+                        Created: ${date}
+                    `;
+                    infoDiv.style.display = "block";
+                    document.getElementById("playRecordingBtn").disabled = false;
+                    log(`📋 Selected recording: <strong>${recording.title}</strong>`);
+                }
+            } else {
+                infoDiv.style.display = "none";
+                document.getElementById("playRecordingBtn").disabled = true;
+            }
+        });
+
+        async function playRecording() {
+            if (!selectedRecordingId) {
+                showStatus("playbackStatus", '<span class="error-text">[NO SELECTION] No recording selected</span>', "error");
+                return;
+            }
+
+            try {
+                showStatus("playbackStatus", '<span class="loading">[PLAYING]</span> Playing recording...', "info");
+                log(`[START] <strong>Starting playback...</strong>`);
+                
+                const response = await fetch(`${BASE_URL}/playback/${selectedRecordingId}`, {
+                    method: "POST"
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    // Display playback results
+                    displayPlaybackResults(result);
+                    
+                    showStatus("playbackStatus", `<span class="success-text">[OK] Playback completed</span>`, "success");
+                } else {
+                    showStatus("playbackStatus", `<span class="error-text">[ERROR] Error: ${result.message || result.detail}</span>`, "error");
+                    log(`[FAIL] Playback failed: ${result.message || result.detail}`);
+                }
+            } catch (error) {
+                showStatus("playbackStatus", `<span class="error-text">[ERROR] Error: ${error.message}</span>`, "error");
+                log(`[ERROR] Error during playback: ${error.message}`);
+            }
+        }
+
+        function displayPlaybackResults(result) {
+            const output = document.getElementById("output");
+            
+            let html = `
+                <div style="background: #f0f0f0; padding: 15px; border-radius: 6px; margin: 15px 0;">
+                    <h3>▶️ Playback Results</h3>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                        <div>
+                            <strong>Recording:</strong> ${escapeHtml(result.title)}<br>
+                            <strong>Total Actions:</strong> ${result.total_actions}<br>
+                            <strong>Completed:</strong> <span style="color: #28a745;">${result.completed_actions}</span><br>
+                            <strong>Failed:</strong> <span style="color: ${result.failed_actions > 0 ? '#dc3545' : '#28a745'};">${result.failed_actions}</span><br>
+                            <strong>Success Rate:</strong> ${result.success_rate.toFixed(1)}%
+                        </div>
+                        <div>
+                            <strong>Status:</strong> <span style="color: ${result.overall_status === 'success' ? '#28a745' : '#ffc107'};">${result.overall_status.toUpperCase()}</span><br>
+                            <strong>ID:</strong> ${result.recording_id.substring(0, 12)}...<br>
+                            <strong>Timestamp:</strong> ${new Date().toLocaleTimeString()}
+                        </div>
+                    </div>
+                    
+                    <h4>Action Log:</h4>
+                    <div style="max-height: 400px; overflow-y: auto; background: white; padding: 10px; border-radius: 4px; border: 1px solid #ddd;">
+            `;
+
+            result.actions_log.forEach((action) => {
+                const statusColor = action.status === "success" ? "#28a745" : action.status === "skipped" ? "#6c757d" : "#dc3545";
+                const statusIcon = action.status === "success" ? "[OK]" : action.status === "skipped" ? "[SKIP]" : "[FAIL]";
+                
+                html += `
+                    <div style="padding: 8px; margin: 5px 0; background: ${statusColor}20; border-left: 3px solid ${statusColor}; border-radius: 3px;">
+                        <strong style="color: ${statusColor};">[${action.id}] ${statusIcon} ${action.type}</strong>
+                `;
+                
+                if (action.label) {
+                    html += `<br>Label: ${escapeHtml(action.label)}`;
+                }
+                if (action.url) {
+                    html += `<br>URL: ${escapeHtml(action.url)}`;
+                }
+                if (action.method) {
+                    html += `<br>Method: ${action.method}`;
+                }
+                if (action.coords) {
+                    html += `<br>Coords: (${action.coords.x}, ${action.coords.y})`;
+                }
+                if (action.text) {
+                    html += `<br>Text: ${escapeHtml(action.text.substring(0, 50))}`;
+                }
+                
+                html += `<br><small style="color: #666;">${escapeHtml(action.message)}</small>`;
+                html += `</div>`;
+            });
+
+            html += `
+                    </div>
+                </div>
+            `;
+
+            output.innerHTML = html + output.innerHTML;
+            log(`[OK] <strong>Playback Results:</strong> ${result.completed_actions}/${result.total_actions} actions completed (${result.success_rate.toFixed(1)}% success)`);
+        }
     </script>
 </body>
 </html>

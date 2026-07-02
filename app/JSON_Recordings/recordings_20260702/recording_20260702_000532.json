@@ -1,0 +1,80 @@
+{
+  "version": "1.0",
+  "meta": {
+    "id": "8021ac07-60de-4b14-9347-1ed19af4266a",
+    "title": "Playwrightdev_docs2",
+    "description": "Test2",
+    "createdAt": 1782930899535,
+    "updatedAt": 1782930932959,
+    "intent": "Verify flow"
+  },
+  "steps": {
+    "tab-1": [
+      [
+        {
+          "id": 1,
+          "type": "NAVIGATE",
+          "url": "https://playwright.dev/",
+          "coords": null,
+          "multiCoords": null,
+          "prompt": null,
+          "text": null,
+          "pressEnter": null,
+          "deltaY": null,
+          "waitUntil": "networkidle",
+          "waitAfterMs": 100,
+          "viewport": {
+            "width": 1280,
+            "height": 720,
+            "deviceScaleFactor": 1.0
+          },
+          "timestamp": 1782930911339,
+          "label": null,
+          "description": null,
+          "isPassword": false,
+          "storeValue": false,
+          "selector": null,
+          "isTriggerNewTab": null,
+          "shouldRun": true,
+          "required": false,
+          "tag": null
+        },
+        {
+          "id": 2,
+          "type": "CLICK",
+          "url": null,
+          "coords": {
+            "x": 151,
+            "y": 502
+          },
+          "multiCoords": null,
+          "prompt": null,
+          "text": null,
+          "pressEnter": null,
+          "deltaY": null,
+          "waitUntil": null,
+          "waitAfterMs": 300,
+          "viewport": {
+            "width": 1280,
+            "height": 720,
+            "deviceScaleFactor": 1.0
+          },
+          "timestamp": 1782930917024,
+          "label": "Get started",
+          "description": null,
+          "isPassword": false,
+          "storeValue": false,
+          "selector": {
+            "strategy": "css",
+            "value": "div#__docusaurus_skipToContent_fallback > header > div > div > a",
+            "frameSelector": null
+          },
+          "isTriggerNewTab": null,
+          "shouldRun": true,
+          "required": false,
+          "tag": "A"
+        }
+      ]
+    ]
+  }
+}
