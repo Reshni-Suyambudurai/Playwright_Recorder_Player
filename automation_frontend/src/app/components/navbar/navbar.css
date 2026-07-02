@@ -1,0 +1,129 @@
+.navbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 54px;
+  padding: 0 1.25rem;
+  background-color: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-color);
+  box-shadow: var(--shadow-xs);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  flex-shrink: 0;
+}
+
+.navbar-left {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+}
+
+.navbar-logo {
+  width: 26px;
+  height: 26px;
+  color: var(--color-primary-600);
+  flex-shrink: 0;
+}
+
+.navbar-title {
+  font-size: var(--text-base);
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: -0.02em;
+  white-space: nowrap;
+}
+
+.navbar-title-amp {
+  color: var(--color-primary-600);
+  font-weight: 800;
+}
+
+.navbar-right {
+  display: flex;
+  align-items: center;
+}
+
+.theme-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: var(--rounded-lg);
+  border: 1.5px solid var(--border-color);
+  background-color: var(--bg-tertiary);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: background-color var(--transition-fast),
+              color var(--transition-fast),
+              border-color var(--transition-fast),
+              box-shadow var(--transition-fast);
+}
+
+.theme-toggle:hover {
+  background-color: var(--color-primary-600);
+  color: #fff;
+  border-color: var(--color-primary-600);
+  box-shadow: 0 0 0 3px rgba(29, 78, 216, 0.2);
+}
+
+.theme-toggle svg {
+  width: 16px;
+  height: 16px;
+}
+
+.navbar-left {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+}
+
+.navbar-logo {
+  width: 28px;
+  height: 28px;
+  color: var(--color-primary-500);
+  flex-shrink: 0;
+}
+
+.navbar-title {
+  font-size: var(--text-lg);
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+}
+
+.navbar-title-amp {
+  color: var(--color-primary-500);
+}
+
+.navbar-right {
+  display: flex;
+  align-items: center;
+}
+
+.theme-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--rounded-lg);
+  border: 1px solid var(--border-color);
+  background-color: var(--bg-tertiary);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: background-color var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast);
+}
+
+.theme-toggle:hover {
+  background-color: var(--color-primary-500);
+  color: #fff;
+  border-color: var(--color-primary-500);
+}
+
+.theme-toggle svg {
+  width: 18px;
+  height: 18px;
+}

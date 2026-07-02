@@ -1,0 +1,73 @@
+.browser-container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background-color: var(--bg-primary);
+}
+
+.browser-content {
+  display: flex;
+  flex: 1;
+  gap: 1rem;
+  padding: 1rem;
+  overflow: hidden;
+}
+
+.browser-main {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--bg-secondary);
+  border-radius: var(--rounded-lg);
+  border: 2px dashed var(--border-color);
+  min-height: 400px;
+  overflow: auto;
+}
+
+.placeholder {
+  text-align: center;
+  padding: 2rem;
+  color: var(--text-secondary);
+}
+
+.placeholder h2 {
+  color: var(--text-primary);
+  margin-bottom: 1rem;
+}
+
+.placeholder p {
+  margin: 0.5rem 0;
+  font-size: var(--text-sm);
+}
+
+.placeholder .hint {
+  color: var(--text-tertiary);
+  font-size: var(--text-xs);
+  margin: 0.25rem 0;
+}
+
+.browser-sidebar {
+  width: 420px;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+}
+
+@media (max-width: 1024px) {
+  .browser-sidebar {
+    width: 350px;
+  }
+}
+
+@media (max-width: 768px) {
+  .browser-content {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .browser-sidebar {
+    width: 100%;
+    max-height: 250px;
+  }
+}

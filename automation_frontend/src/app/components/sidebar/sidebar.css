@@ -1,0 +1,127 @@
+.sidebar {
+  width: 220px;
+  min-width: 220px;
+  height: 100%;
+  background-color: var(--bg-secondary);
+  border-right: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+  padding: 0.875rem 0.625rem;
+  overflow-y: auto;
+  flex-shrink: 0;
+}
+
+.sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+}
+
+.sidebar-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5625rem 0.75rem;
+  border-radius: var(--rounded-lg);
+  color: var(--text-secondary);
+  text-decoration: none;
+  font-size: var(--text-sm);
+  font-weight: 500;
+  transition: background-color var(--transition-fast), color var(--transition-fast);
+  cursor: pointer;
+}
+
+.sidebar-item:hover {
+  background-color: var(--bg-tertiary);
+  color: var(--text-primary);
+  text-decoration: none;
+}
+
+.sidebar-item--active {
+  background-color: var(--color-primary-100);
+  color: var(--color-primary-700);
+}
+
+.sidebar-item--active .sidebar-icon {
+  color: var(--color-primary-600);
+}
+
+html.dark .sidebar-item--active {
+  background-color: rgba(29, 78, 216, 0.15);
+  color: var(--color-primary-300);
+}
+
+html.dark .sidebar-item--active .sidebar-icon {
+  color: var(--color-primary-400);
+}
+
+.sidebar-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+.sidebar-icon svg {
+  width: 18px;
+  height: 18px;
+}
+
+.sidebar-label {
+  white-space: nowrap;
+}
+
+.sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.sidebar-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.625rem 0.875rem;
+  border-radius: var(--rounded-lg);
+  color: var(--text-secondary);
+  text-decoration: none;
+  font-size: var(--text-sm);
+  font-weight: 500;
+  transition: background-color var(--transition-fast), color var(--transition-fast);
+  cursor: pointer;
+}
+
+.sidebar-item:hover {
+  background-color: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+.sidebar-item--active {
+  background-color: var(--color-primary-50);
+  color: var(--color-primary-600);
+}
+
+html.dark .sidebar-item--active {
+  background-color: rgba(14, 165, 233, 0.12);
+  color: var(--color-primary-400);
+}
+
+.sidebar-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+}
+
+.sidebar-icon svg {
+  width: 20px;
+  height: 20px;
+}
+
+.sidebar-label {
+  white-space: nowrap;
+}

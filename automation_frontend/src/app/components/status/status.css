@@ -1,0 +1,122 @@
+.status-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  padding: 1rem;
+  background-color: var(--bg-secondary);
+  border-radius: var(--rounded-md);
+  max-width: 400px;
+}
+
+.status-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1rem;
+  background-color: var(--bg-primary);
+  border-radius: var(--rounded-md);
+  border: 2px solid var(--border-color);
+}
+
+.status-section h3 {
+  margin: 0;
+  font-size: var(--text-lg);
+  color: var(--text-primary);
+}
+
+.status-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.status-item label {
+  font-weight: 600;
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+.status-value {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  background-color: var(--bg-secondary);
+  border-radius: var(--rounded-md);
+  font-size: var(--text-sm);
+  color: var(--text-primary);
+  word-break: break-all;
+}
+
+.status-value.connected {
+  background-color: rgba(16, 185, 129, 0.1);
+  color: var(--color-success);
+  border: 1px solid var(--color-success);
+}
+
+.status-value.disconnected {
+  background-color: rgba(239, 68, 68, 0.1);
+  color: var(--color-danger);
+  border: 1px solid var(--color-danger);
+}
+
+.status-value.loading {
+  background-color: rgba(245, 158, 11, 0.1);
+  color: var(--color-warning);
+  border: 1px solid var(--color-warning);
+}
+
+.status-value.monospace {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+}
+
+.status-value.url-display {
+  max-height: 60px;
+  overflow-y: auto;
+}
+
+.monospace {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+}
+
+.navigation-info {
+  margin-bottom: 0.25rem;
+}
+
+.navigation-time {
+  font-size: var(--text-xs);
+  margin-bottom: 0.5rem;
+}
+
+.navigation-meta {
+  font-size: var(--text-xs);
+  margin: 0.25rem 0;
+}
+
+.status-item.error {
+  background-color: rgba(239, 68, 68, 0.1);
+  padding: 0.75rem;
+  border-radius: var(--rounded-md);
+  border: 1px solid var(--color-danger);
+}
+
+.text-secondary {
+  color: var(--text-secondary);
+}
+
+.text-tertiary {
+  color: var(--text-tertiary);
+}
+
+.text-danger {
+  color: var(--color-danger);
+}
+
+@media (max-width: 768px) {
+  .status-panel {
+    max-width: 100%;
+  }
+}

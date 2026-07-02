@@ -1,0 +1,48 @@
+<div class="toolbar">
+  @let connState = connectionState();
+  @let navState = navigationState();
+
+  <div class="toolbar-left">
+    <button
+      class="btn btn-primary"
+      (click)="onConnect()"
+      [disabled]="connState.isConnected"
+    >
+      Connect
+    </button>
+    <button
+      class="btn btn-danger"
+      (click)="onDisconnect()"
+      [disabled]="!connState.isConnected"
+    >
+      Disconnect
+    </button>
+  </div>
+
+  <div class="toolbar-center">
+    <input
+      type="text"
+      class="url-input"
+      [(ngModel)]="urlInput"
+      (keyup)="onKeyPress($event)"
+      placeholder="Enter URL (e.g., https://example.com)"
+      [disabled]="!connState.isConnected || navState.isLoading"
+    />
+    <button
+      class="btn btn-success"
+      (click)="onNavigate()"
+      [disabled]="!connState.isConnected || navState.isLoading"
+    >
+      Navigate
+    </button>
+  </div>
+
+  <div class="toolbar-right">
+    <div class="status-badge" [ngClass]="{'connected': connState.isConnected, 'disconnected': !connState.isConnected}">
+      <span class="status-indicator" [ngClass]="{'status-connected': connState.isConnected, 'status-disconnected': !connState.isConnected}"></span>
+      <span class="status-text">
+        {{ connState.isConnected ? 'Connected' : 'Disconnected' }}
+      </span>
+    </div>
+  </div>
+</div>
