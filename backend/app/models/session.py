@@ -18,14 +18,12 @@ class SessionStatus(Enum):
 class RecordingSession:
     """
     Represents a single recording session.
-    
-    Stores all necessary information about a browser session including
-    the browser instance, context, page, and session metadata.
     """
     session_id: str
     browser: Optional[object] = None
     browser_context: Optional[object] = None
     page: Optional[object] = None
+    dom_watcher: Optional[object] = None   # DomWatcher — detached on disconnect
     current_url: str = ""
     status: SessionStatus = SessionStatus.ACTIVE
     created_at: datetime = field(default_factory=datetime.now)

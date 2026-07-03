@@ -1,28 +1,34 @@
 import { Injectable, signal, WritableSignal } from '@angular/core';
 import {
+  ActionDoneData,
+  ClickActionData,
   ConnectionState,
   ErrorData,
   EventType,
+  FrameData,
   HelloData,
   NavigateData,
   NavigationErrorData,
   NavigationSuccessData,
   PingData,
   PongData,
+  RecordingStartedData,
+  StartRecordingData,
   WebSocketEvent,
   WelcomeData,
 } from '../types/websocket';
 import { Observable, Subject } from 'rxjs';
 import { environment } from '../../environments/environment';
+import { TokenStore } from './token-store.api';
 
 @Injectable({
   providedIn: 'root',
 })
 export class WebsocketApi {
+  private tokenStore = new TokenStore();
   private ws: WebSocket | null = null;
-  private clientId: string = this.generateClientId();
+  private clientId: string = this.tokenStore.resolveClientId();
 
-  // WritableSignal for reactive state
   readonly connectionState: WritableSignal<ConnectionState> = signal({
     isConnected: false,
     sessionId: null,
@@ -31,7 +37,7 @@ export class WebsocketApi {
     error: null,
   });
 
-  // Observables for async backend events
+  // Navigation observables
   private navigationSuccessSubject = new Subject<NavigationSuccessData>();
   private navigationErrorSubject = new Subject<NavigationErrorData>();
   private errorSubject = new Subject<string>();
@@ -39,6 +45,15 @@ export class WebsocketApi {
   readonly navigationSuccess$: Observable<NavigationSuccessData> = this.navigationSuccessSubject.asObservable();
   readonly navigationError$: Observable<NavigationErrorData> = this.navigationErrorSubject.asObservable();
   readonly error$: Observable<string> = this.errorSubject.asObservable();
+
+  // Screenshot streaming observables
+  private frameSubject = new Subject<FrameData>();
+  private recordingStartedSubject = new Subject<RecordingStartedData>();
+  private actionDoneSubject = new Subject<ActionDoneData>();
+
+  readonly frame$: Observable<FrameData> = this.frameSubject.asObservable();
+  readonly recordingStarted$: Observable<RecordingStartedData> = this.recordingStartedSubject.asObservable();
+  readonly actionDone$: Observable<ActionDoneData> = this.actionDoneSubject.asObservable();
 
   /**
    * Connect to WebSocket server
@@ -113,7 +128,7 @@ export class WebsocketApi {
   }
 
   /**
-   * Generic send method
+   * Generic send method — always includes client_id so backend can target responses.
    */
   private send(eventType: EventType, data: any): void {
     if (!this.isConnected()) {
@@ -123,6 +138,7 @@ export class WebsocketApi {
 
     const event: WebSocketEvent = {
       event_type: eventType,
+      client_id: this.clientId,
       data,
     };
 
@@ -163,6 +179,15 @@ export class WebsocketApi {
         case 'NAVIGATION_ERROR':
           this.navigationErrorSubject.next(event.data as NavigationErrorData);
           this.updateConnectionState({ error: event.data.message });
+          break;
+        case 'FRAME':
+          this.frameSubject.next(event.data as FrameData);
+          break;
+        case 'RECORDING_STARTED':
+          this.recordingStartedSubject.next(event.data as RecordingStartedData);
+          break;
+        case 'ACTION_DONE':
+          this.actionDoneSubject.next(event.data as ActionDoneData);
           break;
         case 'ERROR':
           this.handleError(event.data as ErrorData);
@@ -218,20 +243,19 @@ export class WebsocketApi {
   /**
    * Check if WebSocket is connected
    */
+  public sendStartRecording(data: StartRecordingData): void {
+    this.send('START_RECORDING', data);
+  }
+
+  public sendClickAction(x: number, y: number, button: 'left' | 'right' | 'middle' = 'left'): void {
+    const data: ClickActionData = { x, y, button };
+    this.send('CLICK_ACTION', data);
+  }
+
   public isConnected(): boolean {
     return this.ws !== null && this.ws.readyState === WebSocket.OPEN;
   }
 
-  /**
-   * Generate unique client ID
-   */
-  private generateClientId(): string {
-    return `client-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-  }
-
-  /**
-   * Get current connection state
-   */
   public getConnectionState(): ConnectionState {
     return this.connectionState();
   }

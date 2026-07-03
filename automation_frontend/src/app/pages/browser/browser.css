@@ -1,7 +1,7 @@
 .browser-container {
   display: flex;
   flex-direction: column;
-  height: 100vh;
+  height: 100%;
   background-color: var(--bg-primary);
 }
 
@@ -16,13 +16,13 @@
 .browser-main {
   flex: 1;
   display: flex;
-  align-items: center;
-  justify-content: center;
+  align-items: stretch;
+  justify-content: stretch;
   background-color: var(--bg-secondary);
   border-radius: var(--rounded-lg);
-  border: 2px dashed var(--border-color);
-  min-height: 400px;
-  overflow: auto;
+  border: 1px solid var(--border-color);
+  min-height: 0;
+  overflow: hidden;
 }
 
 .placeholder {
@@ -48,7 +48,8 @@
 }
 
 .browser-sidebar {
-  width: 420px;
+  width: 280px;
+  flex-shrink: 0;
   display: flex;
   flex-direction: column;
   overflow-y: auto;
@@ -56,7 +57,7 @@
 
 @media (max-width: 1024px) {
   .browser-sidebar {
-    width: 350px;
+    width: 220px;
   }
 }
 

@@ -1,0 +1,16 @@
+@if (frameUrl()) {
+  <div class="browser-view-container">
+    <img
+      #frameImg
+      class="browser-frame"
+      [src]="frameUrl()"
+      alt="Live browser view"
+      (click)="onImageClick($event)"
+      draggable="false"
+    />
+  </div>
+} @else {
+  <div class="browser-view-placeholder">
+    <span class="placeholder-text">No active recording</span>
+  </div>
+}

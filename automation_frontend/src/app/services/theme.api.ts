@@ -1,21 +1,34 @@
-import { Injectable, signal, WritableSignal } from '@angular/core';
+import { effect, inject, Injectable, signal, WritableSignal } from '@angular/core';
+import { TokenStore } from './token-store.api';
 
 @Injectable({ providedIn: 'root' })
 export class ThemeApi {
-  readonly isDark: WritableSignal<boolean> = signal(false);
+  private tokenStore = inject(TokenStore);
+
+  readonly isDark: WritableSignal<boolean> = signal(this.resolveInitialTheme());
 
   constructor() {
-    const saved = localStorage.getItem('theme');
-    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    const dark = saved ? saved === 'dark' : prefersDark;
-    this.isDark.set(dark);
-    document.documentElement.classList.toggle('dark', dark);
+    /**
+     * effect() is the Angular 21 way to handle reactive side effects.
+     * Runs once on init and every time isDark changes — no manual DOM
+     * calls needed in toggle().
+     */
+    effect(() => {
+      const dark = this.isDark();
+      document.documentElement.classList.toggle('dark', dark);
+      this.tokenStore.setTheme(dark ? 'dark' : 'light');
+    });
   }
 
   toggle(): void {
-    const next = !this.isDark();
-    this.isDark.set(next);
-    document.documentElement.classList.toggle('dark', next);
-    localStorage.setItem('theme', next ? 'dark' : 'light');
+    this.isDark.update(v => !v);
+    // DOM + localStorage update is handled entirely by the effect above.
+  }
+
+  private resolveInitialTheme(): boolean {
+    const saved = this.tokenStore.getTheme();
+    if (saved !== null) return saved === 'dark';
+    return window.matchMedia('(prefers-color-scheme: dark)').matches;
   }
 }
+

@@ -1,12 +1,34 @@
-import { Component } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { Toolbar } from '../../components/toolbar/toolbar';
 import { Status } from '../../components/status/status';
+import { BrowserView } from '../../components/browser-view/browser-view';
+import { RecordingModal } from '../../components/recording-modal/recording-modal';
+import { WebsocketApi } from '../../services/websocket.api';
 
 @Component({
   selector: 'app-browser',
   standalone: true,
-  imports: [Toolbar, Status],
+  imports: [Toolbar, Status, BrowserView, RecordingModal],
   templateUrl: './browser.html',
   styleUrl: './browser.css',
 })
-export class BrowserComponent {}
+export class BrowserComponent {
+  private wsApi = inject(WebsocketApi);
+
+  readonly showModal = signal(false);
+  pendingUrl = '';
+
+  onOpenModal(url: string): void {
+    this.pendingUrl = url;
+    this.showModal.set(true);
+  }
+
+  onModalConfirm(recordingName: string): void {
+    this.showModal.set(false);
+    this.wsApi.sendStartRecording({ url: this.pendingUrl, recording_name: recordingName });
+  }
+
+  onModalCancel(): void {
+    this.showModal.set(false);
+  }
+}

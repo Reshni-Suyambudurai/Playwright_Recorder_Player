@@ -7,11 +7,17 @@ export type EventType =
   | 'NAVIGATE'
   | 'NAVIGATION_SUCCESS'
   | 'NAVIGATION_ERROR'
+  | 'START_RECORDING'
+  | 'RECORDING_STARTED'
+  | 'FRAME'
+  | 'CLICK_ACTION'
+  | 'ACTION_DONE'
   | 'ERROR';
 
 /* WebSocket Event Structure */
 export interface WebSocketEvent<T = any> {
   event_type: EventType;
+  client_id?: string;   // present on all outgoing events; echoed back on some responses
   data: T;
 }
 
@@ -54,6 +60,39 @@ export interface NavigationErrorData {
 export interface ErrorData {
   message: string;
   code?: string;
+}
+
+/* Screenshot Streaming */
+export interface StartRecordingData {
+  url: string;
+  recording_name: string;
+}
+
+export interface RecordingStartedData {
+  recording_name: string;
+  url: string;
+  title?: string;
+  timestamp: string;
+}
+
+export interface FrameData {
+  image: string;    // data:image/jpeg;base64,...
+  width: number;
+  height: number;
+  timestamp: string;
+}
+
+export interface ClickActionData {
+  x: number;
+  y: number;
+  button?: 'left' | 'right' | 'middle';
+}
+
+export interface ActionDoneData {
+  type: string;
+  x: number;
+  y: number;
+  success: boolean;
 }
 
 /* Connection State */

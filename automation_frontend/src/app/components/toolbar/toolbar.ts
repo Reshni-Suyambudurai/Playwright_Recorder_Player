@@ -1,8 +1,9 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, output, signal } from '@angular/core';
 import { NgClass } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { WebsocketApi } from '../../services/websocket.api';
 import { NavigationApi } from '../../services/navigation.api';
+import { TokenStore } from '../../services/token-store.api';
 import { environment } from '../../../environments/environment';
 
 @Component({
@@ -15,10 +16,14 @@ import { environment } from '../../../environments/environment';
 export class Toolbar {
   private websocketApi = inject(WebsocketApi);
   private navigationApi = inject(NavigationApi);
+  private tokenStore = inject(TokenStore);
 
   urlInput: string = '';
   readonly connectionState = this.websocketApi.connectionState;
   readonly navigationState = this.navigationApi.navigationState;
+
+  /** Emits when the user wants to open the recording modal */
+  readonly openRecordingModal = output<string>(); // emits current urlInput
 
   async onConnect(): Promise<void> {
     try {
@@ -28,7 +33,9 @@ export class Toolbar {
       const data = await response.json();
       const sessionId = data.session_id;
 
-      sessionStorage.setItem('sessionId', sessionId);
+      this.tokenStore.setSessionId(sessionId);
+
+      // Connect to WebSocket
       await this.websocketApi.connect(sessionId);
     } catch (error) {
       console.error('Failed to connect:', error);
@@ -37,14 +44,14 @@ export class Toolbar {
 
   async onDisconnect(): Promise<void> {
     try {
-      const sessionId = sessionStorage.getItem('sessionId');
+      const sessionId = this.tokenStore.getSessionId();
       if (sessionId) {
         await fetch(`${environment.apiBaseUrl}/recording/stop`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ session_id: sessionId }),
         });
-        sessionStorage.removeItem('sessionId');
+        this.tokenStore.removeSessionId();
       }
       this.websocketApi.disconnect();
     } catch (error) {
@@ -62,11 +69,11 @@ export class Toolbar {
   }
 
   /**
-   * Navigate to entered URL
+   * Trigger recording modal instead of navigating directly
    */
   onNavigate(): void {
     if (this.urlInput.trim()) {
-      this.navigationApi.navigateToUrl(this.urlInput);
+      this.openRecordingModal.emit(this.urlInput.trim());
     }
   }
 }
