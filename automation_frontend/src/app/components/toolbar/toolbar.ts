@@ -1,10 +1,11 @@
-import { Component, inject, output, signal } from '@angular/core';
+import { Component, inject, OnDestroy, OnInit, output, signal } from '@angular/core';
 import { NgClass } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { WebsocketApi } from '../../services/websocket.api';
 import { NavigationApi } from '../../services/navigation.api';
 import { TokenStore } from '../../services/token-store.api';
 import { environment } from '../../../environments/environment';
+import { Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-toolbar',
@@ -13,17 +14,28 @@ import { environment } from '../../../environments/environment';
   templateUrl: './toolbar.html',
   styleUrl: './toolbar.css',
 })
-export class Toolbar {
+export class Toolbar implements OnInit, OnDestroy {
   private websocketApi = inject(WebsocketApi);
   private navigationApi = inject(NavigationApi);
   private tokenStore = inject(TokenStore);
+  private sub?: Subscription;
 
   urlInput: string = '';
   readonly connectionState = this.websocketApi.connectionState;
   readonly navigationState = this.navigationApi.navigationState;
+  readonly isRecording = signal(false);
 
   /** Emits when the user wants to open the recording modal */
-  readonly openRecordingModal = output<string>(); // emits current urlInput
+  readonly openRecordingModal = output<string>();
+
+  ngOnInit(): void {
+    this.sub = this.websocketApi.recordingStarted$.subscribe(() => this.isRecording.set(true));
+    this.websocketApi.recordingStopped$.subscribe(() => this.isRecording.set(false));
+  }
+
+  ngOnDestroy(): void {
+    this.sub?.unsubscribe();
+  }
 
   async onConnect(): Promise<void> {
     try {
@@ -75,5 +87,9 @@ export class Toolbar {
     if (this.urlInput.trim()) {
       this.openRecordingModal.emit(this.urlInput.trim());
     }
+  }
+
+  onStopRecording(): void {
+    this.websocketApi.sendStopRecording();
   }
 }

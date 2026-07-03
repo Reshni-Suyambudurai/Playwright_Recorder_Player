@@ -1,6 +1,22 @@
-.browser-view-container {
+:host {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+}
+
+.browser-view-wrapper {
   width: 100%;
   height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.browser-view-container {
+  flex: 1;
+  min-height: 0;
+  position: relative;
   overflow: auto;
   background-color: var(--bg-secondary);
   scrollbar-width: thin;
@@ -25,21 +41,48 @@
   background: var(--color-primary-500);
 }
 
+/* Wrap holds the image + the marker together */
+.browser-frame-wrap {
+  position: relative;
+  display: inline-block;
+  line-height: 0;
+}
+
 .browser-frame {
   width: 1280px;
   height: auto;
   display: block;
-  flex-shrink: 0;
   cursor: crosshair;
   user-select: none;
+}
+
+/* Yellow dot at the clicked coordinate */
+.input-marker {
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: rgba(250, 204, 21, 0.85);
+  border: 2px solid #ca8a04;
+  box-shadow: 0 0 0 4px rgba(250, 204, 21, 0.25);
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  animation: pulse-marker 1.2s ease-in-out infinite;
+}
+
+@keyframes pulse-marker {
+  0%, 100% { box-shadow: 0 0 0 4px rgba(250, 204, 21, 0.25); }
+  50%       { box-shadow: 0 0 0 8px rgba(250, 204, 21, 0.1); }
 }
 
 .browser-view-placeholder {
   width: 100%;
   height: 100%;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 8px;
   background-color: var(--bg-secondary);
 }
 

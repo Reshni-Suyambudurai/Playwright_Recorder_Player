@@ -7,13 +7,22 @@ import {
   EventType,
   FrameData,
   HelloData,
+  InputDetectedData,
+  KeyActionData,
   NavigateData,
   NavigationErrorData,
   NavigationSuccessData,
   PingData,
   PongData,
   RecordingStartedData,
+  RecordingStoppedData,
+  ScrollActionData,
+  SelectorInfo,
   StartRecordingData,
+  TabOpenedData,
+  TabSwitchedData,
+  SwitchTabData,
+  TypeActionData,
   WebSocketEvent,
   WelcomeData,
 } from '../types/websocket';
@@ -54,6 +63,17 @@ export class WebsocketApi {
   readonly frame$: Observable<FrameData> = this.frameSubject.asObservable();
   readonly recordingStarted$: Observable<RecordingStartedData> = this.recordingStartedSubject.asObservable();
   readonly actionDone$: Observable<ActionDoneData> = this.actionDoneSubject.asObservable();
+
+  // Input overlay + recording lifecycle
+  private inputDetectedSubject = new Subject<InputDetectedData>();
+  private recordingStoppedSubject = new Subject<RecordingStoppedData>();
+  private tabOpenedSubject = new Subject<TabOpenedData>();
+  private tabSwitchedSubject = new Subject<TabSwitchedData>();
+
+  readonly inputDetected$: Observable<InputDetectedData> = this.inputDetectedSubject.asObservable();
+  readonly recordingStopped$: Observable<RecordingStoppedData> = this.recordingStoppedSubject.asObservable();
+  readonly tabOpened$: Observable<TabOpenedData> = this.tabOpenedSubject.asObservable();
+  readonly tabSwitched$: Observable<TabSwitchedData> = this.tabSwitchedSubject.asObservable();
 
   /**
    * Connect to WebSocket server
@@ -189,6 +209,18 @@ export class WebsocketApi {
         case 'ACTION_DONE':
           this.actionDoneSubject.next(event.data as ActionDoneData);
           break;
+        case 'INPUT_DETECTED':
+          this.inputDetectedSubject.next(event.data as InputDetectedData);
+          break;
+        case 'RECORDING_STOPPED':
+          this.recordingStoppedSubject.next(event.data as RecordingStoppedData);
+          break;
+        case 'TAB_OPENED':
+          this.tabOpenedSubject.next(event.data as TabOpenedData);
+          break;
+        case 'TAB_SWITCHED':
+          this.tabSwitchedSubject.next(event.data as TabSwitchedData);
+          break;
         case 'ERROR':
           this.handleError(event.data as ErrorData);
           break;
@@ -250,6 +282,28 @@ export class WebsocketApi {
   public sendClickAction(x: number, y: number, button: 'left' | 'right' | 'middle' = 'left'): void {
     const data: ClickActionData = { x, y, button };
     this.send('CLICK_ACTION', data);
+  }
+
+  public sendTypeAction(text: string, x: number, y: number, selector: SelectorInfo | null, isPassword: boolean, label?: string | null, tag?: string): void {
+    const data: TypeActionData = { text, x, y, selector, is_password: isPassword, label, tag };
+    this.send('TYPE_ACTION', data);
+  }
+
+  public sendScrollAction(x: number, y: number, deltaX: number, deltaY: number): void {
+    const data: ScrollActionData = { x, y, delta_x: deltaX, delta_y: deltaY };
+    this.send('SCROLL_ACTION', data);
+  }
+
+  public sendKeyAction(key: KeyActionData['key']): void {
+    this.send('KEY_ACTION', { key });
+  }
+
+  public sendStopRecording(): void {
+    this.send('STOP_RECORDING', {});
+  }
+
+  public sendSwitchTab(tabId: string): void {
+    this.send('SWITCH_TAB', { tab_id: tabId } satisfies SwitchTabData);
   }
 
   public isConnected(): boolean {

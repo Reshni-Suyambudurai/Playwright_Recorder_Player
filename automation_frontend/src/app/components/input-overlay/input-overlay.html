@@ -1,0 +1,21 @@
+<div class="input-overlay-panel">
+  <div class="overlay-info">
+    <span class="overlay-label">{{ displayLabel() }}</span>
+    @if (inputData().tag) {
+      <span class="badge badge-neutral">{{ inputData().tag }}</span>
+    }
+  </div>
+  <div class="overlay-row">
+    <input
+      class="overlay-input"
+      [type]="inputType()"
+      [value]="inputValue()"
+      (input)="inputValue.set($any($event.target).value)"
+      (keydown)="onKeydown($event)"
+      autofocus
+      placeholder="Type value and press OK or Enter"
+    />
+    <button class="btn btn-secondary btn-sm" (click)="onCancel()">Cancel</button>
+    <button class="btn btn-primary btn-sm" (click)="onOk()">OK</button>
+  </div>
+</div>

@@ -1,0 +1,45 @@
+.input-overlay-panel {
+  flex-shrink: 0;
+  width: 100%;
+  padding: 10px 14px;
+  background: var(--bg-elevated);
+  border-top: 2px solid var(--color-primary-600);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.overlay-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.overlay-label {
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.overlay-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.overlay-input {
+  flex: 1;
+  padding: 7px 12px;
+  font-size: var(--text-sm);
+  background: var(--bg-primary);
+  border: 1.5px solid var(--border-color);
+  border-radius: var(--rounded-md);
+  color: var(--text-primary);
+  outline: none;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.overlay-input:focus {
+  border-color: var(--border-color-focus);
+  box-shadow: 0 0 0 3px rgba(29, 78, 216, 0.12);
+}

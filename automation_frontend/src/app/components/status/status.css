@@ -8,6 +8,59 @@
   max-width: 400px;
 }
 
+.recording-name {
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
+  margin: 0 0 0.5rem;
+}
+
+.steps-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 320px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-color) transparent;
+}
+
+.step-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: var(--rounded-base);
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+}
+
+.step-icon {
+  font-size: 0.85rem;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.step-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.step-type {
+  font-size: var(--text-xs);
+  align-self: flex-start;
+}
+
+.step-label {
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 200px;
+}
+
 .status-section {
   display: flex;
   flex-direction: column;

@@ -17,6 +17,11 @@
     >
       Disconnect
     </button>
+    @if (isRecording()) {
+      <button class="btn btn-danger" (click)="onStopRecording()">
+        ⏹ Stop Recording
+      </button>
+    }
   </div>
 
   <div class="toolbar-center">

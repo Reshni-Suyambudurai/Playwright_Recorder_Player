@@ -27,6 +27,17 @@ class RecordingSession:
     current_url: str = ""
     status: SessionStatus = SessionStatus.ACTIVE
     created_at: datetime = field(default_factory=datetime.now)
+    # Recording state
+    recording_id: str = ""
+    recording_name: str = ""
+    recording_description: str = ""
+    recording_intent: str = ""
+    recording_steps: list = field(default_factory=list)
+    # Tab state — keyed by tab_id ("tab-1", "tab-2", ...)
+    tabs: dict = field(default_factory=dict)          # tab_id → Page
+    active_tab_id: str = ""
+    tab_watchers: dict = field(default_factory=dict)  # tab_id → DomWatcher
+    tab_meta: dict = field(default_factory=dict)      # tab_id → {title, url}
     
     def is_active(self) -> bool:
         """Check if the session is currently active."""

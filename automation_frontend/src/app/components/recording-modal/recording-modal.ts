@@ -1,5 +1,6 @@
 import { Component, output, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { StartRecordingData } from '../../types/websocket';
 
 @Component({
   selector: 'app-recording-modal',
@@ -9,10 +10,12 @@ import { FormsModule } from '@angular/forms';
   styleUrl: './recording-modal.css',
 })
 export class RecordingModal {
-  readonly confirm = output<string>();  // emits the recording name
+  readonly confirm = output<StartRecordingData>();
   readonly cancel = output<void>();
 
   readonly recordingName = signal('');
+  readonly description = signal('');
+  readonly intent = signal('');
   readonly nameError = signal('');
 
   onConfirm(): void {
@@ -22,7 +25,12 @@ export class RecordingModal {
       return;
     }
     this.nameError.set('');
-    this.confirm.emit(name);
+    this.confirm.emit({
+      url: '',                          // filled by browser.ts
+      recording_name: name,
+      description: this.description().trim() || undefined,
+      intent: this.intent().trim() || undefined,
+    });
   }
 
   onCancel(): void {
@@ -32,6 +40,8 @@ export class RecordingModal {
 
   reset(): void {
     this.recordingName.set('');
+    this.description.set('');
+    this.intent.set('');
     this.nameError.set('');
   }
 }

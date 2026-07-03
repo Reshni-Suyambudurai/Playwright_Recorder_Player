@@ -4,6 +4,7 @@ import { Status } from '../../components/status/status';
 import { BrowserView } from '../../components/browser-view/browser-view';
 import { RecordingModal } from '../../components/recording-modal/recording-modal';
 import { WebsocketApi } from '../../services/websocket.api';
+import { StartRecordingData } from '../../types/websocket';
 
 @Component({
   selector: 'app-browser',
@@ -23,9 +24,9 @@ export class BrowserComponent {
     this.showModal.set(true);
   }
 
-  onModalConfirm(recordingName: string): void {
+  onModalConfirm(data: StartRecordingData): void {
     this.showModal.set(false);
-    this.wsApi.sendStartRecording({ url: this.pendingUrl, recording_name: recordingName });
+    this.wsApi.sendStartRecording({ ...data, url: this.pendingUrl });
   }
 
   onModalCancel(): void {

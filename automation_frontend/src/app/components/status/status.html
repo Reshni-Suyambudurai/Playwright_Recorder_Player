@@ -12,19 +12,7 @@
       </div>
     </div>
 
-    @if (connState.sessionId) {
-      <div class="status-item">
-        <label>Session ID:</label>
-        <div class="status-value monospace">{{ connState.sessionId }}</div>
-      </div>
-    }
 
-    @if (connState.clientId) {
-      <div class="status-item">
-        <label>Client ID:</label>
-        <div class="status-value monospace">{{ connState.clientId }}</div>
-      </div>
-    }
 
     @if (connState.lastUpdate) {
       <div class="status-item">
@@ -85,4 +73,22 @@
       </div>
     }
   </div>
+
+  @if (recordedSteps().length > 0) {
+    <div class="status-section">
+      <h3>Recorded Steps <span class="badge badge-primary">{{ recordedSteps().length }}</span></h3>
+      <p class="recording-name">{{ lastRecordingName() }}</p>
+      <div class="steps-list">
+        @for (step of recordedSteps(); track step.id) {
+          <div class="step-item">
+            <span class="step-icon">{{ stepIcon(step.type) }}</span>
+            <div class="step-body">
+              <span class="step-type badge badge-neutral">{{ step.type }}</span>
+              <span class="step-label">{{ step.label }}</span>
+            </div>
+          </div>
+        }
+      </div>
+    </div>
+  }
 </div>

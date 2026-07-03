@@ -63,6 +63,35 @@ class BrowserService:
         logger.info(f"Clicking at ({x}, {y}) button={button}")
         await page.mouse.click(x, y, button=button)
 
+    async def perform_scroll(self, page: Page, x: int, y: int, delta_x: float, delta_y: float) -> None:
+        """Move mouse to (x, y) then scroll by (delta_x, delta_y)."""
+        logger.info(f"Scrolling at ({x},{y}) delta=({delta_x},{delta_y})")
+        await page.mouse.move(x, y)
+        await page.mouse.wheel(delta_x, delta_y)
+
+    async def perform_type(self, page: Page, selector: dict, text: str) -> None:
+        """Fill a form field using its selector. Falls back to keyboard if fill fails."""
+        strategy = selector.get("strategy")
+        value = selector.get("value")
+        logger.info(f"Typing into {strategy}={value}")
+        try:
+            if strategy == "id":
+                await page.fill(f"#{value}", text)
+            elif strategy == "css":
+                await page.fill(value, text)
+            elif strategy == "xpath":
+                await page.fill(f"xpath={value}", text)
+            else:
+                await page.keyboard.type(text)
+        except Exception as e:
+            logger.warning(f"fill() failed ({e}), falling back to keyboard.type()")
+            await page.keyboard.type(text)
+
+    async def perform_key(self, page: Page, key: str) -> None:
+        """Press a named key (Enter, Tab, Escape, etc.)."""
+        logger.info(f"Pressing key: {key}")
+        await page.keyboard.press(key)
+
     async def close_browser(self, browser: Optional[Browser]) -> None:
         """Close a browser instance."""
         logger.info("Closing browser")

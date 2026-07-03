@@ -2,6 +2,8 @@
 WebSocket event handler for routing and processing WebSocket events.
 """
 import asyncio
+import time
+import uuid
 from datetime import datetime
 from typing import Dict, Any
 from app.websocket.connection_manager import ConnectionManager
@@ -9,7 +11,11 @@ from app.websocket.websocket_events import EventType, HelloData, PongData, Welco
 from app.services.session_manager import SessionManager
 from app.services.browser_service import BrowserService
 from app.services.screenshot_service import ScreenshotService
+from app.services.recording_storage import RecordingStorage
 from app.services.dom_watcher import DomWatcher
+from app.models.recording import Recording, RecordingMeta, RecordingStep, Coords, Viewport, SelectorInfo
+from app.utils.selector_builder import build_selector
+from app.utils import tab_manager
 
 
 class WebSocketHandler:
@@ -23,6 +29,7 @@ class WebSocketHandler:
         self.session_manager = session_manager
         self.browser_service = browser_service
         self.screenshot_service = screenshot_service
+        self.recording_storage = RecordingStorage()
     
     async def handle_hello(self, session_id: str, websocket, data: dict) -> dict:
         """Handle HELLO — validates session, registers client_id mapping, replies WELCOME."""
@@ -159,6 +166,8 @@ class WebSocketHandler:
         try:
             url = data.get("url")
             recording_name = data.get("recording_name", "Untitled")
+            description = data.get("description", "")
+            intent = data.get("intent", "")
 
             if not url:
                 return self._error_response("INVALID_URL", "url is required in START_RECORDING")
@@ -180,6 +189,42 @@ class WebSocketHandler:
             await watcher.attach(session.page, session_id, client_id)
             session.dom_watcher = watcher
 
+            # Initialise recording state
+            session.recording_id = str(uuid.uuid4())
+            session.recording_name = recording_name
+            session.recording_description = description
+            session.recording_intent = intent
+            session.recording_steps = []
+            session.tabs = {}
+            session.tab_watchers = {}
+            session.tab_meta = {}
+
+            # Register first tab
+            tab_manager.register_tab(session, session.page, "tab-1")
+            session.active_tab_id = "tab-1"
+
+            # Listen for new browser tabs opened by the page
+            session.browser_context.on(
+                "page",
+                lambda new_page: asyncio.ensure_future(
+                    self._on_new_tab(new_page, session_id, client_id)
+                ),
+            )
+
+            # Append NAVIGATE as first step
+            viewport = Viewport()
+            nav_step = RecordingStep(
+                id=1,
+                type="NAVIGATE",
+                url=result["url"],
+                pageUrl=result["url"],
+                pageTitle=result.get("title"),
+                waitAfterMs=100,
+                viewport=viewport,
+                tab_id="tab-1",
+            )
+            session.recording_steps.append(nav_step)
+
             # Push the first frame immediately
             await self.screenshot_service.capture_and_send(session.page, session_id, client_id)
 
@@ -197,9 +242,9 @@ class WebSocketHandler:
 
     async def handle_click_action(self, session_id: str, client_id: str, data: dict) -> dict:
         """
-        Handle CLICK_ACTION — perform a mouse click in the Playwright page
-        at the provided viewport coordinates and confirm with ACTION_DONE.
-        The DomWatcher will automatically emit a new FRAME after DOM settles.
+        Handle CLICK_ACTION.
+        If element at (x,y) is a text input → return INPUT_DETECTED (no click).
+        Otherwise perform click, record CLICK step, capture frame.
         """
         try:
             x = data.get("x")
@@ -213,13 +258,52 @@ class WebSocketHandler:
             if not session or not session.page:
                 return self._error_response("SESSION_NOT_FOUND", "No active session or page")
 
-            await self.browser_service.perform_click(session.page, int(x), int(y), button)
+            # Inspect element before clicking
+            page = tab_manager.get_active_page(session) or session.page
+            sel_info = await build_selector(page, int(x), int(y))
 
-            # Wait briefly for navigation / DOM updates to settle, then push a fresh frame.
-            # The DomWatcher will also fire via load/mutation events, but this guarantees
-            # at least one updated frame even when the MutationObserver misses a navigation.
+            if sel_info and sel_info.get("is_input"):
+                # Don't click — ask frontend to open the input overlay
+                return {
+                    "event_type": EventType.INPUT_DETECTED,
+                    "data": {
+                        "x": x, "y": y,
+                        "tag": sel_info.get("tag"),
+                        "input_type": sel_info.get("input_type"),
+                        "label": sel_info.get("label"),
+                        "placeholder": sel_info.get("placeholder"),
+                        "current_value": sel_info.get("current_value", ""),
+                        "is_password": sel_info.get("is_password", False),
+                        "selector": sel_info.get("selector"),
+                    },
+                }
+
+            # Normal click
+            await self.browser_service.perform_click(page, int(x), int(y), button)
+
+            # Record step
+            if session.recording_steps is not None:
+                page_url = session.current_url
+                page_title = await page.title()
+                step_id = len(session.recording_steps) + 1
+                step = RecordingStep(
+                    id=step_id,
+                    type="CLICK",
+                    pageUrl=page_url,
+                    pageTitle=page_title,
+                    coords=Coords(x=int(x), y=int(y)),
+                    button=button,
+                    waitAfterMs=300,
+                    viewport=Viewport(),
+                    tag=sel_info.get("tag") if sel_info else None,
+                    label=sel_info.get("label") if sel_info else None,
+                    selector=SelectorInfo(**sel_info["selector"]) if sel_info and sel_info.get("selector") else None,
+                    tab_id=session.active_tab_id or "tab-1",
+                )
+                session.recording_steps.append(step)
+
             await asyncio.sleep(0.5)
-            await self.screenshot_service.capture_and_send(session.page, session_id, client_id)
+            await self.screenshot_service.capture_and_send(page, session_id, client_id)
 
             return {
                 "event_type": EventType.ACTION_DONE,
@@ -227,6 +311,262 @@ class WebSocketHandler:
             }
         except Exception as e:
             return self._error_response("CLICK_ACTION_ERROR", str(e))
+
+    async def handle_type_action(self, session_id: str, client_id: str, data: dict) -> dict:
+        """Handle TYPE_ACTION — fill input field with text from the overlay."""
+        try:
+            text = data.get("text", "")
+            x = data.get("x")
+            y = data.get("y")
+            selector = data.get("selector")
+            is_password = data.get("is_password", False)
+            label = data.get("label")
+            tag = data.get("tag", "input")
+
+            session = self.session_manager.get_session(session_id)
+            if not session or not session.page:
+                return self._error_response("SESSION_NOT_FOUND", "No active session or page")
+
+            page = tab_manager.get_active_page(session) or session.page
+            await self.browser_service.perform_type(page, selector or {}, text)
+
+            # Record step
+            if session.recording_steps is not None:
+                page_url = session.current_url
+                page_title = await page.title()
+                step_id = len(session.recording_steps) + 1
+                step = RecordingStep(
+                    id=step_id,
+                    type="TYPE",
+                    pageUrl=page_url,
+                    pageTitle=page_title,
+                    coords=Coords(x=int(x), y=int(y)) if x is not None and y is not None else None,
+                    text=text,
+                    label=label,
+                    tag=tag,
+                    isPassword=is_password,
+                    storeValue=True,
+                    viewport=Viewport(),
+                    selector=SelectorInfo(**selector) if selector else None,
+                    tab_id=session.active_tab_id or "tab-1",
+                )
+                session.recording_steps.append(step)
+
+            await asyncio.sleep(0.3)
+            await self.screenshot_service.capture_and_send(page, session_id, client_id)
+
+            return {"event_type": EventType.ACTION_DONE, "data": {"type": "type", "success": True}}
+        except Exception as e:
+            return self._error_response("TYPE_ACTION_ERROR", str(e))
+
+    async def handle_scroll_action(self, session_id: str, client_id: str, data: dict) -> dict:
+        """Handle SCROLL_ACTION — scroll the page and record step."""
+        try:
+            x = data.get("x", 0)
+            y = data.get("y", 0)
+            delta_x = data.get("delta_x", 0)
+            delta_y = data.get("delta_y", 0)
+
+            session = self.session_manager.get_session(session_id)
+            if not session or not session.page:
+                return self._error_response("SESSION_NOT_FOUND", "No active session or page")
+
+            page = tab_manager.get_active_page(session) or session.page
+            await self.browser_service.perform_scroll(page, int(x), int(y), delta_x, delta_y)
+
+            # Record step
+            if session.recording_steps is not None:
+                step_id = len(session.recording_steps) + 1
+                step = RecordingStep(
+                    id=step_id,
+                    type="SCROLL",
+                    pageUrl=session.current_url,
+                    coords=Coords(x=int(x), y=int(y)),
+                    deltaX=delta_x,
+                    deltaY=delta_y,
+                    waitAfterMs=100,
+                    viewport=Viewport(),
+                    tab_id=session.active_tab_id or "tab-1",
+                )
+                session.recording_steps.append(step)
+
+            await asyncio.sleep(0.3)
+            await self.screenshot_service.capture_and_send(page, session_id, client_id)
+
+            return {"event_type": EventType.ACTION_DONE, "data": {"type": "scroll", "success": True}}
+        except Exception as e:
+            return self._error_response("SCROLL_ACTION_ERROR", str(e))
+
+    async def handle_key_action(self, session_id: str, client_id: str, data: dict) -> dict:
+        """Handle KEY_ACTION — press Enter / Tab / Escape."""
+        try:
+            key = data.get("key", "Enter")
+            allowed = {"Enter", "Tab", "Escape", "Backspace", "ArrowUp", "ArrowDown"}
+            if key not in allowed:
+                return self._error_response("INVALID_KEY", f"Key '{key}' not allowed")
+
+            session = self.session_manager.get_session(session_id)
+            if not session or not session.page:
+                return self._error_response("SESSION_NOT_FOUND", "No active session or page")
+
+            page = tab_manager.get_active_page(session) or session.page
+            await self.browser_service.perform_key(page, key)
+
+            if session.recording_steps is not None:
+                step_id = len(session.recording_steps) + 1
+                step = RecordingStep(
+                    id=step_id,
+                    type="KEY",
+                    pageUrl=session.current_url,
+                    text=key,
+                    viewport=Viewport(),
+                    tab_id=session.active_tab_id or "tab-1",
+                )
+                session.recording_steps.append(step)
+
+            await asyncio.sleep(0.3)
+            await self.screenshot_service.capture_and_send(page, session_id, client_id)
+
+            return {"event_type": EventType.ACTION_DONE, "data": {"type": "key", "key": key, "success": True}}
+        except Exception as e:
+            return self._error_response("KEY_ACTION_ERROR", str(e))
+
+    async def handle_stop_recording(self, session_id: str, client_id: str) -> dict:
+        """Handle STOP_RECORDING — serialize steps, save JSON, return step list."""
+        try:
+            session = self.session_manager.get_session(session_id)
+            if not session:
+                return self._error_response("SESSION_NOT_FOUND", "No active session")
+
+            # Detach DomWatcher
+            if session.dom_watcher:
+                await session.dom_watcher.detach()
+                session.dom_watcher = None
+
+            # Build Recording object
+            meta = RecordingMeta(
+                id=session.recording_id or str(uuid.uuid4()),
+                title=session.recording_name or "Untitled",
+                description=getattr(session, "recording_description", ""),
+                intent=getattr(session, "recording_intent", ""),
+            )
+            recording = Recording(meta=meta)
+            for step in (session.recording_steps or []):
+                recording.add_step(step)
+
+            # Save to disk
+            self.recording_storage.save(recording)
+
+            # Build step summary list for frontend display
+            steps_summary = [
+                {
+                    "id": s.id,
+                    "type": s.type,
+                    "label": s.label or s.text or s.url or f"({s.coords.x},{s.coords.y})" if s.coords else s.type,
+                    "pageUrl": s.page_url,
+                    "tag": s.tag,
+                    "timestamp": s.timestamp,
+                }
+                for s in (session.recording_steps or [])
+            ]
+
+            # Reset recording state
+            session.recording_steps = []
+            session.recording_id = ""
+            session.recording_name = ""
+
+            return {
+                "event_type": EventType.RECORDING_STOPPED,
+                "data": {
+                    "recording_id": meta.id,
+                    "recording_name": meta.title,
+                    "step_count": recording.step_count(),
+                    "steps": steps_summary,
+                },
+            }
+        except Exception as e:
+            return self._error_response("STOP_RECORDING_ERROR", str(e))
+
+    async def _on_new_tab(self, new_page, session_id: str, client_id: str) -> None:
+        """Called when browser_context fires a 'page' event (new tab opened)."""
+        try:
+            session = self.session_manager.get_session(session_id)
+            if not session:
+                return
+
+            await new_page.wait_for_load_state("domcontentloaded", timeout=10000)
+
+            tab_id = tab_manager.next_tab_id(session)
+            tab_manager.register_tab(session, new_page, tab_id)
+
+            # Mark the triggering step as isTriggerNewTab=True
+            if session.recording_steps:
+                session.recording_steps[-1].is_trigger_new_tab = True
+
+            # Attach DomWatcher for new tab
+            watcher = DomWatcher(self.screenshot_service)
+            await watcher.attach(new_page, session_id, client_id)
+            session.tab_watchers[tab_id] = watcher
+
+            title = await new_page.title()
+            url = new_page.url
+            session.tab_meta[tab_id] = {"title": title, "url": url}
+
+            # Auto-switch to new tab
+            session.active_tab_id = tab_id
+
+            # Append NAVIGATE step for the new tab
+            step_id = len(session.recording_steps) + 1
+            session.recording_steps.append(RecordingStep(
+                id=step_id, type="NAVIGATE",
+                url=url, pageUrl=url, pageTitle=title,
+                waitAfterMs=100, viewport=Viewport(), tab_id=tab_id,
+            ))
+
+            # Notify frontend
+            tab_list = [
+                {"tab_id": tid, "title": m.get("title", ""), "url": m.get("url", ""), "active": tid == tab_id}
+                for tid, m in session.tab_meta.items()
+            ]
+            await self.connection_manager.send_to_client(session_id, client_id, {
+                "event_type": EventType.TAB_OPENED,
+                "data": {
+                    "tab_id": tab_id, "title": title, "url": url,
+                    "active": True, "tabs": tab_list,
+                },
+            })
+            # Send first frame of new tab
+            await self.screenshot_service.capture_and_send(new_page, session_id, client_id)
+        except Exception as e:
+            logger.error(f"_on_new_tab error: {e}", exc_info=True) if hasattr(self, 'logger') else None
+
+    async def handle_switch_tab(self, session_id: str, client_id: str, data: dict) -> dict:
+        """Switch active tab and send a fresh frame."""
+        try:
+            tab_id = data.get("tab_id")
+            session = self.session_manager.get_session(session_id)
+            if not session:
+                return self._error_response("SESSION_NOT_FOUND", "No active session")
+
+            page = tab_manager.switch_tab(session, tab_id)
+            if not page:
+                return self._error_response("TAB_NOT_FOUND", f"Tab '{tab_id}' not found")
+
+            title = await page.title()
+            url = page.url
+            session.tab_meta[tab_id] = {"title": title, "url": url}
+
+            tab_list = [
+                {"tab_id": tid, "title": m.get("title", ""), "url": m.get("url", ""), "active": tid == tab_id}
+                for tid, m in session.tab_meta.items()
+            ]
+            await self.screenshot_service.capture_and_send(page, session_id, client_id)
+            return {
+                "event_type": EventType.TAB_SWITCHED,
+                "data": {"tab_id": tab_id, "title": title, "url": url, "tabs": tab_list},
+            }
+        except Exception as e:
+            return self._error_response("SWITCH_TAB_ERROR", str(e))
 
     async def handle_event(self, session_id: str, websocket, event_data: dict) -> None:
         """
@@ -253,6 +593,16 @@ class WebSocketHandler:
                 response = await self.handle_start_recording(session_id, client_id, data)
             elif event_type == EventType.CLICK_ACTION:
                 response = await self.handle_click_action(session_id, client_id, data)
+            elif event_type == EventType.TYPE_ACTION:
+                response = await self.handle_type_action(session_id, client_id, data)
+            elif event_type == EventType.SCROLL_ACTION:
+                response = await self.handle_scroll_action(session_id, client_id, data)
+            elif event_type == EventType.KEY_ACTION:
+                response = await self.handle_key_action(session_id, client_id, data)
+            elif event_type == EventType.STOP_RECORDING:
+                response = await self.handle_stop_recording(session_id, client_id)
+            elif event_type == EventType.SWITCH_TAB:
+                response = await self.handle_switch_tab(session_id, client_id, data)
             else:
                 response = self._error_response("UNKNOWN_EVENT", f"Unknown event type: {event_type}")
 
@@ -311,3 +661,4 @@ class WebSocketHandler:
             },
             "timestamp": datetime.now().isoformat()
         }
+

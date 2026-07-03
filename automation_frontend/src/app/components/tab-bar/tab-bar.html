@@ -1,0 +1,14 @@
+@if (tabs().length > 1) {
+  <div class="tab-bar">
+    @for (tab of tabs(); track tab.tab_id; let i = $index) {
+      <button
+        class="tab-pill"
+        [class.active]="tab.tab_id === activeTabId()"
+        (click)="onTabClick(tab.tab_id)"
+        [title]="tab.url"
+      >
+        {{ tabLabel(tab, i) }}
+      </button>
+    }
+  </div>
+}

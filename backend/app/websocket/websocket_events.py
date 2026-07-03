@@ -78,3 +78,16 @@ class EventType:
     FRAME = "FRAME"
     CLICK_ACTION = "CLICK_ACTION"
     ACTION_DONE = "ACTION_DONE"
+    # Input overlay
+    INPUT_DETECTED = "INPUT_DETECTED"
+    TYPE_ACTION = "TYPE_ACTION"
+    # Additional actions
+    SCROLL_ACTION = "SCROLL_ACTION"
+    KEY_ACTION = "KEY_ACTION"
+    # Recording lifecycle
+    STOP_RECORDING = "STOP_RECORDING"
+    RECORDING_STOPPED = "RECORDING_STOPPED"
+    # Tab management
+    TAB_OPENED = "TAB_OPENED"
+    SWITCH_TAB = "SWITCH_TAB"
+    TAB_SWITCHED = "TAB_SWITCHED"

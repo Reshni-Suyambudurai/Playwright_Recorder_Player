@@ -1,13 +1,43 @@
 @if (frameUrl()) {
-  <div class="browser-view-container">
-    <img
-      #frameImg
-      class="browser-frame"
-      [src]="frameUrl()"
-      alt="Live browser view"
-      (click)="onImageClick($event)"
-      draggable="false"
-    />
+  <div class="browser-view-wrapper">
+
+    <!-- Tab bar — shown only when multiple tabs are open -->
+    <app-tab-bar />
+
+    <!-- Scrollable screenshot area -->
+    <div class="browser-view-container">
+      <div class="browser-frame-wrap">
+        <img
+          #frameImg
+          class="browser-frame"
+          [src]="frameUrl()"
+          alt="Live browser view"
+          (click)="onImageClick($event)"
+          (wheel)="onImageWheel($event)"
+          draggable="false"
+        />
+        <!-- Yellow dot marks where the input will be filled -->
+        @if (overlayData()) {
+          <div
+            class="input-marker"
+            [style.left.px]="overlayX()"
+            [style.top.px]="overlayY()"
+          ></div>
+        }
+      </div>
+    </div>
+
+    <!-- Input panel docked below screenshot -->
+    @if (overlayData()) {
+      <app-input-overlay
+        [inputData]="overlayData()!"
+        [posX]="0"
+        [posY]="0"
+        (confirm)="onOverlayConfirm($event)"
+        (cancel)="onOverlayCancel()"
+      />
+    }
+
   </div>
 } @else {
   <div class="browser-view-placeholder">
