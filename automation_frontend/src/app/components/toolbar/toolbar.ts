@@ -31,6 +31,10 @@ export class Toolbar implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.sub = this.websocketApi.recordingStarted$.subscribe(() => this.isRecording.set(true));
     this.websocketApi.recordingStopped$.subscribe(() => this.isRecording.set(false));
+    this.websocketApi.disconnected$.subscribe(() => {
+      this.isRecording.set(false);
+      this.urlInput = '';
+    });
   }
 
   ngOnDestroy(): void {

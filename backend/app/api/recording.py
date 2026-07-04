@@ -6,6 +6,8 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from app.services.session_manager import SessionManager
 from app.services.browser_service import BrowserService
+from app.services.database import DatabaseService
+from app.websocket.connection_manager import ConnectionManager
 
 logger = logging.getLogger("playwright_recorder.api.recording")
 
@@ -18,9 +20,10 @@ class StopRecordingRequest(BaseModel):
 class RecordingAPI:
     """Handles recording-related API endpoints."""
 
-    def __init__(self, session_manager: SessionManager, browser_service: BrowserService):
+    def __init__(self, session_manager: SessionManager, browser_service: BrowserService, connection_manager: ConnectionManager | None = None):
         self.session_manager = session_manager
         self.browser_service = browser_service
+        self.connection_manager = connection_manager
 
     async def start_recording(self) -> dict:
         """Start a new recording session."""
@@ -64,6 +67,22 @@ class RecordingAPI:
                     detail={"success": False, "error": f"Session {session_id} not found", "status": "Session not found"}
                 )
 
+            # Detach DomWatcher BEFORE closing the browser to prevent TargetClosedError
+            if session.dom_watcher:
+                await session.dom_watcher.detach()
+                session.dom_watcher = None
+
+            # Notify the connected client so the frontend can update its state
+            if self.connection_manager:
+                client_id = getattr(session, 'client_id', None) or ""
+                try:
+                    await self.connection_manager.send_to_client(
+                        session_id, client_id,
+                        {"event_type": "SESSION_CLOSED", "data": {"reason": "Session ended"}},
+                    )
+                except Exception:
+                    pass  # client may already be gone
+
             logger.info(f"Closing browser for session: {session_id}")
             await self.browser_service.close_browser(session.browser)
             self.session_manager.remove_session(session_id)
@@ -81,28 +100,38 @@ class RecordingAPI:
             )
 
 
-def create_recording_router(session_manager: SessionManager, browser_service: BrowserService) -> APIRouter:
+def create_recording_router(session_manager: SessionManager, browser_service: BrowserService, db: DatabaseService | None = None, connection_manager: ConnectionManager | None = None) -> APIRouter:
     """
     Create recording API router.
-    
-    Args:
-        session_manager: SessionManager instance
-        browser_service: BrowserService instance
-        
-    Returns:
-        APIRouter: FastAPI router with recording endpoints
     """
     router = APIRouter()
-    api = RecordingAPI(session_manager, browser_service)
-    
+    api = RecordingAPI(session_manager, browser_service, connection_manager)
+
     @router.post('/start')
     async def start():
         """Start recording endpoint."""
         return await api.start_recording()
-    
+
     @router.post('/stop')
     async def stop(request: StopRecordingRequest):
         """Stop recording endpoint."""
         return await api.stop_recording(request.session_id)
-    
+
+    @router.get('/list')
+    async def list_recordings():
+        """List all recordings from the database."""
+        if not db:
+            raise HTTPException(status_code=503, detail="Database not available")
+        return await db.list_recordings()
+
+    @router.get('/{record_id}')
+    async def get_recording(record_id: str):
+        """Return the full JSON for a single recording."""
+        if not db:
+            raise HTTPException(status_code=503, detail="Database not available")
+        data = await db.load_recording(record_id)
+        if data is None:
+            raise HTTPException(status_code=404, detail=f"Recording '{record_id}' not found")
+        return data
+
     return router

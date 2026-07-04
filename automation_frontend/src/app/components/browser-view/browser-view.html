@@ -16,6 +16,12 @@
           (wheel)="onImageWheel($event)"
           draggable="false"
         />
+        <!-- Loading overlay shown while waiting for next frame after navigation -->
+        @if (isNavigating()) {
+          <div class="frame-loading-overlay">
+            <span class="frame-spinner"></span>
+          </div>
+        }
         <!-- Yellow dot marks where the input will be filled -->
         @if (overlayData()) {
           <div

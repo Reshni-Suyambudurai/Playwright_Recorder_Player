@@ -1,0 +1,320 @@
+{
+  "version": "1.0",
+  "meta": {
+    "id": "cc31d001-1d3d-4e8f-a2d9-81324335a8aa",
+    "title": "zoho testing",
+    "description": "screenshot on load",
+    "createdAt": 1783087709483,
+    "updatedAt": 1783087709483,
+    "intent": "Verifying latency"
+  },
+  "steps": {
+    "tab-1": [
+      [
+        {
+          "id": 1,
+          "type": "NAVIGATE",
+          "url": "https://myhrms.kanini.com/kanini/zp#home/myspace/overview-actionlist",
+          "pageUrl": "https://myhrms.kanini.com/kanini/zp#home/myspace/overview-actionlist",
+          "pageTitle": "Zoho Accounts",
+          "coords": null,
+          "button": null,
+          "text": null,
+          "deltaX": null,
+          "deltaY": null,
+          "pressEnter": null,
+          "waitAfterMs": 100,
+          "viewport": {
+            "width": 1280,
+            "height": 720,
+            "deviceScaleFactor": 1.0
+          },
+          "timestamp": 1783087599166,
+          "label": null,
+          "description": null,
+          "isPassword": false,
+          "storeValue": false,
+          "selector": null,
+          "isTriggerNewTab": null,
+          "shouldRun": true,
+          "required": false,
+          "tag": null,
+          "frameIndex": 0
+        }
+      ],
+      [
+        {
+          "id": 2,
+          "type": "TYPE",
+          "url": null,
+          "pageUrl": "https://myhrms.kanini.com/kanini/zp#home/myspace/overview-actionlist",
+          "pageTitle": "Zoho Accounts",
+          "coords": {
+            "x": 449,
+            "y": 311
+          },
+          "button": null,
+          "text": "reshni.suyambudurai@kanini.com",
+          "deltaX": null,
+          "deltaY": null,
+          "pressEnter": null,
+          "waitAfterMs": null,
+          "viewport": {
+            "width": 1280,
+            "height": 720,
+            "deviceScaleFactor": 1.0
+          },
+          "timestamp": 1783087619553,
+          "label": "Email address or mobile number",
+          "description": null,
+          "isPassword": false,
+          "storeValue": true,
+          "selector": {
+            "strategy": "id",
+            "value": "login_id",
+            "frame_selector": null
+          },
+          "isTriggerNewTab": null,
+          "shouldRun": true,
+          "required": false,
+          "tag": "input",
+          "frameIndex": 0
+        }
+      ],
+      [
+        {
+          "id": 3,
+          "type": "CLICK",
+          "url": null,
+          "pageUrl": "https://myhrms.kanini.com/kanini/zp#home/myspace/overview-actionlist",
+          "pageTitle": "Zoho Accounts",
+          "coords": {
+            "x": 568,
+            "y": 350
+          },
+          "button": "left",
+          "text": null,
+          "deltaX": null,
+          "deltaY": null,
+          "pressEnter": null,
+          "waitAfterMs": 300,
+          "viewport": {
+            "width": 1280,
+            "height": 720,
+            "deviceScaleFactor": 1.0
+          },
+          "timestamp": 1783087622134,
+          "label": null,
+          "description": null,
+          "isPassword": false,
+          "storeValue": false,
+          "selector": {
+            "strategy": "id",
+            "value": "nextbtn",
+            "frame_selector": null
+          },
+          "isTriggerNewTab": null,
+          "shouldRun": true,
+          "required": false,
+          "tag": "button",
+          "frameIndex": 0
+        }
+      ],
+      [
+        {
+          "id": 4,
+          "type": "TYPE",
+          "url": null,
+          "pageUrl": "https://myhrms.kanini.com/kanini/zp#home/myspace/overview-actionlist",
+          "pageTitle": "Sign in to your account",
+          "coords": {
+            "x": 599,
+            "y": 265
+          },
+          "button": null,
+          "text": "reshni.suyambudurai@kanini.com",
+          "deltaX": null,
+          "deltaY": null,
+          "pressEnter": null,
+          "waitAfterMs": null,
+          "viewport": {
+            "width": 1280,
+            "height": 720,
+            "deviceScaleFactor": 1.0
+          },
+          "timestamp": 1783087638697,
+          "label": "Enter your email, phone, or Skype.",
+          "description": null,
+          "isPassword": false,
+          "storeValue": true,
+          "selector": {
+            "strategy": "id",
+            "value": "i0116",
+            "frame_selector": null
+          },
+          "isTriggerNewTab": null,
+          "shouldRun": true,
+          "required": false,
+          "tag": "input",
+          "frameIndex": 0
+        }
+      ],
+      [
+        {
+          "id": 5,
+          "type": "CLICK",
+          "url": null,
+          "pageUrl": "https://myhrms.kanini.com/kanini/zp#home/myspace/overview-actionlist",
+          "pageTitle": "Sign in to your account",
+          "coords": {
+            "x": 768,
+            "y": 351
+          },
+          "button": "left",
+          "text": null,
+          "deltaX": null,
+          "deltaY": null,
+          "pressEnter": null,
+          "waitAfterMs": 300,
+          "viewport": {
+            "width": 1280,
+            "height": 720,
+            "deviceScaleFactor": 1.0
+          },
+          "timestamp": 1783087641303,
+          "label": null,
+          "description": null,
+          "isPassword": false,
+          "storeValue": false,
+          "selector": {
+            "strategy": "id",
+            "value": "idSIButton9",
+            "frame_selector": null
+          },
+          "isTriggerNewTab": null,
+          "shouldRun": true,
+          "required": false,
+          "tag": "input",
+          "frameIndex": 0
+        }
+      ],
+      [
+        {
+          "id": 6,
+          "type": "CLICK",
+          "url": null,
+          "pageUrl": "https://myhrms.kanini.com/kanini/zp#home/myspace/overview-actionlist",
+          "pageTitle": "Sign in to your account",
+          "coords": {
+            "x": 996,
+            "y": 614
+          },
+          "button": "left",
+          "text": null,
+          "deltaX": null,
+          "deltaY": null,
+          "pressEnter": null,
+          "waitAfterMs": 300,
+          "viewport": {
+            "width": 1280,
+            "height": 720,
+            "deviceScaleFactor": 1.0
+          },
+          "timestamp": 1783087664650,
+          "label": null,
+          "description": null,
+          "isPassword": false,
+          "storeValue": false,
+          "selector": {
+            "strategy": "css",
+            "value": "body > div > form:nth-of-type(1) > div > div > div:nth-of-type(2) > div:nth-of-type(1) > div",
+            "frame_selector": null
+          },
+          "isTriggerNewTab": null,
+          "shouldRun": true,
+          "required": false,
+          "tag": "div",
+          "frameIndex": 0
+        }
+      ],
+      [
+        {
+          "id": 7,
+          "type": "CLICK",
+          "url": null,
+          "pageUrl": "https://myhrms.kanini.com/kanini/zp#home/myspace/overview-actionlist",
+          "pageTitle": "Sign in to your account",
+          "coords": {
+            "x": 622,
+            "y": 290
+          },
+          "button": "left",
+          "text": null,
+          "deltaX": null,
+          "deltaY": null,
+          "pressEnter": null,
+          "waitAfterMs": 300,
+          "viewport": {
+            "width": 1280,
+            "height": 720,
+            "deviceScaleFactor": 1.0
+          },
+          "timestamp": 1783087670012,
+          "label": null,
+          "description": null,
+          "isPassword": false,
+          "storeValue": false,
+          "selector": {
+            "strategy": "css",
+            "value": "body > div > form:nth-of-type(1) > div > div > div:nth-of-type(2) > div:nth-of-type(1) > div > div > div > div > div > div:nth-of-type(3) > div > div:nth-of-type(2) > div",
+            "frame_selector": null
+          },
+          "isTriggerNewTab": null,
+          "shouldRun": true,
+          "required": false,
+          "tag": "div",
+          "frameIndex": 0
+        }
+      ],
+      [
+        {
+          "id": 8,
+          "type": "TYPE",
+          "url": null,
+          "pageUrl": "https://myhrms.kanini.com/kanini/zp#home/myspace/overview-actionlist",
+          "pageTitle": "Sign in to your account",
+          "coords": {
+            "x": 614,
+            "y": 307
+          },
+          "button": null,
+          "text": "Shrez@Ka25",
+          "deltaX": null,
+          "deltaY": null,
+          "pressEnter": null,
+          "waitAfterMs": null,
+          "viewport": {
+            "width": 1280,
+            "height": 720,
+            "deviceScaleFactor": 1.0
+          },
+          "timestamp": 1783087682390,
+          "label": "Enter the password for reshni.suyambudurai@kanini.com",
+          "description": null,
+          "isPassword": true,
+          "storeValue": true,
+          "selector": {
+            "strategy": "id",
+            "value": "i0118",
+            "frame_selector": null
+          },
+          "isTriggerNewTab": null,
+          "shouldRun": true,
+          "required": false,
+          "tag": "input",
+          "frameIndex": 0
+        }
+      ]
+    ]
+  }
+}

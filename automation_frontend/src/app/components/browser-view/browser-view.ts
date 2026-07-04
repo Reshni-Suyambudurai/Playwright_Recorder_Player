@@ -24,12 +24,25 @@ export class BrowserView implements OnInit, OnDestroy {
   readonly overlayX = signal(0);
   readonly overlayY = signal(0);
   readonly tabs = signal<TabInfo[]>([]);
+  readonly isNavigating = signal(false);
 
   private imgRef = viewChild<ElementRef<HTMLImageElement>>('frameImg');
 
+  // Scroll debounce state
+  private _scrollTimer: ReturnType<typeof setTimeout> | null = null;
+  private _accDeltaX = 0;
+  private _accDeltaY = 0;
+  private _scrollX = 0;
+  private _scrollY = 0;
+  private readonly SCROLL_DEBOUNCE_MS = 150;
+
   ngOnInit(): void {
     this.subs.push(
-      this.wsApi.frame$.subscribe(frame => this.frameUrl.set(frame.image)),
+      this.wsApi.frame$.subscribe(frame => {
+        this.isNavigating.set(false);
+        this.frameUrl.set(frame.image);
+      }),
+      this.wsApi.navigating$.subscribe(() => this.isNavigating.set(true)),
       this.wsApi.inputDetected$.subscribe(data => this._showOverlay(data)),
       this.wsApi.tabOpened$.subscribe(data => this.tabs.set(data.tabs ?? [])),
       this.wsApi.tabSwitched$.subscribe(data => {
@@ -37,11 +50,20 @@ export class BrowserView implements OnInit, OnDestroy {
         this.tabs.set(updated);
       }),
       this.wsApi.recordingStopped$.subscribe(() => this.tabs.set([])),
+      this.wsApi.disconnected$.subscribe(() => {
+        this.frameUrl.set('');
+        this.overlayData.set(null);
+        this.tabs.set([]);
+        this.isNavigating.set(false);
+        if (this._scrollTimer !== null) { clearTimeout(this._scrollTimer); this._scrollTimer = null; }
+        this._accDeltaX = 0; this._accDeltaY = 0;
+      }),
     );
   }
 
   ngOnDestroy(): void {
     this.subs.forEach(s => s.unsubscribe());
+    if (this._scrollTimer !== null) clearTimeout(this._scrollTimer);
   }
 
   private _showOverlay(data: InputDetectedData): void {
@@ -77,7 +99,23 @@ export class BrowserView implements OnInit, OnDestroy {
     const scaleY = VIEWPORT_HEIGHT / rect.height;
     const x = Math.round((event.clientX - rect.left) * scaleX);
     const y = Math.round((event.clientY - rect.top) * scaleY);
-    this.wsApi.sendScrollAction(x, y, event.deltaX, event.deltaY);
+
+    // Accumulate deltas; capture origin coords on first tick of this gesture
+    if (this._scrollTimer === null) {
+      this._scrollX = x;
+      this._scrollY = y;
+    }
+    this._accDeltaX += event.deltaX;
+    this._accDeltaY += event.deltaY;
+
+    // Reset debounce window
+    if (this._scrollTimer !== null) clearTimeout(this._scrollTimer);
+    this._scrollTimer = setTimeout(() => {
+      this._scrollTimer = null;
+      this.wsApi.sendScrollAction(this._scrollX, this._scrollY, this._accDeltaX, this._accDeltaY);
+      this._accDeltaX = 0;
+      this._accDeltaY = 0;
+    }, this.SCROLL_DEBOUNCE_MS);
   }
 
   onOverlayConfirm(text: string): void {

@@ -120,7 +120,12 @@ class BrowserService:
 
         logger.info(f"Navigating to: {url}")
         try:
-            response = await page.goto(url, wait_until="domcontentloaded", timeout=timeout)
+            response = await page.goto(url, wait_until="load", timeout=timeout)
+            # Best-effort wait for network to settle (JS-heavy SPAs finish rendering)
+            try:
+                await page.wait_for_load_state("networkidle", timeout=5000)
+            except Exception:
+                pass  # timeout is fine — page is still usable after "load"
             title = await page.title()
             status_code = response.status if response else None
             logger.info(f"Navigation success: {url} | title={title} | status={status_code}")
@@ -159,7 +164,12 @@ class BrowserService:
 
         logger.info(f"Navigating to: {url}")
         try:
-            response = await page.goto(url, wait_until="domcontentloaded", timeout=timeout)
+            response = await page.goto(url, wait_until="load", timeout=timeout)
+            # Best-effort wait for network to settle (JS-heavy SPAs finish rendering)
+            try:
+                await page.wait_for_load_state("networkidle", timeout=5000)
+            except Exception:
+                pass  # timeout is fine — page is still usable after "load"
             title = await page.title()
             status_code = response.status if response else None
             logger.info(f"Navigation success: {url} | title={title} | status={status_code}")

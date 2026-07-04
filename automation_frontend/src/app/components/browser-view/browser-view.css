@@ -56,6 +56,33 @@
   user-select: none;
 }
 
+/* Loading overlay shown over the screenshot while waiting for next frame */
+.frame-loading-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  z-index: 10;
+  border-radius: 2px;
+}
+
+.frame-spinner {
+  display: block;
+  width: 40px;
+  height: 40px;
+  border: 3px solid rgba(255, 255, 255, 0.25);
+  border-top-color: #ffffff;
+  border-radius: 50%;
+  animation: frame-spin 0.7s linear infinite;
+}
+
+@keyframes frame-spin {
+  to { transform: rotate(360deg); }
+}
+
 /* Yellow dot at the clicked coordinate */
 .input-marker {
   position: absolute;

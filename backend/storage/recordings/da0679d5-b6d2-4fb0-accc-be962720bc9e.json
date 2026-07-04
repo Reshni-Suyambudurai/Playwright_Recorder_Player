@@ -1,0 +1,354 @@
+{
+  "version": "1.0",
+  "meta": {
+    "id": "da0679d5-b6d2-4fb0-accc-be962720bc9e",
+    "title": "PlaywrightDev",
+    "description": "Testing",
+    "createdAt": 1783079418407,
+    "updatedAt": 1783079418407,
+    "intent": ""
+  },
+  "steps": {
+    "tab-1": [
+      [
+        {
+          "id": 1,
+          "type": "NAVIGATE",
+          "url": "https://playwright.dev/",
+          "pageUrl": "https://playwright.dev/",
+          "pageTitle": "Fast and reliable end-to-end testing for modern web apps | Playwright",
+          "coords": null,
+          "button": null,
+          "text": null,
+          "deltaX": null,
+          "deltaY": null,
+          "pressEnter": null,
+          "waitAfterMs": 100,
+          "viewport": {
+            "width": 1280,
+            "height": 720,
+            "deviceScaleFactor": 1.0
+          },
+          "timestamp": 1783079288792,
+          "label": null,
+          "description": null,
+          "isPassword": false,
+          "storeValue": false,
+          "selector": null,
+          "isTriggerNewTab": null,
+          "shouldRun": true,
+          "required": false,
+          "tag": null,
+          "frameIndex": 0
+        }
+      ],
+      [
+        {
+          "id": 2,
+          "type": "CLICK",
+          "url": null,
+          "pageUrl": "https://playwright.dev/",
+          "pageTitle": "Fast and reliable end-to-end testing for modern web apps | Playwright",
+          "coords": {
+            "x": 181,
+            "y": 33
+          },
+          "button": "left",
+          "text": null,
+          "deltaX": null,
+          "deltaY": null,
+          "pressEnter": null,
+          "waitAfterMs": 300,
+          "viewport": {
+            "width": 1280,
+            "height": 720,
+            "deviceScaleFactor": 1.0
+          },
+          "timestamp": 1783079293415,
+          "label": null,
+          "description": null,
+          "isPassword": false,
+          "storeValue": false,
+          "selector": {
+            "strategy": "css",
+            "value": "body > div > nav > div:nth-of-type(1) > div:nth-of-type(1) > a:nth-of-type(2)",
+            "frame_selector": null
+          },
+          "isTriggerNewTab": null,
+          "shouldRun": true,
+          "required": false,
+          "tag": "a",
+          "frameIndex": 0
+        }
+      ],
+      [
+        {
+          "id": 3,
+          "type": "CLICK",
+          "url": null,
+          "pageUrl": "https://playwright.dev/",
+          "pageTitle": "Installation | Playwright",
+          "coords": {
+            "x": 1144,
+            "y": 27
+          },
+          "button": "left",
+          "text": null,
+          "deltaX": null,
+          "deltaY": null,
+          "pressEnter": null,
+          "waitAfterMs": 300,
+          "viewport": {
+            "width": 1280,
+            "height": 720,
+            "deviceScaleFactor": 1.0
+          },
+          "timestamp": 1783079298157,
+          "label": "Search (Control+k)",
+          "description": null,
+          "isPassword": false,
+          "storeValue": false,
+          "selector": {
+            "strategy": "css",
+            "value": "[aria-label=\"Search\\ \\(Control\\+k\\)\"]",
+            "frame_selector": null
+          },
+          "isTriggerNewTab": null,
+          "shouldRun": true,
+          "required": false,
+          "tag": "button",
+          "frameIndex": 0
+        }
+      ],
+      [
+        {
+          "id": 4,
+          "type": "TYPE",
+          "url": null,
+          "pageUrl": "https://playwright.dev/",
+          "pageTitle": "Installation | Playwright",
+          "coords": {
+            "x": 588,
+            "y": 87
+          },
+          "button": null,
+          "text": "trace",
+          "deltaX": null,
+          "deltaY": null,
+          "pressEnter": null,
+          "waitAfterMs": null,
+          "viewport": {
+            "width": 1280,
+            "height": 720,
+            "deviceScaleFactor": 1.0
+          },
+          "timestamp": 1783079325689,
+          "label": "Search docs",
+          "description": null,
+          "isPassword": false,
+          "storeValue": true,
+          "selector": {
+            "strategy": "id",
+            "value": "docsearch-input",
+            "frame_selector": null
+          },
+          "isTriggerNewTab": null,
+          "shouldRun": true,
+          "required": false,
+          "tag": "input",
+          "frameIndex": 0
+        }
+      ],
+      [
+        {
+          "id": 5,
+          "type": "CLICK",
+          "url": null,
+          "pageUrl": "https://playwright.dev/",
+          "pageTitle": "Trace viewer | Playwright",
+          "coords": {
+            "x": 494,
+            "y": 261
+          },
+          "button": "left",
+          "text": null,
+          "deltaX": null,
+          "deltaY": null,
+          "pressEnter": null,
+          "waitAfterMs": 300,
+          "viewport": {
+            "width": 1280,
+            "height": 720,
+            "deviceScaleFactor": 1.0
+          },
+          "timestamp": 1783079327783,
+          "label": null,
+          "description": null,
+          "isPassword": false,
+          "storeValue": false,
+          "selector": {
+            "strategy": "css",
+            "value": "body > div:nth-of-type(1) > div > div > div > div > section:nth-of-type(1) > ul > li:nth-of-type(2) > a",
+            "frame_selector": null
+          },
+          "isTriggerNewTab": null,
+          "shouldRun": true,
+          "required": false,
+          "tag": "a",
+          "frameIndex": 0
+        }
+      ],
+      [
+        {
+          "id": 6,
+          "type": "CLICK",
+          "url": null,
+          "pageUrl": "https://playwright.dev/",
+          "pageTitle": "Trace viewer | Playwright",
+          "coords": {
+            "x": 977,
+            "y": 35
+          },
+          "button": "left",
+          "text": null,
+          "deltaX": null,
+          "deltaY": null,
+          "pressEnter": null,
+          "waitAfterMs": 300,
+          "viewport": {
+            "width": 1280,
+            "height": 720,
+            "deviceScaleFactor": 1.0
+          },
+          "timestamp": 1783079331556,
+          "label": "GitHub repository",
+          "description": null,
+          "isPassword": false,
+          "storeValue": false,
+          "selector": {
+            "strategy": "css",
+            "value": "[aria-label=\"GitHub\\ repository\"]",
+            "frame_selector": null
+          },
+          "isTriggerNewTab": true,
+          "shouldRun": true,
+          "required": false,
+          "tag": "a",
+          "frameIndex": 0
+        }
+      ],
+      [
+        {
+          "id": 8,
+          "type": "CLICK",
+          "url": null,
+          "pageUrl": "https://playwright.dev/",
+          "pageTitle": "Trace viewer | Playwright",
+          "coords": {
+            "x": 1167,
+            "y": 24
+          },
+          "button": "left",
+          "text": null,
+          "deltaX": null,
+          "deltaY": null,
+          "pressEnter": null,
+          "waitAfterMs": 300,
+          "viewport": {
+            "width": 1280,
+            "height": 720,
+            "deviceScaleFactor": 1.0
+          },
+          "timestamp": 1783079386400,
+          "label": "Search (Control+k)",
+          "description": null,
+          "isPassword": false,
+          "storeValue": false,
+          "selector": {
+            "strategy": "css",
+            "value": "[aria-label=\"Search\\ \\(Control\\+k\\)\"]",
+            "frame_selector": null
+          },
+          "isTriggerNewTab": null,
+          "shouldRun": true,
+          "required": false,
+          "tag": "button",
+          "frameIndex": 0
+        }
+      ],
+      [
+        {
+          "id": 9,
+          "type": "CLICK",
+          "url": null,
+          "pageUrl": "https://playwright.dev/",
+          "pageTitle": "Trace viewer | Playwright",
+          "coords": {
+            "x": 1006,
+            "y": 87
+          },
+          "button": "left",
+          "text": null,
+          "deltaX": null,
+          "deltaY": null,
+          "pressEnter": null,
+          "waitAfterMs": 300,
+          "viewport": {
+            "width": 1280,
+            "height": 720,
+            "deviceScaleFactor": 1.0
+          },
+          "timestamp": 1783079417092,
+          "label": "Cancel",
+          "description": null,
+          "isPassword": false,
+          "storeValue": false,
+          "selector": {
+            "strategy": "css",
+            "value": "[aria-label=\"Cancel\"]",
+            "frame_selector": null
+          },
+          "isTriggerNewTab": null,
+          "shouldRun": true,
+          "required": false,
+          "tag": "button",
+          "frameIndex": 0
+        }
+      ]
+    ],
+    "tab-2": [
+      [
+        {
+          "id": 7,
+          "type": "NAVIGATE",
+          "url": "https://github.com/microsoft/playwright",
+          "pageUrl": "https://github.com/microsoft/playwright",
+          "pageTitle": "GitHub - microsoft/playwright: Playwright is a framework for Web Testing and Automation. It allows testing Chromium, Firefox and WebKit with a single API. · GitHub",
+          "coords": null,
+          "button": null,
+          "text": null,
+          "deltaX": null,
+          "deltaY": null,
+          "pressEnter": null,
+          "waitAfterMs": 100,
+          "viewport": {
+            "width": 1280,
+            "height": 720,
+            "deviceScaleFactor": 1.0
+          },
+          "timestamp": 1783079333465,
+          "label": null,
+          "description": null,
+          "isPassword": false,
+          "storeValue": false,
+          "selector": null,
+          "isTriggerNewTab": null,
+          "shouldRun": true,
+          "required": false,
+          "tag": null,
+          "frameIndex": 0
+        }
+      ]
+    ]
+  }
+}

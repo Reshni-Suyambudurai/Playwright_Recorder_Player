@@ -5,11 +5,13 @@ import logging
 import os
 import sys
 import json
+from contextlib import asynccontextmanager
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, status
 from fastapi.middleware.cors import CORSMiddleware
 from app.services.session_manager import SessionManager
 from app.services.browser_service import BrowserService
 from app.services.screenshot_service import ScreenshotService
+from app.services.database import DatabaseService
 from app.api.recording import create_recording_router
 from app.websocket.connection_manager import ConnectionManager
 from app.websocket.websocket_handler import WebSocketHandler
@@ -31,7 +33,17 @@ logger = logging.getLogger("playwright_recorder")
 def create_app():
     """Create and configure the FastAPI application."""
     logger.info("Creating FastAPI application")
-    app = FastAPI(title="Playwright Recorder API", version="1.0.0")
+
+    db = DatabaseService()
+
+    @asynccontextmanager
+    async def lifespan(app: FastAPI):
+        logger.info("App startup: initialising database")
+        await db.init_db()
+        yield
+        logger.info("App shutdown")
+
+    app = FastAPI(title="Playwright Recorder API", version="1.0.0", lifespan=lifespan)
 
     # Enable CORS
     app.add_middleware(
@@ -47,11 +59,11 @@ def create_app():
     browser_service = BrowserService()
     connection_manager = ConnectionManager()
     screenshot_service = ScreenshotService(browser_service, connection_manager)
-    websocket_handler = WebSocketHandler(connection_manager, session_manager, browser_service, screenshot_service)
+    websocket_handler = WebSocketHandler(connection_manager, session_manager, browser_service, screenshot_service, db)
     logger.info("All services initialized")
 
     # Register routers
-    recording_router = create_recording_router(session_manager, browser_service)
+    recording_router = create_recording_router(session_manager, browser_service, db, connection_manager)
     app.include_router(recording_router, prefix="/recording")
     logger.info("Recording router registered at /recording")
 

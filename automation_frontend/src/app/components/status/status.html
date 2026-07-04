@@ -6,9 +6,21 @@
     <h3>Connection Status</h3>
     <div class="status-item">
       <label>Status:</label>
-      <div class="status-value" [ngClass]="{'connected': connState.isConnected, 'disconnected': !connState.isConnected}">
-        <span class="status-indicator" [ngClass]="{'status-connected': connState.isConnected, 'status-disconnected': !connState.isConnected}"></span>
-        {{ connState.isConnected ? 'Connected' : 'Disconnected' }}
+      <div class="status-value"
+        [ngClass]="{
+          'connected': connState.isConnected,
+          'session-closed': !connState.isConnected && connState.sessionClosed,
+          'disconnected': !connState.isConnected && !connState.sessionClosed
+        }">
+        <span class="status-indicator"
+          [ngClass]="{
+            'status-connected': connState.isConnected,
+            'status-session-closed': !connState.isConnected && connState.sessionClosed,
+            'status-disconnected': !connState.isConnected && !connState.sessionClosed
+          }"></span>
+        @if (connState.isConnected) { Connected }
+        @else if (connState.sessionClosed) { Session Closed }
+        @else { Disconnected }
       </div>
     </div>
 
@@ -23,7 +35,7 @@
 
     @if (connState.error) {
       <div class="status-item error">
-        <label>Error:</label>
+        <label>Status:</label>
         <div class="status-value text-danger">{{ connState.error }}</div>
       </div>
     }
@@ -68,7 +80,7 @@
 
     @if (navState.error) {
       <div class="status-item error">
-        <label>Error:</label>
+        <label>Status:</label>
         <div class="status-value text-danger">{{ navState.error }}</div>
       </div>
     }

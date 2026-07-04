@@ -13,6 +13,7 @@ from app.services.browser_service import BrowserService
 from app.services.screenshot_service import ScreenshotService
 from app.services.recording_storage import RecordingStorage
 from app.services.dom_watcher import DomWatcher
+from app.services.database import DatabaseService
 from app.models.recording import Recording, RecordingMeta, RecordingStep, Coords, Viewport, SelectorInfo
 from app.utils.selector_builder import build_selector
 from app.utils import tab_manager
@@ -24,12 +25,14 @@ class WebSocketHandler:
     """
     
     def __init__(self, connection_manager: ConnectionManager, session_manager: SessionManager,
-                 browser_service: BrowserService, screenshot_service: ScreenshotService):
+                 browser_service: BrowserService, screenshot_service: ScreenshotService,
+                 db: DatabaseService | None = None):
         self.connection_manager = connection_manager
         self.session_manager = session_manager
         self.browser_service = browser_service
         self.screenshot_service = screenshot_service
         self.recording_storage = RecordingStorage()
+        self.db = db
     
     async def handle_hello(self, session_id: str, websocket, data: dict) -> dict:
         """Handle HELLO — validates session, registers client_id mapping, replies WELCOME."""
@@ -390,7 +393,6 @@ class WebSocketHandler:
                 )
                 session.recording_steps.append(step)
 
-            await asyncio.sleep(0.3)
             await self.screenshot_service.capture_and_send(page, session_id, client_id)
 
             return {"event_type": EventType.ACTION_DONE, "data": {"type": "scroll", "success": True}}
@@ -454,8 +456,23 @@ class WebSocketHandler:
             for step in (session.recording_steps or []):
                 recording.add_step(step)
 
-            # Save to disk
+            # Save to disk (file-based, kept as backup)
             self.recording_storage.save(recording)
+
+            # Save to SQLite database
+            if self.db:
+                recording_dict = {
+                    "version": recording.version,
+                    "meta": recording.meta.model_dump(by_alias=True),
+                    "steps": recording.steps,
+                }
+                await self.db.ensure_user(client_id)
+                await self.db.save_recording(
+                    record_id=meta.id,
+                    client_id=client_id,
+                    recording_json=recording_dict,
+                    flow_name=meta.title,
+                )
 
             # Build step summary list for frontend display
             steps_summary = [

@@ -8,11 +8,15 @@ per DEBOUNCE_MS window rather than flooding the WebSocket.
 import asyncio
 import logging
 from playwright.async_api import Page
+try:
+    from playwright._impl._errors import TargetClosedError
+except ImportError:
+    TargetClosedError = Exception  # fallback for older playwright versions
 from app.services.screenshot_service import ScreenshotService
 
 logger = logging.getLogger("playwright_recorder.services.dom_watcher")
 
-DEBOUNCE_MS = 150   # wait this many ms after last change before capturing
+DEBOUNCE_MS = 300   # wait this many ms after last change before capturing
 
 
 class DomWatcher:
@@ -96,11 +100,27 @@ class DomWatcher:
     async def _debounced_capture(self) -> None:
         try:
             await asyncio.sleep(DEBOUNCE_MS / 1000)
-            if self._active and self._page:
+            # Re-check after sleep — detach() may have fired during the wait
+            if not self._active or not self._page:
+                return
+            try:
+                await self._page.wait_for_load_state("networkidle", timeout=3000)
+            except TargetClosedError:
+                self._active = False
+                return
+            except Exception:
+                pass  # timeout or transient — fall through
+            if not self._active or not self._page:
+                return
+            try:
                 await self._screenshot_service.capture_and_send(
                     self._page, self._session_id, self._client_id
                 )
+            except TargetClosedError:
+                self._active = False
         except asyncio.CancelledError:
             pass
+        except TargetClosedError:
+            self._active = False
         except Exception as e:
             logger.error(f"DomWatcher capture error: {e}")

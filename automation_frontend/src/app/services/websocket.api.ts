@@ -58,6 +58,11 @@ export class WebsocketApi {
   // Screenshot streaming observables
   private frameSubject = new Subject<FrameData>();
   private recordingStartedSubject = new Subject<RecordingStartedData>();
+  private navigatingSubject = new Subject<void>();
+  private disconnectedSubject = new Subject<void>();
+
+  readonly navigating$: Observable<void> = this.navigatingSubject.asObservable();
+  readonly disconnected$: Observable<void> = this.disconnectedSubject.asObservable();
   private actionDoneSubject = new Subject<ActionDoneData>();
 
   readonly frame$: Observable<FrameData> = this.frameSubject.asObservable();
@@ -128,7 +133,9 @@ export class WebsocketApi {
       isConnected: false,
       sessionId: null,
       error: null,
+      sessionClosed: false,
     });
+    this.disconnectedSubject.next();
   }
 
   /**
@@ -221,6 +228,10 @@ export class WebsocketApi {
         case 'TAB_SWITCHED':
           this.tabSwitchedSubject.next(event.data as TabSwitchedData);
           break;
+        case 'SESSION_CLOSED':
+          this.updateConnectionState({ isConnected: false, sessionId: null, error: null, sessionClosed: true });
+          this.disconnectedSubject.next();
+          break;
         case 'ERROR':
           this.handleError(event.data as ErrorData);
           break;
@@ -276,25 +287,30 @@ export class WebsocketApi {
    * Check if WebSocket is connected
    */
   public sendStartRecording(data: StartRecordingData): void {
+    this.navigatingSubject.next();
     this.send('START_RECORDING', data);
   }
 
   public sendClickAction(x: number, y: number, button: 'left' | 'right' | 'middle' = 'left'): void {
     const data: ClickActionData = { x, y, button };
+    this.navigatingSubject.next();
     this.send('CLICK_ACTION', data);
   }
 
   public sendTypeAction(text: string, x: number, y: number, selector: SelectorInfo | null, isPassword: boolean, label?: string | null, tag?: string): void {
     const data: TypeActionData = { text, x, y, selector, is_password: isPassword, label, tag };
+    this.navigatingSubject.next();
     this.send('TYPE_ACTION', data);
   }
 
   public sendScrollAction(x: number, y: number, deltaX: number, deltaY: number): void {
     const data: ScrollActionData = { x, y, delta_x: deltaX, delta_y: deltaY };
+    this.navigatingSubject.next();
     this.send('SCROLL_ACTION', data);
   }
 
   public sendKeyAction(key: KeyActionData['key']): void {
+    this.navigatingSubject.next();
     this.send('KEY_ACTION', { key });
   }
 

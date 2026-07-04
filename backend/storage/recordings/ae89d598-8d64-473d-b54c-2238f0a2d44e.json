@@ -1,0 +1,944 @@
+{
+  "version": "1.0",
+  "meta": {
+    "id": "ae89d598-8d64-473d-b54c-2238f0a2d44e",
+    "title": "zoho",
+    "description": "Loading latency",
+    "createdAt": 1783091799471,
+    "updatedAt": 1783091799471,
+    "intent": "check"
+  },
+  "steps": {
+    "tab-1": [
+      [
+        {
+          "id": 1,
+          "type": "NAVIGATE",
+          "url": "https://myhrms.kanini.com/kanini/zp#home/myspace/overview-actionlist",
+          "pageUrl": "https://myhrms.kanini.com/kanini/zp#home/myspace/overview-actionlist",
+          "pageTitle": "Zoho Accounts",
+          "coords": null,
+          "button": null,
+          "text": null,
+          "deltaX": null,
+          "deltaY": null,
+          "pressEnter": null,
+          "waitAfterMs": 100,
+          "viewport": {
+            "width": 1280,
+            "height": 720,
+            "deviceScaleFactor": 1.0
+          },
+          "timestamp": 1783091607706,
+          "label": null,
+          "description": null,
+          "isPassword": false,
+          "storeValue": false,
+          "selector": null,
+          "isTriggerNewTab": null,
+          "shouldRun": true,
+          "required": false,
+          "tag": null,
+          "frameIndex": 0
+        }
+      ],
+      [
+        {
+          "id": 2,
+          "type": "TYPE",
+          "url": null,
+          "pageUrl": "https://myhrms.kanini.com/kanini/zp#home/myspace/overview-actionlist",
+          "pageTitle": "Zoho Accounts",
+          "coords": {
+            "x": 535,
+            "y": 299
+          },
+          "button": null,
+          "text": "reshni.suyambudurai@kanini.com",
+          "deltaX": null,
+          "deltaY": null,
+          "pressEnter": null,
+          "waitAfterMs": null,
+          "viewport": {
+            "width": 1280,
+            "height": 720,
+            "deviceScaleFactor": 1.0
+          },
+          "timestamp": 1783091623591,
+          "label": "Email address or mobile number",
+          "description": null,
+          "isPassword": false,
+          "storeValue": true,
+          "selector": {
+            "strategy": "id",
+            "value": "login_id",
+            "frame_selector": null
+          },
+          "isTriggerNewTab": null,
+          "shouldRun": true,
+          "required": false,
+          "tag": "input",
+          "frameIndex": 0
+        }
+      ],
+      [
+        {
+          "id": 3,
+          "type": "CLICK",
+          "url": null,
+          "pageUrl": "https://myhrms.kanini.com/kanini/zp#home/myspace/overview-actionlist",
+          "pageTitle": "Zoho Accounts",
+          "coords": {
+            "x": 507,
+            "y": 381
+          },
+          "button": "left",
+          "text": null,
+          "deltaX": null,
+          "deltaY": null,
+          "pressEnter": null,
+          "waitAfterMs": 300,
+          "viewport": {
+            "width": 1280,
+            "height": 720,
+            "deviceScaleFactor": 1.0
+          },
+          "timestamp": 1783091625647,
+          "label": null,
+          "description": null,
+          "isPassword": false,
+          "storeValue": false,
+          "selector": {
+            "strategy": "id",
+            "value": "nextbtn",
+            "frame_selector": null
+          },
+          "isTriggerNewTab": null,
+          "shouldRun": true,
+          "required": false,
+          "tag": "button",
+          "frameIndex": 0
+        }
+      ],
+      [
+        {
+          "id": 4,
+          "type": "TYPE",
+          "url": null,
+          "pageUrl": "https://myhrms.kanini.com/kanini/zp#home/myspace/overview-actionlist",
+          "pageTitle": "Sign in to your account",
+          "coords": {
+            "x": 535,
+            "y": 264
+          },
+          "button": null,
+          "text": "reshni.suyambudurai@kanini.com",
+          "deltaX": null,
+          "deltaY": null,
+          "pressEnter": null,
+          "waitAfterMs": null,
+          "viewport": {
+            "width": 1280,
+            "height": 720,
+            "deviceScaleFactor": 1.0
+          },
+          "timestamp": 1783091645602,
+          "label": "Enter your email, phone, or Skype.",
+          "description": null,
+          "isPassword": false,
+          "storeValue": true,
+          "selector": {
+            "strategy": "id",
+            "value": "i0116",
+            "frame_selector": null
+          },
+          "isTriggerNewTab": null,
+          "shouldRun": true,
+          "required": false,
+          "tag": "input",
+          "frameIndex": 0
+        }
+      ],
+      [
+        {
+          "id": 5,
+          "type": "CLICK",
+          "url": null,
+          "pageUrl": "https://myhrms.kanini.com/kanini/zp#home/myspace/overview-actionlist",
+          "pageTitle": "Sign in to your account",
+          "coords": {
+            "x": 757,
+            "y": 346
+          },
+          "button": "left",
+          "text": null,
+          "deltaX": null,
+          "deltaY": null,
+          "pressEnter": null,
+          "waitAfterMs": 300,
+          "viewport": {
+            "width": 1280,
+            "height": 720,
+            "deviceScaleFactor": 1.0
+          },
+          "timestamp": 1783091647550,
+          "label": null,
+          "description": null,
+          "isPassword": false,
+          "storeValue": false,
+          "selector": {
+            "strategy": "id",
+            "value": "idSIButton9",
+            "frame_selector": null
+          },
+          "isTriggerNewTab": null,
+          "shouldRun": true,
+          "required": false,
+          "tag": "input",
+          "frameIndex": 0
+        }
+      ],
+      [
+        {
+          "id": 6,
+          "type": "CLICK",
+          "url": null,
+          "pageUrl": "https://myhrms.kanini.com/kanini/zp#home/myspace/overview-actionlist",
+          "pageTitle": "Sign in to your account",
+          "coords": {
+            "x": 1095,
+            "y": 534
+          },
+          "button": "left",
+          "text": null,
+          "deltaX": null,
+          "deltaY": null,
+          "pressEnter": null,
+          "waitAfterMs": 300,
+          "viewport": {
+            "width": 1280,
+            "height": 720,
+            "deviceScaleFactor": 1.0
+          },
+          "timestamp": 1783091658092,
+          "label": null,
+          "description": null,
+          "isPassword": false,
+          "storeValue": false,
+          "selector": {
+            "strategy": "css",
+            "value": "body > div > form:nth-of-type(1) > div > div > div:nth-of-type(2) > div:nth-of-type(1) > div > div > div > div",
+            "frame_selector": null
+          },
+          "isTriggerNewTab": null,
+          "shouldRun": true,
+          "required": false,
+          "tag": "div",
+          "frameIndex": 0
+        }
+      ],
+      [
+        {
+          "id": 7,
+          "type": "TYPE",
+          "url": null,
+          "pageUrl": "https://myhrms.kanini.com/kanini/zp#home/myspace/overview-actionlist",
+          "pageTitle": "Sign in to your account",
+          "coords": {
+            "x": 584,
+            "y": 324
+          },
+          "button": null,
+          "text": "Shrez@6999",
+          "deltaX": null,
+          "deltaY": null,
+          "pressEnter": null,
+          "waitAfterMs": null,
+          "viewport": {
+            "width": 1280,
+            "height": 720,
+            "deviceScaleFactor": 1.0
+          },
+          "timestamp": 1783091673670,
+          "label": "Enter the password for reshni.suyambudurai@kanini.com",
+          "description": null,
+          "isPassword": true,
+          "storeValue": true,
+          "selector": {
+            "strategy": "id",
+            "value": "i0118",
+            "frame_selector": null
+          },
+          "isTriggerNewTab": null,
+          "shouldRun": true,
+          "required": false,
+          "tag": "input",
+          "frameIndex": 0
+        }
+      ],
+      [
+        {
+          "id": 8,
+          "type": "CLICK",
+          "url": null,
+          "pageUrl": "https://myhrms.kanini.com/kanini/zp#home/myspace/overview-actionlist",
+          "pageTitle": "(1) KANINI Software Solutions",
+          "coords": {
+            "x": 927,
+            "y": 282
+          },
+          "button": "left",
+          "text": null,
+          "deltaX": null,
+          "deltaY": null,
+          "pressEnter": null,
+          "waitAfterMs": 300,
+          "viewport": {
+            "width": 1280,
+            "height": 720,
+            "deviceScaleFactor": 1.0
+          },
+          "timestamp": 1783091713018,
+          "label": null,
+          "description": null,
+          "isPassword": false,
+          "storeValue": false,
+          "selector": {
+            "strategy": "css",
+            "value": "body > div:nth-of-type(6) > div:nth-of-type(3) > div > div:nth-of-type(2) > div > div > div:nth-of-type(2) > section > div > div:nth-of-type(2) > div > div > div > div > div > div",
+            "frame_selector": null
+          },
+          "isTriggerNewTab": null,
+          "shouldRun": true,
+          "required": false,
+          "tag": "div",
+          "frameIndex": 0
+        }
+      ],
+      [
+        {
+          "id": 9,
+          "type": "CLICK",
+          "url": null,
+          "pageUrl": "https://myhrms.kanini.com/kanini/zp#home/myspace/overview-actionlist",
+          "pageTitle": "(1) KANINI Software Solutions",
+          "coords": {
+            "x": 33,
+            "y": 152
+          },
+          "button": "left",
+          "text": null,
+          "deltaX": null,
+          "deltaY": null,
+          "pressEnter": null,
+          "waitAfterMs": 300,
+          "viewport": {
+            "width": 1280,
+            "height": 720,
+            "deviceScaleFactor": 1.0
+          },
+          "timestamp": 1783091717807,
+          "label": null,
+          "description": null,
+          "isPassword": false,
+          "storeValue": false,
+          "selector": {
+            "strategy": "css",
+            "value": "body > div:nth-of-type(6) > div:nth-of-type(1) > ul:nth-of-type(1) > li:nth-of-type(2) > div > i",
+            "frame_selector": null
+          },
+          "isTriggerNewTab": null,
+          "shouldRun": true,
+          "required": false,
+          "tag": "i",
+          "frameIndex": 0
+        }
+      ],
+      [
+        {
+          "id": 10,
+          "type": "CLICK",
+          "url": null,
+          "pageUrl": "https://myhrms.kanini.com/kanini/zp#home/myspace/overview-actionlist",
+          "pageTitle": "(1) KANINI Software Solutions",
+          "coords": {
+            "x": 197,
+            "y": 23
+          },
+          "button": "left",
+          "text": null,
+          "deltaX": null,
+          "deltaY": null,
+          "pressEnter": null,
+          "waitAfterMs": 300,
+          "viewport": {
+            "width": 1280,
+            "height": 720,
+            "deviceScaleFactor": 1.0
+          },
+          "timestamp": 1783091726220,
+          "label": "Team",
+          "description": null,
+          "isPassword": false,
+          "storeValue": false,
+          "selector": {
+            "strategy": "id",
+            "value": "zp_t_leavetracker_team",
+            "frame_selector": null
+          },
+          "isTriggerNewTab": null,
+          "shouldRun": true,
+          "required": false,
+          "tag": "a",
+          "frameIndex": 0
+        }
+      ],
+      [
+        {
+          "id": 11,
+          "type": "CLICK",
+          "url": null,
+          "pageUrl": "https://myhrms.kanini.com/kanini/zp#home/myspace/overview-actionlist",
+          "pageTitle": "(1) KANINI Software Solutions",
+          "coords": {
+            "x": 26,
+            "y": 234
+          },
+          "button": "left",
+          "text": null,
+          "deltaX": null,
+          "deltaY": null,
+          "pressEnter": null,
+          "waitAfterMs": 300,
+          "viewport": {
+            "width": 1280,
+            "height": 720,
+            "deviceScaleFactor": 1.0
+          },
+          "timestamp": 1783091729097,
+          "label": null,
+          "description": null,
+          "isPassword": false,
+          "storeValue": false,
+          "selector": {
+            "strategy": "css",
+            "value": "body > div:nth-of-type(6) > div:nth-of-type(1) > ul:nth-of-type(1) > li:nth-of-type(3) > div > i",
+            "frame_selector": null
+          },
+          "isTriggerNewTab": null,
+          "shouldRun": true,
+          "required": false,
+          "tag": "i",
+          "frameIndex": 0
+        }
+      ],
+      [
+        {
+          "id": 12,
+          "type": "CLICK",
+          "url": null,
+          "pageUrl": "https://myhrms.kanini.com/kanini/zp#home/myspace/overview-actionlist",
+          "pageTitle": "(1) KANINI Software Solutions",
+          "coords": {
+            "x": 33,
+            "y": 76
+          },
+          "button": "left",
+          "text": null,
+          "deltaX": null,
+          "deltaY": null,
+          "pressEnter": null,
+          "waitAfterMs": 300,
+          "viewport": {
+            "width": 1280,
+            "height": 720,
+            "deviceScaleFactor": 1.0
+          },
+          "timestamp": 1783091731555,
+          "label": null,
+          "description": null,
+          "isPassword": false,
+          "storeValue": false,
+          "selector": {
+            "strategy": "css",
+            "value": "body > div:nth-of-type(6) > div:nth-of-type(1) > ul:nth-of-type(1) > li:nth-of-type(1) > div > i",
+            "frame_selector": null
+          },
+          "isTriggerNewTab": null,
+          "shouldRun": true,
+          "required": false,
+          "tag": "i",
+          "frameIndex": 0
+        }
+      ],
+      [
+        {
+          "id": 13,
+          "type": "CLICK",
+          "url": null,
+          "pageUrl": "https://myhrms.kanini.com/kanini/zp#home/myspace/overview-actionlist",
+          "pageTitle": "(1) KANINI Software Solutions",
+          "coords": {
+            "x": 26,
+            "y": 231
+          },
+          "button": "left",
+          "text": null,
+          "deltaX": null,
+          "deltaY": null,
+          "pressEnter": null,
+          "waitAfterMs": 300,
+          "viewport": {
+            "width": 1280,
+            "height": 720,
+            "deviceScaleFactor": 1.0
+          },
+          "timestamp": 1783091758030,
+          "label": null,
+          "description": null,
+          "isPassword": false,
+          "storeValue": false,
+          "selector": {
+            "strategy": "css",
+            "value": "body > div:nth-of-type(6) > div:nth-of-type(1) > ul:nth-of-type(1) > li:nth-of-type(3) > div > i",
+            "frame_selector": null
+          },
+          "isTriggerNewTab": null,
+          "shouldRun": true,
+          "required": false,
+          "tag": "i",
+          "frameIndex": 0
+        }
+      ],
+      [
+        {
+          "id": 14,
+          "type": "CLICK",
+          "url": null,
+          "pageUrl": "https://myhrms.kanini.com/kanini/zp#home/myspace/overview-actionlist",
+          "pageTitle": "(1) KANINI Software Solutions",
+          "coords": {
+            "x": 1048,
+            "y": 123
+          },
+          "button": "left",
+          "text": null,
+          "deltaX": null,
+          "deltaY": null,
+          "pressEnter": null,
+          "waitAfterMs": 300,
+          "viewport": {
+            "width": 1280,
+            "height": 720,
+            "deviceScaleFactor": 1.0
+          },
+          "timestamp": 1783091760739,
+          "label": null,
+          "description": null,
+          "isPassword": false,
+          "storeValue": false,
+          "selector": {
+            "strategy": "id",
+            "value": "my_logselectBtn",
+            "frame_selector": null
+          },
+          "isTriggerNewTab": null,
+          "shouldRun": true,
+          "required": false,
+          "tag": "button",
+          "frameIndex": 0
+        }
+      ],
+      [
+        {
+          "id": 15,
+          "type": "CLICK",
+          "url": null,
+          "pageUrl": "https://myhrms.kanini.com/kanini/zp#home/myspace/overview-actionlist",
+          "pageTitle": "(1) KANINI Software Solutions",
+          "coords": {
+            "x": 1012,
+            "y": 211
+          },
+          "button": "left",
+          "text": null,
+          "deltaX": null,
+          "deltaY": null,
+          "pressEnter": null,
+          "waitAfterMs": 300,
+          "viewport": {
+            "width": 1280,
+            "height": 720,
+            "deviceScaleFactor": 1.0
+          },
+          "timestamp": 1783091763908,
+          "label": null,
+          "description": null,
+          "isPassword": false,
+          "storeValue": false,
+          "selector": {
+            "strategy": "css",
+            "value": "body > div:nth-of-type(18) > ul > li:nth-of-type(2) > span",
+            "frame_selector": null
+          },
+          "isTriggerNewTab": null,
+          "shouldRun": true,
+          "required": false,
+          "tag": "span",
+          "frameIndex": 0
+        }
+      ],
+      [
+        {
+          "id": 16,
+          "type": "CLICK",
+          "url": null,
+          "pageUrl": "https://myhrms.kanini.com/kanini/zp#home/myspace/overview-actionlist",
+          "pageTitle": "(1) KANINI Software Solutions",
+          "coords": {
+            "x": 206,
+            "y": 249
+          },
+          "button": "left",
+          "text": null,
+          "deltaX": null,
+          "deltaY": null,
+          "pressEnter": null,
+          "waitAfterMs": 300,
+          "viewport": {
+            "width": 1280,
+            "height": 720,
+            "deviceScaleFactor": 1.0
+          },
+          "timestamp": 1783091767317,
+          "label": null,
+          "description": null,
+          "isPassword": false,
+          "storeValue": false,
+          "selector": {
+            "strategy": "css",
+            "value": "body > div:nth-of-type(6) > div:nth-of-type(3) > div:nth-of-type(4) > div:nth-of-type(2) > div > div > div > div > div:nth-of-type(3) > div:nth-of-type(1) > div:nth-of-type(2) > div > div:nth-of-type(1) > div > div > div:nth-of-type(3) > div > table > tbody > tr:nth-of-type(2) > td:nth-of-type(2) > span > div > div > span",
+            "frame_selector": null
+          },
+          "isTriggerNewTab": null,
+          "shouldRun": true,
+          "required": false,
+          "tag": "span",
+          "frameIndex": 0
+        }
+      ],
+      [
+        {
+          "id": 17,
+          "type": "CLICK",
+          "url": null,
+          "pageUrl": "https://myhrms.kanini.com/kanini/zp#home/myspace/overview-actionlist",
+          "pageTitle": "(1) KANINI Software Solutions",
+          "coords": {
+            "x": 171,
+            "y": 418
+          },
+          "button": "left",
+          "text": null,
+          "deltaX": null,
+          "deltaY": null,
+          "pressEnter": null,
+          "waitAfterMs": 300,
+          "viewport": {
+            "width": 1280,
+            "height": 720,
+            "deviceScaleFactor": 1.0
+          },
+          "timestamp": 1783091769437,
+          "label": null,
+          "description": null,
+          "isPassword": false,
+          "storeValue": false,
+          "selector": {
+            "strategy": "css",
+            "value": "body > div:nth-of-type(6) > div:nth-of-type(3) > div:nth-of-type(4) > div:nth-of-type(2) > div > div > div > div > div:nth-of-type(3) > div:nth-of-type(1) > div:nth-of-type(2) > div > div:nth-of-type(5) > ul > li:nth-of-type(3) > div > span",
+            "frame_selector": null
+          },
+          "isTriggerNewTab": null,
+          "shouldRun": true,
+          "required": false,
+          "tag": "span",
+          "frameIndex": 0
+        }
+      ],
+      [
+        {
+          "id": 18,
+          "type": "CLICK",
+          "url": null,
+          "pageUrl": "https://myhrms.kanini.com/kanini/zp#home/myspace/overview-actionlist",
+          "pageTitle": "(1) KANINI Software Solutions",
+          "coords": {
+            "x": 344,
+            "y": 248
+          },
+          "button": "left",
+          "text": null,
+          "deltaX": null,
+          "deltaY": null,
+          "pressEnter": null,
+          "waitAfterMs": 300,
+          "viewport": {
+            "width": 1280,
+            "height": 720,
+            "deviceScaleFactor": 1.0
+          },
+          "timestamp": 1783091771135,
+          "label": null,
+          "description": null,
+          "isPassword": false,
+          "storeValue": false,
+          "selector": {
+            "strategy": "css",
+            "value": "body > div:nth-of-type(6) > div:nth-of-type(3) > div:nth-of-type(4) > div:nth-of-type(2) > div > div > div > div > div:nth-of-type(3) > div:nth-of-type(1) > div:nth-of-type(2) > div > div:nth-of-type(1) > div > div > div:nth-of-type(3) > div > table > tbody > tr:nth-of-type(2) > td:nth-of-type(3) > span > div > div > span",
+            "frame_selector": null
+          },
+          "isTriggerNewTab": null,
+          "shouldRun": true,
+          "required": false,
+          "tag": "span",
+          "frameIndex": 0
+        }
+      ],
+      [
+        {
+          "id": 19,
+          "type": "CLICK",
+          "url": null,
+          "pageUrl": "https://myhrms.kanini.com/kanini/zp#home/myspace/overview-actionlist",
+          "pageTitle": "(1) KANINI Software Solutions",
+          "coords": {
+            "x": 344,
+            "y": 371
+          },
+          "button": "left",
+          "text": null,
+          "deltaX": null,
+          "deltaY": null,
+          "pressEnter": null,
+          "waitAfterMs": 300,
+          "viewport": {
+            "width": 1280,
+            "height": 720,
+            "deviceScaleFactor": 1.0
+          },
+          "timestamp": 1783091773137,
+          "label": null,
+          "description": null,
+          "isPassword": false,
+          "storeValue": false,
+          "selector": {
+            "strategy": "css",
+            "value": "body > div:nth-of-type(6) > div:nth-of-type(3) > div:nth-of-type(4) > div:nth-of-type(2) > div > div > div > div > div:nth-of-type(3) > div:nth-of-type(1) > div:nth-of-type(2) > div > div:nth-of-type(6) > ul > li:nth-of-type(2) > div > span",
+            "frame_selector": null
+          },
+          "isTriggerNewTab": null,
+          "shouldRun": true,
+          "required": false,
+          "tag": "span",
+          "frameIndex": 0
+        }
+      ],
+      [
+        {
+          "id": 20,
+          "type": "CLICK",
+          "url": null,
+          "pageUrl": "https://myhrms.kanini.com/kanini/zp#home/myspace/overview-actionlist",
+          "pageTitle": "(1) KANINI Software Solutions",
+          "coords": {
+            "x": 485,
+            "y": 249
+          },
+          "button": "left",
+          "text": null,
+          "deltaX": null,
+          "deltaY": null,
+          "pressEnter": null,
+          "waitAfterMs": 300,
+          "viewport": {
+            "width": 1280,
+            "height": 720,
+            "deviceScaleFactor": 1.0
+          },
+          "timestamp": 1783091774753,
+          "label": null,
+          "description": null,
+          "isPassword": false,
+          "storeValue": false,
+          "selector": {
+            "strategy": "css",
+            "value": "body > div:nth-of-type(6) > div:nth-of-type(3) > div:nth-of-type(4) > div:nth-of-type(2) > div > div > div > div > div:nth-of-type(3) > div:nth-of-type(1) > div:nth-of-type(2) > div > div:nth-of-type(1) > div > div > div:nth-of-type(3) > div > table > tbody > tr:nth-of-type(2) > td:nth-of-type(4) > span > div > div > span",
+            "frame_selector": null
+          },
+          "isTriggerNewTab": null,
+          "shouldRun": true,
+          "required": false,
+          "tag": "span",
+          "frameIndex": 0
+        }
+      ],
+      [
+        {
+          "id": 21,
+          "type": "CLICK",
+          "url": null,
+          "pageUrl": "https://myhrms.kanini.com/kanini/zp#home/myspace/overview-actionlist",
+          "pageTitle": "(1) KANINI Software Solutions",
+          "coords": {
+            "x": 492,
+            "y": 381
+          },
+          "button": "left",
+          "text": null,
+          "deltaX": null,
+          "deltaY": null,
+          "pressEnter": null,
+          "waitAfterMs": 300,
+          "viewport": {
+            "width": 1280,
+            "height": 720,
+            "deviceScaleFactor": 1.0
+          },
+          "timestamp": 1783091776715,
+          "label": null,
+          "description": null,
+          "isPassword": false,
+          "storeValue": false,
+          "selector": {
+            "strategy": "css",
+            "value": "body > div:nth-of-type(6) > div:nth-of-type(3) > div:nth-of-type(4) > div:nth-of-type(2) > div > div > div > div > div:nth-of-type(3) > div:nth-of-type(1) > div:nth-of-type(2) > div > div:nth-of-type(7) > ul > li:nth-of-type(2) > div > span",
+            "frame_selector": null
+          },
+          "isTriggerNewTab": null,
+          "shouldRun": true,
+          "required": false,
+          "tag": "span",
+          "frameIndex": 0
+        }
+      ],
+      [
+        {
+          "id": 22,
+          "type": "TYPE",
+          "url": null,
+          "pageUrl": "https://myhrms.kanini.com/kanini/zp#home/myspace/overview-actionlist",
+          "pageTitle": "(1) KANINI Software Solutions",
+          "coords": {
+            "x": 668,
+            "y": 258
+          },
+          "button": null,
+          "text": "testing",
+          "deltaX": null,
+          "deltaY": null,
+          "pressEnter": null,
+          "waitAfterMs": null,
+          "viewport": {
+            "width": 1280,
+            "height": 720,
+            "deviceScaleFactor": 1.0
+          },
+          "timestamp": 1783091783298,
+          "label": null,
+          "description": null,
+          "isPassword": false,
+          "storeValue": true,
+          "selector": {
+            "strategy": "id",
+            "value": "dayworkitem2",
+            "frame_selector": null
+          },
+          "isTriggerNewTab": null,
+          "shouldRun": true,
+          "required": false,
+          "tag": "input",
+          "frameIndex": 0
+        }
+      ],
+      [
+        {
+          "id": 23,
+          "type": "TYPE",
+          "url": null,
+          "pageUrl": "https://myhrms.kanini.com/kanini/zp#home/myspace/overview-actionlist",
+          "pageTitle": "(1) KANINI Software Solutions",
+          "coords": {
+            "x": 1004,
+            "y": 248
+          },
+          "button": null,
+          "text": "its",
+          "deltaX": null,
+          "deltaY": null,
+          "pressEnter": null,
+          "waitAfterMs": null,
+          "viewport": {
+            "width": 1280,
+            "height": 720,
+            "deviceScaleFactor": 1.0
+          },
+          "timestamp": 1783091789563,
+          "label": "Enter Description",
+          "description": null,
+          "isPassword": false,
+          "storeValue": true,
+          "selector": {
+            "strategy": "id",
+            "value": "daydesctxt",
+            "frame_selector": null
+          },
+          "isTriggerNewTab": null,
+          "shouldRun": true,
+          "required": false,
+          "tag": "input",
+          "frameIndex": 0
+        }
+      ],
+      [
+        {
+          "id": 24,
+          "type": "CLICK",
+          "url": null,
+          "pageUrl": "https://myhrms.kanini.com/kanini/zp#home/myspace/overview-actionlist",
+          "pageTitle": "(1) KANINI Software Solutions",
+          "coords": {
+            "x": 64,
+            "y": 648
+          },
+          "button": "left",
+          "text": null,
+          "deltaX": null,
+          "deltaY": null,
+          "pressEnter": null,
+          "waitAfterMs": 300,
+          "viewport": {
+            "width": 1280,
+            "height": 720,
+            "deviceScaleFactor": 1.0
+          },
+          "timestamp": 1783091792759,
+          "label": null,
+          "description": null,
+          "isPassword": false,
+          "storeValue": false,
+          "selector": {
+            "strategy": "id",
+            "value": "submit_timelog",
+            "frame_selector": null
+          },
+          "isTriggerNewTab": null,
+          "shouldRun": true,
+          "required": false,
+          "tag": "button",
+          "frameIndex": 0
+        }
+      ]
+    ]
+  }
+}

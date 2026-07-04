@@ -43,6 +43,15 @@ export class NavigationApi {
         error: `${data.error}: ${data.message}`,
       });
     });
+
+    this.websocketApi.disconnected$.subscribe(() => {
+      this.navigationState.set({
+        isLoading: false,
+        currentUrl: null,
+        lastNavigation: null,
+        error: null,
+      });
+    });
   }
 
   /**

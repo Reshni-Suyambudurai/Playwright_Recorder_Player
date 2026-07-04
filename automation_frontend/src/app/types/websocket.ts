@@ -21,6 +21,7 @@ export type EventType =
   | 'TAB_OPENED'
   | 'SWITCH_TAB'
   | 'TAB_SWITCHED'
+  | 'SESSION_CLOSED'
   | 'ERROR';
 
 /* WebSocket Event Structure */
@@ -194,12 +195,53 @@ export interface TabSwitchedData {
 }
 
 /* Connection State */
+
+/* Recording List / Detail */
+export interface RecordingListItem {
+  recordId: string;
+  userId: string;
+  flowName: string;
+  description: string;
+  stepCount: number;
+  createdAt: number | null;
+  updatedAt: number | null;
+}
+
+export interface RecordingStep {
+  id: number;
+  type: string;
+  url?: string;
+  pageUrl?: string;
+  pageTitle?: string;
+  text?: string;
+  label?: string;
+  tag?: string;
+  coords?: { x: number; y: number } | null;
+  selector?: { strategy: string; value: string } | null;
+  isTriggerNewTab?: boolean | null;
+  tab_id?: string;
+}
+
+export interface RecordingDetail {
+  version: string;
+  meta: {
+    id: string;
+    title: string;
+    description: string;
+    intent: string;
+    createdAt: number;
+    updatedAt?: number;
+  };
+  steps: Record<string, RecordingStep[][]>;
+}
+
 export interface ConnectionState {
   isConnected: boolean;
   sessionId: string | null;
   clientId: string | null;
   lastUpdate: Date | null;
   error: string | null;
+  sessionClosed?: boolean;
 }
 
 /* Navigation State */

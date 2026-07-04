@@ -27,6 +27,10 @@ export class Status implements OnInit, OnDestroy {
       this.recordedSteps.set(data.steps);
       this.lastRecordingName.set(data.recording_name);
     });
+    this.websocketApi.disconnected$.subscribe(() => {
+      this.recordedSteps.set([]);
+      this.lastRecordingName.set('');
+    });
   }
 
   ngOnDestroy(): void {
