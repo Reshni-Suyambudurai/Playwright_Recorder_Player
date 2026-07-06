@@ -1,6 +1,7 @@
 import { Component, inject, signal, OnInit } from '@angular/core';
 import { RecordingsApi } from '../../services/recordings.api';
 import { RecordingListItem, RecordingDetail, RecordingStep } from '../../types/websocket';
+import { SvgIcon } from '../../components/svg-icon/svg-icon';
 
 /** Flat step group by URL for the detail panel */
 export interface TabGroup {
@@ -15,7 +16,7 @@ const KEY_TYPES = new Set(['NAVIGATE', 'CLICK', 'TYPE', 'KEY']);
 @Component({
   selector: 'app-flows',
   standalone: true,
-  imports: [],
+  imports: [SvgIcon],
   templateUrl: './flows.html',
   styleUrl: './flows.css',
 })
@@ -25,6 +26,8 @@ export class Flows implements OnInit {
   readonly recordings = signal<RecordingListItem[]>([]);
   readonly loading = signal(true);
   readonly error = signal<string | null>(null);
+  readonly deletingId = signal<string | null>(null);
+  readonly pendingDeleteId = signal<string | null>(null);
 
   readonly selectedRecording = signal<RecordingListItem | null>(null);
   readonly detail = signal<RecordingDetail | null>(null);
@@ -58,6 +61,33 @@ export class Flows implements OnInit {
   closeDetail(): void {
     this.selectedRecording.set(null);
     this.detail.set(null);
+  }
+
+  async onDeleteClick(event: MouseEvent, rec: RecordingListItem): Promise<void> {
+    event.stopPropagation();
+    this.pendingDeleteId.set(rec.recordId);
+  }
+
+  cancelDelete(): void {
+    this.pendingDeleteId.set(null);
+  }
+
+  async confirmDelete(): Promise<void> {
+    const id = this.pendingDeleteId();
+    if (!id || this.deletingId()) return;
+    this.deletingId.set(id);
+    try {
+      await this.api.deleteRecording(id);
+      this.recordings.update(list => list.filter(r => r.recordId !== id));
+      if (this.selectedRecording()?.recordId === id) {
+        this.closeDetail();
+      }
+      this.pendingDeleteId.set(null);
+    } catch (e: any) {
+      this.error.set(e?.message ?? 'Delete failed');
+    } finally {
+      this.deletingId.set(null);
+    }
   }
 
   /** Group steps by tab, using the first NAVIGATE URL as the section header */

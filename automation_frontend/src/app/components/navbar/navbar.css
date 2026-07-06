@@ -13,19 +13,57 @@
   flex-shrink: 0;
 }
 
+/* ── Left ─────────────────────────────────────────────────────── */
 .navbar-left {
   display: flex;
   align-items: center;
   gap: 0.625rem;
 }
 
-.navbar-logo {
-  width: 26px;
-  height: 26px;
+/* ── Brand toggle button ──────────────────────────────────────── */
+.navbar-brand-toggle {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: none;
+  border: none;
+  border-radius: var(--rounded-md);
+  cursor: pointer;
   color: var(--color-primary-600);
   flex-shrink: 0;
+  padding: 0;
+  transition: background-color var(--transition-fast), color var(--transition-fast);
 }
 
+.navbar-brand-toggle:hover {
+  background-color: var(--bg-tertiary);
+  color: var(--color-primary-500);
+}
+
+/* Wrapper spans stack both icons in the same 22×22 absolute slot */
+.navbar-brand-toggle .icon-logo,
+.navbar-brand-toggle .icon-hamburger {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  transition: opacity 0.18s ease;
+}
+
+/* At rest: show logo, hide hamburger */
+.navbar-brand-toggle .icon-logo      { opacity: 1; }
+.navbar-brand-toggle .icon-hamburger { opacity: 0; }
+
+/* On hover: swap */
+.navbar-brand-toggle:hover .icon-logo      { opacity: 0; }
+.navbar-brand-toggle:hover .icon-hamburger { opacity: 1; }
+
+/* ── Title ─────────────────────────────────────────────────────── */
 .navbar-title {
   font-size: var(--text-base);
   font-weight: 700;
@@ -39,11 +77,13 @@
   font-weight: 800;
 }
 
+/* ── Right ─────────────────────────────────────────────────────── */
 .navbar-right {
   display: flex;
   align-items: center;
 }
 
+/* ── Theme toggle ─────────────────────────────────────────────── */
 .theme-toggle {
   display: flex;
   align-items: center;
@@ -68,62 +108,11 @@
   box-shadow: 0 0 0 3px rgba(29, 78, 216, 0.2);
 }
 
-.theme-toggle svg {
-  width: 16px;
-  height: 16px;
-}
-
-.navbar-left {
-  display: flex;
-  align-items: center;
-  gap: 0.625rem;
-}
-
-.navbar-logo {
-  width: 28px;
-  height: 28px;
-  color: var(--color-primary-500);
-  flex-shrink: 0;
-}
-
-.navbar-title {
-  font-size: var(--text-lg);
-  font-weight: 700;
-  color: var(--text-primary);
-  letter-spacing: -0.01em;
-  white-space: nowrap;
-}
-
-.navbar-title-amp {
-  color: var(--color-primary-500);
-}
-
-.navbar-right {
-  display: flex;
-  align-items: center;
-}
-
-.theme-toggle {
+/* Size the icon wrapper inside theme-toggle */
+.theme-toggle .theme-icon {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
-  border-radius: var(--rounded-lg);
-  border: 1px solid var(--border-color);
-  background-color: var(--bg-tertiary);
-  color: var(--text-secondary);
-  cursor: pointer;
-  transition: background-color var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast);
-}
-
-.theme-toggle:hover {
-  background-color: var(--color-primary-500);
-  color: #fff;
-  border-color: var(--color-primary-500);
-}
-
-.theme-toggle svg {
-  width: 18px;
-  height: 18px;
+  width: 16px;
+  height: 16px;
 }

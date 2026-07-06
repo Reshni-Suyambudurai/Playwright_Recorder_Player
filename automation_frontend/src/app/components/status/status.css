@@ -115,8 +115,13 @@
   opacity: 0.75;
 }
 
+.status-value.error {
+  background-color: rgba(37, 99, 235, 0.08);
+  color: var(--color-primary-600);
+  border: 1px solid var(--color-primary-400);
+}
+
 .status-value.disconnected {
-    
   background-color: rgba(239, 68, 68, 0.1);
   color: var(--color-danger);
   border: 1px solid var(--color-danger);

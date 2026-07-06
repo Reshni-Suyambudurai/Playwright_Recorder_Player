@@ -97,6 +97,23 @@ _INSPECT_JS = """
         }
     }
 
+    // Compute occurrence_index: how many elements matching the same selector
+    // appear before this element in DOM order (object-identity comparison).
+    const sel = buildSelector(target);
+    let occurrenceIndex = 0;
+    try {
+        let queryStr = '';
+        if (sel.strategy === 'id') queryStr = `#${CSS.escape(sel.value)}`;
+        else if (sel.strategy === 'css') queryStr = sel.value;
+        // xpath: can't use querySelectorAll, leave index as 0
+        if (queryStr) {
+            const all = Array.from(document.querySelectorAll(queryStr));
+            const idx = all.indexOf(target);
+            if (idx > 0) occurrenceIndex = idx;
+        }
+    } catch(_) {}
+    sel.occurrence_index = occurrenceIndex;
+
     return {
         tag,
         input_type: inputType || null,
@@ -105,7 +122,7 @@ _INSPECT_JS = """
         placeholder: target.getAttribute('placeholder') || null,
         current_value: target.value !== undefined ? target.value : (target.textContent || ''),
         is_password: inputType === 'password',
-        selector: buildSelector(target),
+        selector: sel,
         frame_selector: null
     };
 }

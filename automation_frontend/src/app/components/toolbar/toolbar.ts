@@ -6,11 +6,12 @@ import { NavigationApi } from '../../services/navigation.api';
 import { TokenStore } from '../../services/token-store.api';
 import { environment } from '../../../environments/environment';
 import { Subscription } from 'rxjs';
+import { Spinner } from '../spinner/spinner';
 
 @Component({
   selector: 'app-toolbar',
   standalone: true,
-  imports: [NgClass, FormsModule],
+  imports: [ FormsModule, Spinner],
   templateUrl: './toolbar.html',
   styleUrl: './toolbar.css',
 })
@@ -24,6 +25,7 @@ export class Toolbar implements OnInit, OnDestroy {
   readonly connectionState = this.websocketApi.connectionState;
   readonly navigationState = this.navigationApi.navigationState;
   readonly isRecording = signal(false);
+  readonly isConnecting = signal(false);
 
   /** Emits when the user wants to open the recording modal */
   readonly openRecordingModal = output<string>();
@@ -42,6 +44,7 @@ export class Toolbar implements OnInit, OnDestroy {
   }
 
   async onConnect(): Promise<void> {
+    this.isConnecting.set(true);
     try {
       const response = await fetch(`${environment.apiBaseUrl}/recording/start`, {
         method: 'POST',
@@ -55,6 +58,8 @@ export class Toolbar implements OnInit, OnDestroy {
       await this.websocketApi.connect(sessionId);
     } catch (error) {
       console.error('Failed to connect:', error);
+    } finally {
+      this.isConnecting.set(false);
     }
   }
 

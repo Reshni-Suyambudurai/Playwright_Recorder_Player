@@ -4,11 +4,16 @@
 
   <div class="toolbar-left">
     <button
-      class="btn btn-primary"
+      class="btn btn-primary connect-btn"
       (click)="onConnect()"
-      [disabled]="connState.isConnected"
+      [disabled]="connState.isConnected || isConnecting()"
     >
-      Connect
+      @if (isConnecting()) {
+        <app-spinner size="sm" color="white" />
+        <span>Connecting…</span>
+      } @else {
+        <span>Connect</span>
+      }
     </button>
     <button
       class="btn btn-danger"
@@ -42,12 +47,5 @@
     </button>
   </div>
 
-  <div class="toolbar-right">
-    <div class="status-badge" [ngClass]="{'connected': connState.isConnected, 'disconnected': !connState.isConnected}">
-      <span class="status-indicator" [ngClass]="{'status-connected': connState.isConnected, 'status-disconnected': !connState.isConnected}"></span>
-      <span class="status-text">
-        {{ connState.isConnected ? 'Connected' : 'Disconnected' }}
-      </span>
-    </div>
-  </div>
+ 
 </div>

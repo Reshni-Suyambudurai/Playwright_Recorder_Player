@@ -18,9 +18,7 @@
         />
         <!-- Loading overlay shown while waiting for next frame after navigation -->
         @if (isNavigating()) {
-          <div class="frame-loading-overlay">
-            <span class="frame-spinner"></span>
-          </div>
+          <app-spinner [overlay]="true" size="lg" color="white" />
         }
         <!-- Yellow dot marks where the input will be filled -->
         @if (overlayData()) {
@@ -44,6 +42,12 @@
       />
     }
 
+  </div>
+} @else if (isNavigating()) {
+  <!-- Connected but first frame not yet received: show full-area spinner -->
+  <div class="browser-view-loading">
+    <app-spinner size="lg" color="primary" />
+    <span class="browser-view-loading-text">Opening page...</span>
   </div>
 } @else {
   <div class="browser-view-placeholder">

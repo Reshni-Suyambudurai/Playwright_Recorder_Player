@@ -22,4 +22,9 @@ export class RecordingsApi {
     if (!res.ok) throw new Error('Load failed: ' + res.status);
     return res.json();
   }
+
+  async deleteRecording(recordId: string): Promise<void> {
+    const res = await fetch(this.base + '/recording/' + recordId, { method: 'DELETE' });
+    if (!res.ok) throw new Error('Delete failed: ' + res.status);
+  }
 }

@@ -6,6 +6,7 @@ export class ThemeApi {
   private tokenStore = inject(TokenStore);
 
   readonly isDark: WritableSignal<boolean> = signal(this.resolveInitialTheme());
+  readonly isSidebarOpen: WritableSignal<boolean> = signal(this.resolveInitialSidebar());
 
   constructor() {
     /**
@@ -18,17 +19,29 @@ export class ThemeApi {
       document.documentElement.classList.toggle('dark', dark);
       this.tokenStore.setTheme(dark ? 'dark' : 'light');
     });
+
+    effect(() => {
+      this.tokenStore.setSidebarOpen(this.isSidebarOpen());
+    });
   }
 
   toggle(): void {
     this.isDark.update(v => !v);
-    // DOM + localStorage update is handled entirely by the effect above.
+  }
+
+  toggleSidebar(): void {
+    this.isSidebarOpen.update(v => !v);
   }
 
   private resolveInitialTheme(): boolean {
     const saved = this.tokenStore.getTheme();
     if (saved !== null) return saved === 'dark';
     return window.matchMedia('(prefers-color-scheme: dark)').matches;
+  }
+
+  private resolveInitialSidebar(): boolean {
+    const saved = this.tokenStore.getSidebarOpen();
+    return saved !== null ? saved : true; // default: open
   }
 }
 

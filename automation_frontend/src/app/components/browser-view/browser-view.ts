@@ -4,6 +4,7 @@ import { WebsocketApi } from '../../services/websocket.api';
 import { InputDetectedData, TabInfo } from '../../types/websocket';
 import { InputOverlay } from '../input-overlay/input-overlay';
 import { TabBar } from '../tab-bar/tab-bar';
+import { Spinner } from '../spinner/spinner';
 
 const VIEWPORT_WIDTH = 1280;
 const VIEWPORT_HEIGHT = 720;
@@ -11,7 +12,7 @@ const VIEWPORT_HEIGHT = 720;
 @Component({
   selector: 'app-browser-view',
   standalone: true,
-  imports: [InputOverlay, TabBar],
+  imports: [InputOverlay, TabBar, Spinner],
   templateUrl: './browser-view.html',
   styleUrl: './browser-view.css',
 })

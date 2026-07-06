@@ -12,6 +12,7 @@ class SelectorInfo(BaseModel):
     strategy: str           # "id" | "css" | "xpath"
     value: str
     frame_selector: Optional[str] = None
+    occurrence_index: int = 0  # 0-based index among all elements matching this selector
 
 
 class Coords(BaseModel):

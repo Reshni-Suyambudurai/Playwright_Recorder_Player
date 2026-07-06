@@ -112,6 +112,7 @@ export interface SelectorInfo {
   strategy: 'id' | 'css' | 'xpath';
   value: string;
   frameSelector?: string | null;
+  occurrence_index?: number;
 }
 
 /* Input overlay */

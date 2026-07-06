@@ -1,0 +1,7 @@
+@if (overlay()) {
+  <div class="spinner-overlay">
+    <span class="spinner-ring" [ngClass]="['spinner-' + size(), 'spinner-' + color()]"></span>
+  </div>
+} @else {
+  <span class="spinner-ring" [ngClass]="['spinner-' + size(), 'spinner-' + color()]"></span>
+}

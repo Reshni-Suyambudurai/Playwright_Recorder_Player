@@ -134,4 +134,14 @@ def create_recording_router(session_manager: SessionManager, browser_service: Br
             raise HTTPException(status_code=404, detail=f"Recording '{record_id}' not found")
         return data
 
+    @router.delete('/{record_id}')
+    async def delete_recording(record_id: str):
+        """Delete a recording by ID."""
+        if not db:
+            raise HTTPException(status_code=503, detail="Database not available")
+        deleted = await db.delete_recording(record_id)
+        if not deleted:
+            raise HTTPException(status_code=404, detail=f"Recording '{record_id}' not found")
+        return {"success": True, "recordId": record_id}
+
     return router

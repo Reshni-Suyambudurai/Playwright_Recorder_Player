@@ -1,0 +1,56 @@
+/* ── Overlay (browser screenshot loading) ─────────────────────── */
+.spinner-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  z-index: 10;
+  border-radius: 2px;
+}
+
+/* ── Ring ─────────────────────────────────────────────────────── */
+.spinner-ring {
+  display: block;
+  border-radius: 50%;
+  animation: spinner-spin 0.7s linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes spinner-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ── Sizes ────────────────────────────────────────────────────── */
+.spinner-sm {
+  width: 18px;
+  height: 18px;
+  border-width: 2px;
+}
+
+.spinner-md {
+  width: 32px;
+  height: 32px;
+  border-width: 3px;
+}
+
+.spinner-lg {
+  width: 44px;
+  height: 44px;
+  border-width: 3px;
+}
+
+/* ── Colours ──────────────────────────────────────────────────── */
+.spinner-white {
+  border-style: solid;
+  border-color: rgba(255, 255, 255, 0.25);
+  border-top-color: #ffffff;
+}
+
+.spinner-primary {
+  border-style: solid;
+  border-color: color-mix(in srgb, var(--color-primary-500) 25%, transparent);
+  border-top-color: var(--color-primary-500);
+}

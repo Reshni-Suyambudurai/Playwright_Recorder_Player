@@ -15,6 +15,15 @@
   align-items: center;
 }
 
+/* Connect button — flex row so spinner and label sit side-by-side */
+.connect-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-width: 7rem;
+  justify-content: center;
+}
+
 .toolbar-center {
   display: flex;
   gap: 0.5rem;

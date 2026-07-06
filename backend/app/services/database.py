@@ -122,3 +122,18 @@ class DatabaseService:
         if row is None:
             return None
         return json.loads(row["json"])
+
+    async def delete_recording(self, record_id: str) -> bool:
+        """Delete a recording by recordId. Returns True if a row was deleted."""
+        async with aiosqlite.connect(_DB_PATH) as db:
+            cursor = await db.execute(
+                "DELETE FROM Recordings WHERE recordId = ?",
+                (record_id,),
+            )
+            await db.commit()
+        deleted = cursor.rowcount > 0
+        if deleted:
+            logger.info(f"Recording deleted from DB: {record_id}")
+        else:
+            logger.warning(f"Delete attempted but no row found: {record_id}")
+        return deleted

@@ -70,19 +70,41 @@ class BrowserService:
         await page.mouse.wheel(delta_x, delta_y)
 
     async def perform_type(self, page: Page, selector: dict, text: str) -> None:
-        """Fill a form field using its selector. Falls back to keyboard if fill fails."""
+        """Fill a form field using its selector. Uses occurrence_index to target
+        the correct element when multiple elements share the same selector."""
         strategy = selector.get("strategy")
         value = selector.get("value")
-        logger.info(f"Typing into {strategy}={value}")
+        occurrence_index = selector.get("occurrence_index", 0)
+        logger.info(f"Typing into {strategy}={value} [occurrence_index={occurrence_index}]")
+
         try:
-            if strategy == "id":
-                await page.fill(f"#{value}", text)
-            elif strategy == "css":
-                await page.fill(value, text)
-            elif strategy == "xpath":
-                await page.fill(f"xpath={value}", text)
+            if occurrence_index > 0:
+                # Multiple elements share this selector — locate by index
+                if strategy == "id":
+                    query = f"#{value}"
+                elif strategy == "css":
+                    query = value
+                else:
+                    # XPath: fall back to keyboard
+                    await page.keyboard.type(text)
+                    return
+
+                elements = await page.query_selector_all(query)
+                if occurrence_index < len(elements):
+                    await elements[occurrence_index].fill(text)
+                else:
+                    logger.warning(f"occurrence_index {occurrence_index} out of range ({len(elements)} matches), using index 0")
+                    await elements[0].fill(text)
             else:
-                await page.keyboard.type(text)
+                # Unique selector — use page.fill directly
+                if strategy == "id":
+                    await page.fill(f"#{value}", text)
+                elif strategy == "css":
+                    await page.fill(value, text)
+                elif strategy == "xpath":
+                    await page.fill(f"xpath={value}", text)
+                else:
+                    await page.keyboard.type(text)
         except Exception as e:
             logger.warning(f"fill() failed ({e}), falling back to keyboard.type()")
             await page.keyboard.type(text)

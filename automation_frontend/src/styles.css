@@ -40,7 +40,7 @@
   --color-success-light: #d1fae5;
   --color-warning: #f59e0b;
   --color-warning-light: #fef3c7;
-  --color-danger:  #0000ff;
+  --color-danger:  #bc1515;
   --color-danger-light: #fee2e2;
   --color-info:    #2563EB;
   --color-info-light: #dbeafe;
@@ -405,10 +405,11 @@ html.dark .badge-danger  { background-color: rgba(239,68,68,0.15);  color: #fca5
   flex-shrink: 0;
 }
 
-.status-connected    { background-color: var(--color-success); box-shadow: 0 0 0 2px rgba(16,185,129,0.25); animation: pulse-dot 2s infinite; }
-.status-disconnected { background-color: var(--color-gray-400); }
-.status-loading      { background-color: var(--color-warning); animation: pulse-dot 1.2s infinite; }
-.status-error        { background-color: var(--color-danger); }
+.status-connected      { background-color: var(--color-success); box-shadow: 0 0 0 2px rgba(16,185,129,0.25); animation: pulse-dot 2s infinite; }
+.status-session-closed { background-color: var(--color-success); opacity: 0.55; }
+.status-disconnected   { background-color: var(--color-gray-400); }
+.status-loading        { background-color: var(--color-warning); animation: pulse-dot 1.2s infinite; }
+.status-error          { background-color: var(--color-primary-500); box-shadow: 0 0 0 2px rgba(37,99,235,0.2); }
 
 @keyframes pulse-dot {
   0%, 100% { opacity: 1; box-shadow: 0 0 0 2px rgba(16,185,129,0.25); }
@@ -421,6 +422,34 @@ html.dark .badge-danger  { background-color: rgba(239,68,68,0.15);  color: #fca5
 ::-webkit-scrollbar-track  { background: transparent; }
 ::-webkit-scrollbar-thumb  { background-color: var(--color-gray-300); border-radius: var(--rounded-full); }
 html.dark ::-webkit-scrollbar-thumb { background-color: var(--color-gray-700); }
+
+/* ==================== Tooltip =============================== */
+
+.app-tooltip {
+  position: absolute;
+  z-index: 9999;
+  padding: 0.3rem 0.65rem;
+  background-color: var(--bg-primary);
+  color:  var(--text-primary);
+  font-size: 0.75rem;
+  font-weight: 500;
+  border-radius: var(--rounded-md);
+  white-space: nowrap;
+  pointer-events: none;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+  opacity: 0;
+  transform: scale(0.95);
+  transition: opacity 0.12s ease, transform 0.12s ease;
+}
+
+html.dark .app-tooltip {
+  background-color: var(--color-gray-700, #374151);
+}
+
+.app-tooltip--visible {
+  opacity: 1;
+  transform: scale(1);
+}
 
 /* ==================== Utility Classes ==================== */
 

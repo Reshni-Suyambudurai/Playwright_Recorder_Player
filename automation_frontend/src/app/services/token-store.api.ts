@@ -13,8 +13,9 @@ import { Injectable } from '@angular/core';
 
 const KEYS = {
   // localStorage  (browser-level persistence)
-  THEME:     'theme',
-  CLIENT_ID: 'clientId',
+  THEME:       'theme',
+  CLIENT_ID:   'clientId',
+  SIDEBAR_OPEN: 'sidebarOpen',
 
   // sessionStorage  (tab-level persistence)
   SESSION_ID: 'sessionId',
@@ -32,6 +33,16 @@ export class TokenStore {
 
   setTheme(theme: 'dark' | 'light'): void {
     localStorage.setItem(KEYS.THEME, theme);
+  }
+
+  getSidebarOpen(): boolean | null {
+    const v = localStorage.getItem(KEYS.SIDEBAR_OPEN);
+    if (v === null) return null;
+    return v === 'true';
+  }
+
+  setSidebarOpen(open: boolean): void {
+    localStorage.setItem(KEYS.SIDEBAR_OPEN, String(open));
   }
 
   getClientId(): string | null {
