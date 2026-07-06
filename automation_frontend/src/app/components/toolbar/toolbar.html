@@ -30,6 +30,24 @@
   </div>
 
   <div class="toolbar-center">
+    <button
+      class="btn btn-icon"
+      (click)="onBack()"
+      [disabled]="!connState.isConnected"
+      [appTooltip]="'Go back'"
+      tooltipPosition="bottom"
+    >
+      &#9664;
+    </button>
+    <button
+      class="btn btn-icon"
+      (click)="onRefresh()"
+      [disabled]="!connState.isConnected"
+      [appTooltip]="'Reload page'"
+      tooltipPosition="bottom"
+    >
+      &#8635;
+    </button>
     <input
       type="text"
       class="url-input"

@@ -16,6 +16,8 @@ export type EventType =
   | 'TYPE_ACTION'
   | 'SCROLL_ACTION'
   | 'KEY_ACTION'
+  | 'PAGE_REFRESH'
+  | 'PAGE_BACK'
   | 'STOP_RECORDING'
   | 'RECORDING_STOPPED'
   | 'TAB_OPENED'

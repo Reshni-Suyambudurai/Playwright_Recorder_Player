@@ -314,6 +314,16 @@ export class WebsocketApi {
     this.send('KEY_ACTION', { key });
   }
 
+  public sendPageRefresh(): void {
+    this.navigatingSubject.next();
+    this.send('PAGE_REFRESH', {});
+  }
+
+  public sendPageBack(): void {
+    this.navigatingSubject.next();
+    this.send('PAGE_BACK', {});
+  }
+
   public sendStopRecording(): void {
     this.send('STOP_RECORDING', {});
   }

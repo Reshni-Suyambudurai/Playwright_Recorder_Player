@@ -84,6 +84,8 @@ class EventType:
     # Additional actions
     SCROLL_ACTION = "SCROLL_ACTION"
     KEY_ACTION = "KEY_ACTION"
+    PAGE_REFRESH = "PAGE_REFRESH"
+    PAGE_BACK = "PAGE_BACK"
     # Recording lifecycle
     STOP_RECORDING = "STOP_RECORDING"
     RECORDING_STOPPED = "RECORDING_STOPPED"

@@ -55,6 +55,14 @@ app/screenshots/
 *.log
 .cache/
 
+# Database
+database/recorder.db
+
+
+# Recorded sessions
+backend/storage/recordings/*
+!backend/storage/recordings/.gitkeep
+
 # Markdown Files (ignore all except README.md)
 *.md
 *.txt

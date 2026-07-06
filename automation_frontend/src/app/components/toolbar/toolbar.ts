@@ -7,11 +7,12 @@ import { TokenStore } from '../../services/token-store.api';
 import { environment } from '../../../environments/environment';
 import { Subscription } from 'rxjs';
 import { Spinner } from '../spinner/spinner';
+import { TooltipDirective } from '../../directives/tooltip/tooltip.directive';
 
 @Component({
   selector: 'app-toolbar',
   standalone: true,
-  imports: [ FormsModule, Spinner],
+  imports: [FormsModule, Spinner, TooltipDirective],
   templateUrl: './toolbar.html',
   styleUrl: './toolbar.css',
 })
@@ -96,6 +97,14 @@ export class Toolbar implements OnInit, OnDestroy {
     if (this.urlInput.trim()) {
       this.openRecordingModal.emit(this.urlInput.trim());
     }
+  }
+
+  onRefresh(): void {
+    this.websocketApi.sendPageRefresh();
+  }
+
+  onBack(): void {
+    this.websocketApi.sendPageBack();
   }
 
   onStopRecording(): void {

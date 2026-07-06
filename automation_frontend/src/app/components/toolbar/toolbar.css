@@ -28,9 +28,36 @@
   display: flex;
   gap: 0.5rem;
   flex: 1;
-  min-width: 300px;
   align-items: center;
 }
+
+.btn-icon {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.btn-icon:hover:not(:disabled) {
+  background: var(--bg-hover);
+  border-color: var(--color-primary-500);
+}
+
+.btn-icon:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
 
 .toolbar-right {
   display: flex;

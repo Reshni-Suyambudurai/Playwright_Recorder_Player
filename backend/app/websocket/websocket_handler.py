@@ -4,8 +4,11 @@ WebSocket event handler for routing and processing WebSocket events.
 import asyncio
 import time
 import uuid
+import logging
 from datetime import datetime
 from typing import Dict, Any
+
+logger = logging.getLogger("playwright_recorder.ws_handler")
 from app.websocket.connection_manager import ConnectionManager
 from app.websocket.websocket_events import EventType, HelloData, PongData, WelcomeData, ErrorData
 from app.services.session_manager import SessionManager
@@ -265,7 +268,8 @@ class WebSocketHandler:
             page = tab_manager.get_active_page(session) or session.page
             sel_info = await build_selector(page, int(x), int(y))
 
-            if sel_info and sel_info.get("is_input"):
+            # Right-clicks always fire directly — never trigger the input overlay
+            if button == "left" and sel_info and sel_info.get("is_input"):
                 # Don't click — ask frontend to open the input overlay
                 return {
                     "event_type": EventType.INPUT_DETECTED,
@@ -281,7 +285,7 @@ class WebSocketHandler:
                     },
                 }
 
-            # Normal click
+            # Perform click (left or right)
             await self.browser_service.perform_click(page, int(x), int(y), button)
 
             # Record step
@@ -432,6 +436,73 @@ class WebSocketHandler:
             return {"event_type": EventType.ACTION_DONE, "data": {"type": "key", "key": key, "success": True}}
         except Exception as e:
             return self._error_response("KEY_ACTION_ERROR", str(e))
+
+    async def _capture_after_nav(self, page, session_id: str, client_id: str, session, step_type: str) -> None:
+        """Wait for page to settle then record a NAVIGATE step and send a screenshot."""
+        try:
+            await page.wait_for_load_state("networkidle", timeout=5000)
+        except Exception:
+            pass
+        session.current_url = page.url
+        if session.recording_steps is not None:
+            step_id = len(session.recording_steps) + 1
+            session.recording_steps.append(RecordingStep(
+                id=step_id,
+                type="NAVIGATE",
+                url=session.current_url,
+                pageUrl=session.current_url,
+                pageTitle=await page.title(),
+                waitAfterMs=100,
+                viewport=Viewport(),
+                tab_id=session.active_tab_id or "tab-1",
+            ))
+            logger.info(f"[NAV] Recorded NAVIGATE step {step_id} ({step_type}) url={session.current_url}")
+        sent = await self.screenshot_service.capture_and_send(page, session_id, client_id)
+        logger.info(f"[NAV] capture_and_send result={sent}")
+
+    async def handle_page_refresh(self, session_id: str, client_id: str) -> dict:
+        """Handle PAGE_REFRESH — reload the current page."""
+        logger.info(f"[REFRESH] start session={session_id} client={client_id}")
+        session = self.session_manager.get_session(session_id)
+        if not session or not session.page:
+            return self._error_response("SESSION_NOT_FOUND", "No active session or page")
+        page = tab_manager.get_active_page(session) or session.page
+        try:
+            try:
+                logger.info("[REFRESH] calling page.reload()")
+                await page.reload(wait_until="load", timeout=30000)
+                logger.info("[REFRESH] reload complete")
+            except BaseException as ex:
+                logger.warning(f"[REFRESH] reload error (continuing): {type(ex).__name__}: {ex}")
+            await self._capture_after_nav(page, session_id, client_id, session, "refresh")
+            logger.info("[REFRESH] done")
+            return {"event_type": EventType.ACTION_DONE, "data": {"type": "refresh", "success": True}}
+        except BaseException as e:
+            logger.error(f"[REFRESH] outer error: {type(e).__name__}: {e}", exc_info=True)
+            await self.screenshot_service.capture_and_send(page, session_id, client_id)
+            return self._error_response("PAGE_REFRESH_ERROR", str(e))
+
+    async def handle_page_back(self, session_id: str, client_id: str) -> dict:
+        """Handle PAGE_BACK — navigate to the previous browser history entry."""
+        logger.info(f"[BACK] start session={session_id} client={client_id}")
+        session = self.session_manager.get_session(session_id)
+        if not session or not session.page:
+            return self._error_response("SESSION_NOT_FOUND", "No active session or page")
+        page = tab_manager.get_active_page(session) or session.page
+        try:
+            try:
+                logger.info("[BACK] calling page.go_back()")
+                await page.go_back(wait_until="load", timeout=10000)
+                logger.info("[BACK] go_back complete")
+            except BaseException as ex:
+                logger.warning(f"[BACK] go_back error (continuing): {type(ex).__name__}: {ex}")
+            await self._capture_after_nav(page, session_id, client_id, session, "back")
+            logger.info("[BACK] done")
+            return {"event_type": EventType.ACTION_DONE, "data": {"type": "back", "success": True}}
+        except BaseException as e:
+            logger.error(f"[BACK] outer error: {type(e).__name__}: {e}", exc_info=True)
+            await self.screenshot_service.capture_and_send(page, session_id, client_id)
+            return self._error_response("PAGE_BACK_ERROR", str(e))
 
     async def handle_stop_recording(self, session_id: str, client_id: str) -> dict:
         """Handle STOP_RECORDING — serialize steps, save JSON, return step list."""
@@ -594,6 +665,7 @@ class WebSocketHandler:
             event_type = event_data.get("event_type")
             client_id = event_data.get("client_id")   # top-level field on every event
             data = event_data.get("data", {})
+            logger.info(f"[WS-ROUTER] session={session_id} event_type={event_type!r}")
 
             if not event_type:
                 response = self._error_response("NO_EVENT_TYPE", "event_type is required")
@@ -616,6 +688,10 @@ class WebSocketHandler:
                 response = await self.handle_scroll_action(session_id, client_id, data)
             elif event_type == EventType.KEY_ACTION:
                 response = await self.handle_key_action(session_id, client_id, data)
+            elif event_type == EventType.PAGE_REFRESH:
+                response = await self.handle_page_refresh(session_id, client_id)
+            elif event_type == EventType.PAGE_BACK:
+                response = await self.handle_page_back(session_id, client_id)
             elif event_type == EventType.STOP_RECORDING:
                 response = await self.handle_stop_recording(session_id, client_id)
             elif event_type == EventType.SWITCH_TAB:
