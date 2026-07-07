@@ -7,6 +7,7 @@ per DEBOUNCE_MS window rather than flooding the WebSocket.
 """
 import asyncio
 import logging
+import time
 from playwright.async_api import Page
 try:
     from playwright._impl._errors import TargetClosedError
@@ -27,6 +28,7 @@ class DomWatcher:
         self._session_id: str = ""
         self._client_id: str = ""
         self._active: bool = False
+        self._in_flight: bool = False  # prevent screenshot flooding from rapid mutations
 
     async def attach(self, page: Page, session_id: str, client_id: str) -> None:
         """
@@ -72,6 +74,17 @@ class DomWatcher:
             pass  # page may be navigating, init_script covers next load
         logger.info(f"DomWatcher attached to session {session_id}")
 
+    def suppress_external(self, value: bool) -> None:
+        """
+        Called by _bg_screenshot to mark that an action screenshot is in flight.
+        While True, DomWatcher will back off and reschedule instead of capturing.
+        """
+        self._in_flight = value
+        if value:
+            logger.info("[⏸ DOM-WATCHER] suppressed by action screenshot")
+        else:
+            logger.info("[▶ DOM-WATCHER] suppression lifted")
+
     async def detach(self) -> None:
         """Stop watching and cancel any pending debounce task."""
         self._active = False
@@ -103,24 +116,43 @@ class DomWatcher:
             # Re-check after sleep — detach() may have fired during the wait
             if not self._active or not self._page:
                 return
+            # Skip if a screenshot is already in progress — reschedule once it clears
+            if self._in_flight:
+                await asyncio.sleep(0.6)
+                if self._active and not self._in_flight:
+                    await self._schedule_capture()
+                return
+            logger.info("[⏳ DOM-WATCHER] debounce done — waiting for load...")
+            t0 = time.perf_counter()
             try:
-                await self._page.wait_for_load_state("networkidle", timeout=3000)
+                await self._page.wait_for_load_state("load", timeout=5000)
+                logger.info(f"[⏳ DOM-WATCHER] load in {int((time.perf_counter()-t0)*1000)}ms")
             except TargetClosedError:
                 self._active = False
                 return
             except Exception:
-                pass  # timeout or transient — fall through
+                logger.info(f"[⏳ DOM-WATCHER] load timeout after {int((time.perf_counter()-t0)*1000)}ms — proceeding")
             if not self._active or not self._page:
                 return
+            self._in_flight = True
             try:
                 await self._screenshot_service.capture_and_send(
-                    self._page, self._session_id, self._client_id
+                    self._page, self._session_id, self._client_id, caller="DOM-WATCHER"
                 )
+                # Follow-up frame after 1.2s to catch lazy-loaded / embedded content
+                await asyncio.sleep(1.2)
+                if self._active and self._page:
+                    logger.info("[⏳ DOM-WATCHER] sending follow-up frame (lazy content)")
+                    await self._screenshot_service.capture_and_send(
+                        self._page, self._session_id, self._client_id, caller="DOM-WATCHER-FOLLOWUP"
+                    )
             except TargetClosedError:
                 self._active = False
+            finally:
+                self._in_flight = False
         except asyncio.CancelledError:
             pass
         except TargetClosedError:
             self._active = False
         except Exception as e:
-            logger.error(f"DomWatcher capture error: {e}")
+            logger.error(f"[❌ DOM-WATCHER] capture error: {e}")

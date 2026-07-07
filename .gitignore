@@ -64,7 +64,7 @@ backend/storage/recordings/*
 !backend/storage/recordings/.gitkeep
 
 # Markdown Files (ignore all except README.md)
-*.md
+
 *.txt
 !README.md
 

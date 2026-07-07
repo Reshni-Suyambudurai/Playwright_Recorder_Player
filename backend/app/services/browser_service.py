@@ -19,7 +19,7 @@ class BrowserService:
         self._playwright = None
 
     async def launch_browser(self) -> Tuple[Browser, BrowserContext, Page]:
-        """Launch a Playwright browser with a fixed 1280×720 viewport."""
+        """Launch a Playwright browser with a fixed 960×540 viewport."""
         logger.info("Launching Playwright browser")
         try:
             self._playwright = await async_playwright().start()
@@ -48,7 +48,7 @@ class BrowserService:
         try:
             png_bytes = await page.screenshot(
                 type="jpeg",
-                quality=75,
+                quality=60,
                 full_page=False,
                 clip={"x": 0, "y": 0, "width": VIEWPORT_WIDTH, "height": VIEWPORT_HEIGHT},
             )
