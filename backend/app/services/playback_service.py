@@ -70,10 +70,11 @@ class PlaybackService:
         try:
             # ── Launch browser ──────────────────────────────────────────────
             logger.info(f"[PLAY:{play_id}] launching browser {vp_width}×{vp_height}")
-            browser, context, page = await self._browser_service.launch_browser()
+            browser, context, page = await self._browser_service.launch_browser(
+                viewport_width=vp_width, viewport_height=vp_height, headless=True
+            )
 
-            # Resize to recording viewport (launch_browser uses a default; override here)
-            await page.set_viewport_size({"width": vp_width, "height": vp_height})
+            # Viewport is already set at context creation — no set_viewport_size needed
 
             session.browser         = browser
             session.browser_context = context
@@ -124,6 +125,12 @@ class PlaybackService:
                         "stepId": step_id, "index": idx, "type": step_type,
                         "error": err_msg,
                     })
+                    # Capture failure state so frontend shows what went wrong
+                    try:
+                        await self._screenshot_service.capture_and_send(page, play_id, client_id, caller="ERROR")
+                    except Exception:
+                        pass
+                    break  # stop — do not proceed to remaining steps
                 finally:
                     watcher.suppress_external(False)
 
@@ -233,35 +240,53 @@ class PlaybackService:
             if coords:
                 button = step.get("button", "left") or "left"
 
-                # ── Selector verification ──────────────────────────────────
-                # Inspect what element is at the recorded coordinates and
-                # compare it against the stored selector.  If the element
-                # is gone (wrong page / app error), raise before clicking.
+                # ── Selector check ────────────────────────────────────────────
+                # If the recorded selector exists on the current page,
+                # click it directly (more accurate than coords).
+                # If not found, fall back to coords — no error raised.
                 recorded_selector = step.get("selector")
+                selector_clicked = False
                 if recorded_selector:
                     strategy = recorded_selector.get("strategy")
                     value    = recorded_selector.get("value")
                     if strategy and value:
-                        # Build a CSS query from the recorded selector
                         if strategy == "id":
-                            css_query = f"#{value}"
+                            pw_selector = f"#{value}"
                         elif strategy == "css":
-                            css_query = value
+                            pw_selector = value
+                        elif strategy == "xpath":
+                            pw_selector = f"xpath={value}"
                         else:
-                            css_query = None  # xpath — skip check
+                            pw_selector = None
 
-                        if css_query:
-                            match = await page.query_selector(css_query)
-                            if match is None:
-                                raise Exception(
-                                    f"Expected element '{css_query}' not found on page "
-                                    f"(url={page.url[:80]}). "
-                                    f"Application may be in an unexpected state."
+                        if pw_selector:
+                            try:
+                                match = await page.query_selector(pw_selector)
+                                if match is None:
+                                    logger.warning(
+                                        f"[PLAY] CLICK selector '{pw_selector}' not found — "
+                                        f"falling back to coords ({coords['x']},{coords['y']})"
+                                    )
+                                else:
+                                    await match.click(button=button)
+                                    selector_clicked = True
+                            except Exception as sel_err:
+                                logger.warning(
+                                    f"[PLAY] CLICK selector '{pw_selector}' error ({sel_err}) — "
+                                    f"falling back to coords ({coords['x']},{coords['y']})"
                                 )
 
-                await self._browser_service.perform_click(
-                    page, int(coords["x"]), int(coords["y"]), button
-                )
+                if not selector_clicked:
+                    # Coords fallback — report clearly if it also fails
+                    try:
+                        await self._browser_service.perform_click(
+                            page, int(coords["x"]), int(coords["y"]), button
+                        )
+                    except Exception as coords_err:
+                        raise Exception(
+                            f"CLICK failed: selector not found AND coords ({coords['x']},{coords['y']}) "
+                            f"also failed ({coords_err})"
+                        )
 
         elif step_type == "TYPE":
             selector = step.get("selector")
@@ -289,6 +314,13 @@ class PlaybackService:
                         )
 
                 await self._browser_service.perform_type(page, selector, text)
+                # If this is a password field, press Enter to submit the form.
+                # Many SSO flows (e.g. Microsoft) require Enter after the password
+                # because the user pressed Enter during recording instead of clicking
+                # the Sign In button, so no explicit CLICK step was recorded.
+                if step.get("isPassword"):
+                    logger.info("[PLAY] isPassword step — pressing Enter to submit")
+                    await page.keyboard.press("Enter")
             else:
                 await page.keyboard.type(text)
 

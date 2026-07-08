@@ -18,19 +18,19 @@ class BrowserService:
     def __init__(self):
         self._playwright = None
 
-    async def launch_browser(self) -> Tuple[Browser, BrowserContext, Page]:
-        """Launch a Playwright browser with a fixed 960×540 viewport."""
+    async def launch_browser(self, viewport_width: int = VIEWPORT_WIDTH, viewport_height: int = VIEWPORT_HEIGHT, headless: bool = True) -> Tuple[Browser, BrowserContext, Page]:
+        """Launch a Playwright browser at the given viewport size."""
         logger.info("Launching Playwright browser")
         try:
             self._playwright = await async_playwright().start()
-            browser = await self._playwright.chromium.launch(headless=True)
+            browser = await self._playwright.chromium.launch(headless=headless)
             logger.info("Chromium browser launched")
 
             browser_context = await browser.new_context(
-                viewport={"width": VIEWPORT_WIDTH, "height": VIEWPORT_HEIGHT}
+                viewport={"width": viewport_width, "height": viewport_height}
             )
             page = await browser_context.new_page()
-            logger.info(f"Browser context created with viewport {VIEWPORT_WIDTH}×{VIEWPORT_HEIGHT}")
+            logger.info(f"Browser context created with viewport {viewport_width}×{viewport_height}")
 
             return browser, browser_context, page
 

@@ -534,9 +534,9 @@
 
 .player-screen {
   flex: 1;
-  background: #0f172a;
+  background: var(--bg-tertiary);
   border-radius: var(--rounded-lg);
-  border: 1px solid #1e293b;
+  border: 1px solid var(--border-color);
   display: flex;
   align-items: center;
   justify-content: center;

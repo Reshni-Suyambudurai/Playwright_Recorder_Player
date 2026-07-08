@@ -9,7 +9,7 @@ from playwright.async_api import Page
 logger = logging.getLogger("playwright_recorder.utils.selector_builder")
 
 # JS that runs inside the browser to inspect the element at (x, y)
-_INSPECT_JS = """
+_INSPECT_JS = r"""
 (args) => {
     const { x, y } = args;
     const el = document.elementFromPoint(x, y);
@@ -30,51 +30,117 @@ _INSPECT_JS = """
 
     // ── Selector priority ──────────────────────────────────────────
     function buildSelector(e) {
+        const tag = e.tagName.toLowerCase();
+        const itype = e.getAttribute('type') || '';
+
         // 1. id
         if (e.id) return { strategy: 'id', value: e.id };
 
-        // 2. data-testid
-        const testid = e.getAttribute('data-testid');
-        if (testid) return { strategy: 'css', value: `[data-testid="${testid}"]` };
+        // 2. data-testid / data-id / data-cy (custom test attributes)
+        for (const attr of ['data-testid', 'data-id', 'data-cy', 'data-qa']) {
+            const v = e.getAttribute(attr);
+            if (v) return { strategy: 'css', value: `[${attr}="${v}"]` };
+        }
 
         // 3. aria-label
         const aria = e.getAttribute('aria-label');
         if (aria) return { strategy: 'css', value: `[aria-label="${CSS.escape(aria)}"]` };
 
-        // 4. name (inputs/selects)
+        // 4. name
         const name = e.getAttribute('name');
-        if (name) return { strategy: 'css', value: `${e.tagName.toLowerCase()}[name="${name}"]` };
+        if (name) return { strategy: 'css', value: `${tag}[name="${name}"]` };
 
-        // 5. CSS nth-of-type chain (walk up 4 levels)
-        function nthSelector(node) {
-            if (!node || node === document.documentElement) return '';
-            const tag = node.tagName.toLowerCase();
-            const siblings = node.parentElement
-                ? Array.from(node.parentElement.children).filter(c => c.tagName === node.tagName)
-                : [node];
-            const idx = siblings.indexOf(node) + 1;
-            const suffix = siblings.length > 1 ? `:nth-of-type(${idx})` : '';
-            const parent = nthSelector(node.parentElement);
-            return parent ? `${parent} > ${tag}${suffix}` : `${tag}${suffix}`;
+        // 5. label[for] — stable for <label> elements
+        const forAttr = e.getAttribute('for');
+        if (forAttr) return { strategy: 'css', value: `label[for="${CSS.escape(forAttr)}"]` };
+
+        // 6. input[type=submit|button] by value (e.g. value="Sign in")
+        if (tag === 'input' && (itype === 'submit' || itype === 'button')) {
+            const val = e.getAttribute('value');
+            if (val) {
+                const q = `input[type="${itype}"][value="${val}"]`;
+                if (document.querySelectorAll(q).length === 1)
+                    return { strategy: 'css', value: q };
+            }
         }
-        const cssSel = nthSelector(target);
-        if (cssSel) {
+
+        // 7. role attribute (unique on page)
+        const role = e.getAttribute('role');
+        if (role) {
+            const q = `[role="${role}"]`;
+            if (document.querySelectorAll(q).length === 1)
+                return { strategy: 'css', value: q };
+            // role + title
+            const title = e.getAttribute('title');
+            if (title) {
+                const q2 = `[role="${role}"][title="${title}"]`;
+                if (document.querySelectorAll(q2).length === 1)
+                    return { strategy: 'css', value: q2 };
+            }
+        }
+
+        // 8. title attribute (unique)
+        const title = e.getAttribute('title');
+        if (title) {
+            const q = `[title="${title}"]`;
+            if (document.querySelectorAll(q).length === 1)
+                return { strategy: 'css', value: q };
+        }
+
+        // 9. button/a/label by trimmed text content (unique → xpath text match)
+        if (['button', 'a', 'label', 'span'].includes(tag)) {
+            const txt = (e.textContent || '').trim().replace(/\s+/g, ' ');
+            if (txt && txt.length >= 2 && txt.length <= 50) {
+                const safe = txt.replace(/"/g, "'");
+                const xp = `//${tag}[normalize-space(.)="${safe}"]`;
+                try {
+                    const res = document.evaluate(xp, document, null,
+                        XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
+                    if (res.snapshotLength === 1)
+                        return { strategy: 'xpath', value: xp };
+                } catch(_) {}
+            }
+        }
+
+        // 10. CSS anchored to nearest ancestor with an id (shorter, more stable)
+        function anchoredCSS(node) {
+            let anchor = node.parentElement;
+            while (anchor && anchor !== document.documentElement) {
+                if (anchor.id) break;
+                anchor = anchor.parentElement;
+            }
+            const hasId = anchor && anchor.id;
+            const start = hasId ? anchor : document.body;
+            const prefix = hasId ? `#${CSS.escape(anchor.id)}` : 'body';
+
+            function relPath(n) {
+                if (n === start) return prefix;
+                const t = n.tagName.toLowerCase();
+                const sibs = n.parentElement
+                    ? Array.from(n.parentElement.children).filter(c => c.tagName === n.tagName)
+                    : [n];
+                const idx = sibs.indexOf(n) + 1;
+                const sfx = sibs.length > 1 ? `:nth-of-type(${idx})` : '';
+                return `${relPath(n.parentElement)} > ${t}${sfx}`;
+            }
             try {
-                if (document.querySelector(cssSel) === target)
-                    return { strategy: 'css', value: cssSel };
+                const sel = relPath(node);
+                if (document.querySelector(sel) === node) return sel;
             } catch(_) {}
+            return null;
         }
+        const anchored = anchoredCSS(target);
+        if (anchored) return { strategy: 'css', value: anchored };
 
-        // 6. XPath fallback
+        // 11. XPath structural fallback (last resort)
         function getXPath(node) {
             if (!node || node === document.documentElement) return '/html';
-            const tag = node.tagName.toLowerCase();
-            const siblings = node.parentElement
+            const t = node.tagName.toLowerCase();
+            const sibs = node.parentElement
                 ? Array.from(node.parentElement.children).filter(c => c.tagName === node.tagName)
                 : [node];
-            const idx = siblings.indexOf(node) + 1;
-            const suffix = siblings.length > 1 ? `[${idx}]` : '';
-            return `${getXPath(node.parentElement)}/${tag}${suffix}`;
+            const idx = sibs.indexOf(node) + 1;
+            return `${getXPath(node.parentElement)}/${t}${sibs.length > 1 ? `[${idx}]` : ''}`;
         }
         return { strategy: 'xpath', value: getXPath(target) };
     }

@@ -266,6 +266,14 @@ class WebSocketHandler:
             page = tab_manager.get_active_page(session) or session.page
             sel_info = await build_selector(page, int(x), int(y))
 
+            # Capture page state BEFORE the click — navigation after click
+            # can make page.title() throw, causing the step to be skipped.
+            pre_click_url   = session.current_url
+            try:
+                pre_click_title = await page.title()
+            except Exception:
+                pre_click_title = ""
+
             # Right-clicks always fire directly — never trigger the input overlay
             if button == "left" and sel_info and sel_info.get("is_input"):
                 # Don't click — ask frontend to open the input overlay
@@ -293,14 +301,12 @@ class WebSocketHandler:
             # prevent ACTION_DONE from being sent to the frontend
             if session.recording_steps is not None:
                 try:
-                    page_url = session.current_url
-                    page_title = await page.title()
                     step_id = len(session.recording_steps) + 1
                     step = RecordingStep(
                         id=step_id,
                         type="CLICK",
-                        pageUrl=page_url,
-                        pageTitle=page_title,
+                        pageUrl=pre_click_url,
+                        pageTitle=pre_click_title,
                         coords=Coords(x=int(x), y=int(y)),
                         button=button,
                         waitAfterMs=300,
@@ -310,7 +316,7 @@ class WebSocketHandler:
                     )
                     session.recording_steps.append(step)
                 except Exception as record_err:
-                    logger.warning(f"[⚠ CLICK] step recording skipped (page navigating): {record_err}")
+                    logger.warning(f"[⚠ CLICK] step recording skipped: {record_err}")
 
             # Fire screenshot in background — ACTION_DONE returns immediately
             asyncio.ensure_future(self._bg_screenshot(page, session_id, client_id, "CLICK", t0, wait_nav=True, dom_watcher=session.dom_watcher))
