@@ -13,8 +13,11 @@ from app.services.browser_service import BrowserService
 from app.services.screenshot_service import ScreenshotService
 from app.services.database import DatabaseService
 from app.api.recording import create_recording_router
+from app.api.play import create_play_router, get_play_session
 from app.websocket.connection_manager import ConnectionManager
 from app.websocket.websocket_handler import WebSocketHandler
+from app.services.playback_service import PlaybackService
+from app.websocket.playback_handler import PlaybackHandler
 
 # ==================== Logging Setup ====================
 LOG_FILE = os.path.join(os.path.dirname(os.path.dirname(__file__)), "debug.log")
@@ -60,12 +63,18 @@ def create_app():
     connection_manager = ConnectionManager()
     screenshot_service = ScreenshotService(browser_service, connection_manager)
     websocket_handler = WebSocketHandler(connection_manager, session_manager, browser_service, screenshot_service, db)
+    playback_service  = PlaybackService(browser_service, screenshot_service, connection_manager)
+    playback_handler  = PlaybackHandler(connection_manager, playback_service)
     logger.info("All services initialized")
 
     # Register routers
     recording_router = create_recording_router(session_manager, browser_service, db, connection_manager)
     app.include_router(recording_router, prefix="/recording")
     logger.info("Recording router registered at /recording")
+
+    play_router = create_play_router()
+    app.include_router(play_router, prefix="/play")
+    logger.info("Play router registered at /play")
 
     # WebSocket endpoint
     @app.websocket("/ws/{session_id}")
@@ -117,6 +126,43 @@ def create_app():
     async def health():
         logger.debug("Health check called")
         return {"status": "healthy"}
+
+    # ── Playback WebSocket endpoint ────────────────────────────────────────
+    @app.websocket("/ws/play/{play_id}")
+    async def playback_ws_endpoint(websocket: WebSocket, play_id: str):
+        logger.info(f"[PLAY WS] connection attempt for play_id: {play_id}")
+
+        session = get_play_session(play_id)
+        if not session:
+            logger.warning(f"[PLAY WS] rejected: session {play_id} not found")
+            await websocket.close(code=status.WS_1008_POLICY_VIOLATION, reason="Play session not found")
+            return
+
+        await websocket.accept()
+        await connection_manager.connect(play_id, websocket)
+        logger.info(f"[PLAY WS] accepted for play_id: {play_id}")
+
+        try:
+            while True:
+                data = await websocket.receive_text()
+                try:
+                    event_data = json.loads(data)
+                    await playback_handler.handle_event(play_id, websocket, session, event_data)
+                except json.JSONDecodeError as e:
+                    await websocket.send_json({
+                        "event_type": "ERROR",
+                        "data": {"error": f"Invalid JSON: {e}"},
+                    })
+
+        except WebSocketDisconnect:
+            logger.info(f"[PLAY WS] client disconnected from play_id: {play_id}")
+            if session.task and not session.task.done():
+                session.task.cancel()
+            await connection_manager.disconnect(websocket)
+
+        except Exception as e:
+            logger.error(f"[PLAY WS] error for play_id {play_id}: {e}", exc_info=True)
+            await connection_manager.disconnect(websocket)
 
     app.session_manager = session_manager
     app.browser_service = browser_service

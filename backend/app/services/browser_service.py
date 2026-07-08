@@ -51,6 +51,7 @@ class BrowserService:
                 quality=60,
                 full_page=False,
                 clip={"x": 0, "y": 0, "width": VIEWPORT_WIDTH, "height": VIEWPORT_HEIGHT},
+                timeout=5000,  # 5-second cap — never hang on a navigating/loading page
             )
             b64 = base64.b64encode(png_bytes).decode("utf-8")
             return f"data:image/jpeg;base64,{b64}"
@@ -106,8 +107,8 @@ class BrowserService:
                 else:
                     await page.keyboard.type(text)
         except Exception as e:
-            logger.warning(f"fill() failed ({e}), falling back to keyboard.type()")
-            await page.keyboard.type(text)
+            logger.error(f"perform_type failed for {strategy}={value}: {e}")
+            raise  # let caller handle — do not silently type into wrong element
 
     async def perform_key(self, page: Page, key: str) -> None:
         """Press a named key (Enter, Tab, Escape, etc.)."""

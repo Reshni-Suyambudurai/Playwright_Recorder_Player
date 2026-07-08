@@ -512,3 +512,12 @@ html.dark .app-tooltip {
   h2 { font-size: var(--text-xl); }
   .btn { padding: 0.4375rem 0.875rem; }
 }
+
+/* ==================== Playback — active step highlight ==================== */
+.runs-step-item--active {
+  background: rgba(100, 116, 139, 0.18) !important;
+  border-color: rgba(148, 163, 184, 0.45) !important;
+  box-shadow: inset 3px 0 0 0 #94a3b8;
+  scroll-margin-top: 8px;
+  scroll-margin-bottom: 8px;
+}

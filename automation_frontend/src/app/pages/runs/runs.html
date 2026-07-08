@@ -41,11 +41,63 @@
       <div class="runs-right">
      
         <div class="player-screen">
-          <div class="player-screen-inner">
-            <app-svg-icon name="runs" class="player-placeholder-icon" />
-            <span class="player-placeholder-text">Ready to play</span>
-            <span class="player-placeholder-sub">Select a recording and press Run</span>
-          </div>
+          <!-- Live frame: always in DOM so viewChild ref is available; hidden until first frame -->
+          <img #frameImg
+               class="player-live-frame"
+               [class.player-live-frame--hidden]="!hasLiveFrame()"
+               alt="Live playback frame" />
+
+          <!-- Placeholder: shown until first frame arrives -->
+          @if (!hasLiveFrame()) {
+            <div class="player-screen-inner">
+              <app-svg-icon name="runs" class="player-placeholder-icon" />
+              <span class="player-placeholder-text">Ready to play</span>
+              <span class="player-placeholder-sub">Select a recording and press Run</span>
+            </div>
+          }
+
+          <!-- Status overlay -->
+          @if (playStatus() === 'running') {
+            <div class="player-overlay player-overlay--running">
+              <span class="player-overlay-pill">{{ currentType() }}</span>
+              <span class="player-overlay-progress">Step {{ currentStep() + 1 }} / {{ totalSteps() }}</span>
+              @if (playError()) {
+                <span class="player-overlay-step-err">⚠ {{ playError() }}</span>
+              }
+              <button class="player-overlay-stop" (click)="onStopClick()">■ Stop</button>
+            </div>
+          }
+          @if (playStatus() === 'paused') {
+            <div class="player-overlay player-overlay--paused">
+              <span class="player-overlay-pill player-overlay-pill--paused">⏸ Paused</span>
+              <span class="player-overlay-progress">Step {{ currentStep() + 1 }} / {{ totalSteps() }}</span>
+              <button class="player-overlay-resume" (click)="onResumeClick()">▶ Resume</button>
+              <button class="player-overlay-stop" (click)="onStopClick()">■ Stop</button>
+            </div>
+          }
+          @if (playStatus() === 'done') {
+            <div class="player-overlay player-overlay--done">
+              <span class="player-overlay-pill player-overlay-pill--done">✓ Done</span>
+              <span class="player-overlay-progress">{{ totalSteps() }} steps completed</span>
+            </div>
+          }
+          @if (playStatus() === 'done_with_errors') {
+            <div class="player-overlay player-overlay--done">
+              <span class="player-overlay-pill player-overlay-pill--error">⚠ Done</span>
+              <span class="player-overlay-progress">{{ totalSteps() }} steps — {{ failedCount() }} failed</span>
+            </div>
+          }
+          @if (playStatus() === 'error') {
+            <div class="player-overlay player-overlay--error">
+              <span class="player-overlay-pill player-overlay-pill--error">✕ Error</span>
+              <span class="player-overlay-msg">{{ playError() }}</span>
+            </div>
+          }
+          @if (playStatus() === 'stopped') {
+            <div class="player-overlay player-overlay--done">
+              <span class="player-overlay-pill">■ Stopped</span>
+            </div>
+          }
         </div>
       </div><!-- /runs-right -->
 
@@ -95,8 +147,10 @@
                 <ol class="runs-step-list">
                   @for (step of group.steps; track step.id; let i = $index) {
                     <li class="runs-step-item"
+                        [id]="'play-step-' + step.id"
                         [class.runs-step-item--password]="step.isPassword"
-                        [class.runs-step-item--skipped]="!getShouldRun(step)">
+                        [class.runs-step-item--skipped]="!getShouldRun(step)"
+                        [class.runs-step-item--active]="currentStepId() === step.id">
 
                       <!-- Top row: step number + type pill | shouldRun + pause pushed right -->
                       <div class="step-card-top">
@@ -168,7 +222,11 @@
             @if (saveError()) {
               <span class="runs-save-err">{{ saveError() }}</span>
             }
-            <button class="runs-run-btn">▶ </button>
+            <button class="runs-run-btn"
+                    (click)="onRunClick()"
+                    [disabled]="!detail() || playStatus() === 'running' || playStatus() === 'paused'">
+              ▶ Run
+            </button>
           </div>
         }
 
