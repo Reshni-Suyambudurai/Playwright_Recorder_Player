@@ -17,7 +17,7 @@ from app.services.screenshot_service import ScreenshotService
 from app.services.recording_storage import RecordingStorage
 from app.services.dom_watcher import DomWatcher
 from app.services.database import DatabaseService
-from app.models.recording import Recording, RecordingMeta, RecordingStep, Coords, Viewport, SelectorInfo
+from app.models.recording import Recording, RecordingMeta, RecordingStep, Coords, SelectorInfo
 from app.utils.selector_builder import build_selector
 from app.utils import tab_manager
 
@@ -218,7 +218,6 @@ class WebSocketHandler:
             )
 
             # Append NAVIGATE as first step
-            viewport = Viewport()
             nav_step = RecordingStep(
                 id=1,
                 type="NAVIGATE",
@@ -226,7 +225,6 @@ class WebSocketHandler:
                 pageUrl=result["url"],
                 pageTitle=result.get("title"),
                 waitAfterMs=100,
-                viewport=viewport,
                 tab_id="tab-1",
             )
             session.recording_steps.append(nav_step)
@@ -306,8 +304,6 @@ class WebSocketHandler:
                         coords=Coords(x=int(x), y=int(y)),
                         button=button,
                         waitAfterMs=300,
-                        viewport=Viewport(),
-                        tag=sel_info.get("tag") if sel_info else None,
                         label=sel_info.get("label") if sel_info else None,
                         selector=SelectorInfo(**sel_info["selector"]) if sel_info and sel_info.get("selector") else None,
                         tab_id=session.active_tab_id or "tab-1",
@@ -359,12 +355,10 @@ class WebSocketHandler:
                     pageUrl=page_url,
                     pageTitle=page_title,
                     coords=Coords(x=int(x), y=int(y)) if x is not None and y is not None else None,
-                    text=text,
+                    text="{{password}}" if is_password else text,
                     label=label,
-                    tag=tag,
                     isPassword=is_password,
                     storeValue=True,
-                    viewport=Viewport(),
                     selector=SelectorInfo(**selector) if selector else None,
                     tab_id=session.active_tab_id or "tab-1",
                 )
@@ -407,7 +401,6 @@ class WebSocketHandler:
                     deltaX=delta_x,
                     deltaY=delta_y,
                     waitAfterMs=100,
-                    viewport=Viewport(),
                     tab_id=session.active_tab_id or "tab-1",
                 )
                 session.recording_steps.append(step)
@@ -445,7 +438,6 @@ class WebSocketHandler:
                     type="KEY",
                     pageUrl=session.current_url,
                     text=key,
-                    viewport=Viewport(),
                     tab_id=session.active_tab_id or "tab-1",
                 )
                 session.recording_steps.append(step)
@@ -508,7 +500,6 @@ class WebSocketHandler:
                 pageUrl=session.current_url,
                 pageTitle=await page.title(),
                 waitAfterMs=100,
-                viewport=Viewport(),
                 tab_id=session.active_tab_id or "tab-1",
             ))
             logger.info(f"[NAV] Recorded NAVIGATE step {step_id} ({step_type}) url={session.current_url}")
@@ -607,7 +598,6 @@ class WebSocketHandler:
                     "type": s.type,
                     "label": s.label or s.text or s.url or f"({s.coords.x},{s.coords.y})" if s.coords else s.type,
                     "pageUrl": s.page_url,
-                    "tag": s.tag,
                     "timestamp": s.timestamp,
                 }
                 for s in (session.recording_steps or [])
@@ -663,7 +653,7 @@ class WebSocketHandler:
             session.recording_steps.append(RecordingStep(
                 id=step_id, type="NAVIGATE",
                 url=url, pageUrl=url, pageTitle=title,
-                waitAfterMs=100, viewport=Viewport(), tab_id=tab_id,
+                waitAfterMs=100, tab_id=tab_id,
             ))
 
             # Notify frontend

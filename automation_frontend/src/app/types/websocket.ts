@@ -218,11 +218,15 @@ export interface RecordingStep {
   pageTitle?: string;
   text?: string;
   label?: string;
-  tag?: string;
   coords?: { x: number; y: number } | null;
   selector?: { strategy: string; value: string } | null;
   isTriggerNewTab?: boolean | null;
+  frameIndex?: number;
   tab_id?: string;
+  isPassword?: boolean;
+  shouldRun?: boolean;
+  pause?: boolean;
+  storeValue?: boolean;
 }
 
 export interface RecordingDetail {
@@ -234,6 +238,7 @@ export interface RecordingDetail {
     intent: string;
     createdAt: number;
     updatedAt?: number;
+    viewport: { width: number; height: number; deviceScaleFactor: number };
   };
   steps: Record<string, RecordingStep[][]>;
 }

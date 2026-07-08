@@ -27,4 +27,13 @@ export class RecordingsApi {
     const res = await fetch(this.base + '/recording/' + recordId, { method: 'DELETE' });
     if (!res.ok) throw new Error('Delete failed: ' + res.status);
   }
+
+  async saveRecording(recordId: string, body: object): Promise<void> {
+    const res = await fetch(this.base + '/recording/' + recordId, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    if (!res.ok) throw new Error('Save failed: ' + res.status);
+  }
 }

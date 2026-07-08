@@ -41,7 +41,6 @@ class RecordingStep(BaseModel):
     delta_y: Optional[float] = Field(None, alias="deltaY")
     press_enter: Optional[bool] = Field(None, alias="pressEnter")
     wait_after_ms: Optional[int] = Field(None, alias="waitAfterMs")
-    viewport: Optional[Viewport] = None
     timestamp: int = Field(default_factory=lambda: int(time.time() * 1000))
     label: Optional[str] = None
     description: Optional[str] = None
@@ -50,8 +49,7 @@ class RecordingStep(BaseModel):
     selector: Optional[SelectorInfo] = None
     is_trigger_new_tab: Optional[bool] = Field(None, alias="isTriggerNewTab")
     should_run: bool = Field(True, alias="shouldRun")
-    required: bool = False
-    tag: Optional[str] = None
+    pause: bool = False
     frame_index: int = Field(0, alias="frameIndex")
     # Internal only — not serialised to JSON output
     tab_id: str = Field("tab-1", exclude=True)
@@ -69,6 +67,7 @@ class RecordingMeta(BaseModel):
     created_at: int = Field(default_factory=lambda: int(time.time() * 1000), alias="createdAt")
     updated_at: int = Field(default_factory=lambda: int(time.time() * 1000), alias="updatedAt")
     intent: str = ""
+    viewport: Viewport = Field(default_factory=Viewport)
 
     model_config = {"populate_by_name": True}
 

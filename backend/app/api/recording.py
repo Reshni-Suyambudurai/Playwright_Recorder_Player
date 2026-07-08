@@ -144,4 +144,29 @@ def create_recording_router(session_manager: SessionManager, browser_service: Br
             raise HTTPException(status_code=404, detail=f"Recording '{record_id}' not found")
         return {"success": True, "recordId": record_id}
 
+    @router.put('/{record_id}')
+    async def update_recording(record_id: str, body: dict):
+        """
+        Replace the JSON of an existing recording (e.g. edited step text values).
+        The body must be the full recording JSON ({ version, meta, steps }).
+        """
+        if not db:
+            raise HTTPException(status_code=503, detail="Database not available")
+        existing = await db.load_recording(record_id)
+        if existing is None:
+            raise HTTPException(status_code=404, detail=f"Recording '{record_id}' not found")
+        meta = body.get("meta", {})
+        flow_name = meta.get("title", "Untitled")
+        # Reuse the same userId from the existing record
+        client_id = existing.get("meta", {}).get("id", record_id)
+        # Ensure the Users row exists before writing (avoids FK constraint failure)
+        await db.ensure_user(client_id)
+        await db.save_recording(
+            record_id=record_id,
+            client_id=client_id,
+            recording_json=body,
+            flow_name=flow_name,
+        )
+        return {"success": True, "recordId": record_id}
+
     return router

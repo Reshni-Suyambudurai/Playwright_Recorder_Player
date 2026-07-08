@@ -114,8 +114,8 @@ export class Flows implements OnInit {
 
   stepLabel(step: RecordingStep): string {
     if (step.type === 'NAVIGATE') return step.url ?? step.pageUrl ?? '';
-    if (step.type === 'TYPE') return (step.label ?? step.tag ?? 'input') + ': ' + (step.text ?? '');
-    if (step.type === 'CLICK') return step.label ?? step.tag ?? 'element';
+    if (step.type === 'TYPE') return (step.label ?? 'input') + ': ' + (step.text ?? '');
+    if (step.type === 'CLICK') return step.label ?? 'element';
     if (step.type === 'KEY') return 'Key: ' + (step.text ?? '');
     return step.pageUrl ?? '';
   }
