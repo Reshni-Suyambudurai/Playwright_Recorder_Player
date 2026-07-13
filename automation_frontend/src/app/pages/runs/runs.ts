@@ -1,10 +1,11 @@
-import { Component, ElementRef, inject, signal, OnInit, OnDestroy, viewChild } from '@angular/core';
+import { Component, ElementRef, inject, signal, computed, OnInit, OnDestroy, viewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RecordingsApi } from '../../services/recordings.api';
 import { PlaybackApi, PlayEvent } from '../../services/playback.api';
+import { PlaybackStateApi } from '../../services/playback-state.api';
 import { RecordingListItem, RecordingDetail, RecordingStep } from '../../types/websocket';
 import { SvgIcon } from '../../components/svg-icon/svg-icon';
-import { TooltipDirective } from '../../directives/tooltip/tooltip.directive';
+import { StepList } from '../../components/step-list/step-list';
 
 export interface TabGroup {
   tabId: string;
@@ -15,13 +16,14 @@ export interface TabGroup {
 @Component({
   selector: 'app-runs',
   standalone: true,
-  imports: [SvgIcon, FormsModule, TooltipDirective],
+  imports: [SvgIcon, FormsModule, StepList],
   templateUrl: './runs.html',
   styleUrl: './runs.css',
 })
 export class Runs implements OnInit, OnDestroy {
   private api = inject(RecordingsApi);
   private playbackApi = inject(PlaybackApi);
+  readonly state = inject(PlaybackStateApi);
 
   readonly recordings = signal<RecordingListItem[]>([]);
   readonly loading = signal(true);
@@ -40,17 +42,6 @@ export class Runs implements OnInit, OnDestroy {
   readonly saving = signal(false);
   readonly saveError = signal<string | null>(null);
   readonly saveSuccess = signal(false);
-
-  // ── Playback state ──────────────────────────────────────────────────────
-  /** 'idle' | 'running' | 'paused' | 'done' | 'error' | 'stopped' */
-  readonly playStatus    = signal<string>('idle');
-  readonly currentStep   = signal<number>(0);
-  readonly totalSteps    = signal<number>(0);
-  readonly currentType   = signal<string>('');
-  readonly currentStepId = signal<number | null>(null);
-  readonly playError     = signal<string | null>(null);
-  readonly failedCount   = signal<number>(0);         // steps that errored during run
-  readonly hasLiveFrame  = signal<boolean>(false);
 
   // Direct DOM reference — we set img.src directly to bypass Angular zone
   private _frameImgRef = viewChild<ElementRef<HTMLImageElement>>('frameImg');
@@ -98,42 +89,20 @@ export class Runs implements OnInit, OnDestroy {
     return this.recordings().find(r => r.recordId === this.selectedId());
   }
 
-  tabGroups(detail: RecordingDetail): TabGroup[] {
-    return Object.entries(detail.steps).map(([tabId, groups]) => {
+  readonly tabGroups = computed(() => {
+    const d = this.detail();
+    if (!d) return [];
+    return Object.entries(d.steps).map(([tabId, groups]) => {
       const allSteps = (groups as RecordingStep[][]).flat();
       const nav = allSteps.find(s => s.type === 'NAVIGATE');
       const url = nav?.url ?? nav?.pageUrl ?? tabId;
       return { tabId, url, steps: allSteps };
     });
-  }
-
-  stepIcon(type: string): string {
-    const icons: Record<string, string> = {
-      NAVIGATE: '🌐', CLICK: '🖱️', TYPE: '⌨️',
-      SCROLL: '↕️', KEY: '⌨️',
-    };
-    return icons[type] ?? '•';
-  }
-
-  stepLabel(step: RecordingStep): string {
-    if (step.type === 'NAVIGATE') return step.url ?? step.pageUrl ?? '';
-    if (step.type === 'TYPE') return step.text ? `"${step.text}"` : '';
-    if (step.type === 'CLICK') return step.label ?? (step.coords ? `(${step.coords.x}, ${step.coords.y})` : '');
-    if (step.type === 'SCROLL') return step.coords ? `(${step.coords.x}, ${step.coords.y})` : '';
-    if (step.type === 'KEY') return step.text ?? '';
-    return '';
-  }
+  });
 
   formatDate(ts: number | null | undefined): string {
     if (!ts) return '';
     return new Date(ts).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
-  }
-
-  getEditValue(step: RecordingStep): string {
-    const m = this.editValues();
-    const raw = m.has(step.id) ? (m.get(step.id) ?? '') : (step.text ?? '');
-    // If the stored value is a template placeholder like {{password}}, leave the input empty
-    return /^\{\{.+\}\}$/.test(raw.trim()) ? '' : raw;
   }
 
   setEditValue(stepId: number, value: string): void {
@@ -143,20 +112,10 @@ export class Runs implements OnInit, OnDestroy {
     this.saveSuccess.set(false);
   }
 
-  getShouldRun(step: RecordingStep): boolean {
-    const m = this.shouldRunState();
-    return m.has(step.id) ? (m.get(step.id) ?? true) : (step.shouldRun ?? true);
-  }
-
   toggleShouldRun(stepId: number, current: boolean): void {
     const m = new Map(this.shouldRunState());
     m.set(stepId, !current);
     this.shouldRunState.set(m);
-  }
-
-  getPause(step: RecordingStep): boolean {
-    const m = this.pauseState();
-    return m.has(step.id) ? (m.get(step.id) ?? false) : (step.pause ?? false);
   }
 
   togglePause(stepId: number, current: boolean): void {
@@ -215,12 +174,7 @@ export class Runs implements OnInit, OnDestroy {
     const payload = this._buildPlayPayload();
     if (!payload) return;
 
-    this.playStatus.set('running');
-    this.playError.set(null);
-    this.failedCount.set(0);
-    this.hasLiveFrame.set(false);
-    this.currentStep.set(0);
-    this.totalSteps.set(0);
+    this.state.resetForNewRun();
     this._disconnectPlay();
 
     try {
@@ -231,27 +185,27 @@ export class Runs implements OnInit, OnDestroy {
           if (evt.event_type !== 'FRAME') console.log('[PLAY WS event]', evt.event_type, evt.data);
           this._onPlayEvent(evt);
         },
-        onClose: ()  => {
-          console.warn('[PLAY WS] connection closed, status was:', this.playStatus());
-          if (this.playStatus() === 'running' || this.playStatus() === 'paused') {
-            this.playStatus.set('done');
+        onClose: () => {
+          console.warn('[PLAY WS] connection closed, status was:', this.state.playStatus());
+          if (this.state.playStatus() === 'running' || this.state.playStatus() === 'paused') {
+            this.state.playStatus.set('done');
           }
         },
         onError: (e) => {
           console.error('[PLAY WS] error:', e);
-          this.playStatus.set('error');
+          this.state.playStatus.set('error');
         },
       });
     } catch (e: any) {
-      this.playStatus.set('error');
-      this.playError.set(e?.message ?? 'Failed to start playback');
+      this.state.playStatus.set('error');
+      this.state.playError.set(e?.message ?? 'Failed to start playback');
     }
   }
 
   onResumeClick(): void {
     if (this._playWs && this._playWs.readyState === WebSocket.OPEN) {
       this._playWs.send(JSON.stringify({ event_type: 'PLAY_RESUME', data: {} }));
-      this.playStatus.set('running');
+      this.state.playStatus.set('running');
     }
   }
 
@@ -259,75 +213,31 @@ export class Runs implements OnInit, OnDestroy {
     if (this._playWs && this._playWs.readyState === WebSocket.OPEN) {
       this._playWs.send(JSON.stringify({ event_type: 'PLAY_STOP', data: {} }));
     }
-    this.playStatus.set('stopped');
-    this.hasLiveFrame.set(false);
+    this.state.playStatus.set('stopped');
+    this.state.hasLiveFrame.set(false);
     this._disconnectPlay();
   }
 
   private _onPlayEvent(evt: PlayEvent): void {
-    switch (evt.event_type) {
-      case 'PLAY_STEP_START': {
-        const d = evt.data as any;
-        this.currentStep.set(d.index);
-        this.totalSteps.set(d.total);
-        this.currentType.set(d.type);
-        this.currentStepId.set(d.stepId);
-        this.playError.set(null);
-        this.playStatus.set('running');
-        // Scroll active step into view
-        setTimeout(() => {
-          document.getElementById(`play-step-${d.stepId}`)?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-        }, 50);
-        break;
-      }
-      case 'PLAY_PAUSED':
-        this.currentStep.set((evt.data as any).index);
-        this.playStatus.set('paused');
-        break;
-      case 'PLAY_DONE': {
-        const d = evt.data as any;
-        this.totalSteps.set(d.stepCount ?? this.totalSteps());
-        this.failedCount.set(d.failedCount ?? 0);
-        this.playStatus.set(d.failedCount > 0 ? 'done_with_errors' : 'done');
-        break;
-      }
-      case 'PLAY_STEP_ERROR':
-        // Non-fatal step error — show briefly in overlay but don't stop
-        this.playError.set((evt.data as any).error ?? 'Step failed');
-        break;
-      case 'PLAY_ERROR':
-        this.playStatus.set('error');
-        this.playError.set((evt.data as any).error ?? 'Unknown error');
-        break;
-      case 'FRAME': {
-        // Store latest frame — discard any queued intermediate frames
-        this._latestFrameData = (evt.data as any).image;
-        console.log('[FRAME] received, size:', this._latestFrameData?.length, 'rafPending:', this._frameRafPending);
-        if (!this._frameRafPending) {
-          this._frameRafPending = true;
-          requestAnimationFrame(() => {
-            this._frameRafPending = false;
-            const data = this._latestFrameData;
-            this._latestFrameData = null;
-            if (!data) { console.warn('[FRAME] rAF fired but data was null'); return; }
+    const isFrame = this.state.handleEvent(evt);
+    if (!isFrame) return;
 
-            const imgEl = this._frameImgRef();
-            const img   = imgEl?.nativeElement;
-            console.log('[FRAME] rAF commit — imgEl:', !!imgEl, 'nativeElement:', !!img, 'hasLiveFrame:', this.hasLiveFrame(), 'size:', data.length);
+    // ── FRAME: rAF-throttled render to bypass Angular zone ─────────────
+    this._latestFrameData = (evt.data as { image: string }).image;
+    if (!this._frameRafPending) {
+      this._frameRafPending = true;
+      requestAnimationFrame(() => {
+        this._frameRafPending = false;
+        const data = this._latestFrameData;
+        this._latestFrameData = null;
+        if (!data) return;
 
-            if (img) {
-              img.src = data;
-              console.log('[FRAME] img.src SET — img connected:', img.isConnected, 'offsetParent:', img.offsetParent, 'display:', getComputedStyle(img).display, 'width:', img.offsetWidth);
-              if (!this.hasLiveFrame()) this.hasLiveFrame.set(true);
-            } else {
-              console.error('[FRAME] ❌ frameImg nativeElement is null — viewChild not resolving. hasLiveFrame:', this.hasLiveFrame());
-            }
-          });
-        } else {
-          console.log('[FRAME] dropped intermediate (rAF pending), keeping latest');
+        const img = this._frameImgRef()?.nativeElement;
+        if (img) {
+          img.src = data;
+          if (!this.state.hasLiveFrame()) this.state.hasLiveFrame.set(true);
         }
-        break;
-      }
+      });
     }
   }
 

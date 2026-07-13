@@ -2,16 +2,25 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 
+export interface FailedStep {
+  stepId: number;
+  index: number;
+  type: string;
+  error: string;
+}
+
 export type PlayEvent =
-  | { event_type: 'WELCOME';          data: { play_session_id: string; message: string } }
-  | { event_type: 'PLAY_STEP_START';  data: { stepId: number; index: number; total: number; type: string } }
+  | { event_type: 'WELCOME';           data: { play_session_id: string; message: string } }
+  | { event_type: 'PLAY_STEP_START';   data: { stepId: number; index: number; total: number; type: string } }
   | { event_type: 'PLAY_STEP_SKIPPED'; data: { stepId: number; index: number; total: number } }
-  | { event_type: 'PLAY_PAUSED';      data: { stepId: number; index: number } }
-  | { event_type: 'PLAY_DONE';        data: { stepCount: number; message: string } }
-  | { event_type: 'PLAY_ERROR';       data: { error: string } }
-  | { event_type: 'FRAME';            data: { frame: string } }
-  | { event_type: 'PONG';             data: unknown }
-  | { event_type: string;             data: unknown };
+  | { event_type: 'PLAY_STEP_ERROR';   data: { stepId: number; index: number; type: string; error: string } }
+  | { event_type: 'PLAY_PAUSED';       data: { stepId: number; index: number } }
+  | { event_type: 'PLAY_DONE';         data: { stepCount: number; failedCount: number; failedSteps: FailedStep[]; message: string } }
+  | { event_type: 'PLAY_ERROR';        data: { error: string } }
+  | { event_type: 'PLAY_STOPPED';      data: Record<string, never> }
+  | { event_type: 'FRAME';             data: { image: string } }
+  | { event_type: 'PONG';              data: unknown }
+  | { event_type: string;              data: unknown };
 
 export interface PlayHandlers {
   onEvent: (evt: PlayEvent) => void;

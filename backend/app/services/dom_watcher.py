@@ -122,10 +122,10 @@ class DomWatcher:
                 if self._active and not self._in_flight:
                     await self._schedule_capture()
                 return
-            logger.info("[⏳ DOM-WATCHER] debounce done — waiting for load...")
+            logger.info("[⏳ DOM-WATCHER] debounce done — waiting for domcontentloaded...")
             t0 = time.perf_counter()
             try:
-                await self._page.wait_for_load_state("load", timeout=5000)
+                await self._page.wait_for_load_state("domcontentloaded", timeout=1500)
                 logger.info(f"[⏳ DOM-WATCHER] load in {int((time.perf_counter()-t0)*1000)}ms")
             except TargetClosedError:
                 self._active = False

@@ -413,7 +413,7 @@ class WebSocketHandler:
 
             # Fire screenshot in background — ACTION_DONE returns immediately
             asyncio.ensure_future(self._bg_screenshot(page, session_id, client_id, "SCROLL", t0, dom_watcher=session.dom_watcher))
-            logger.info(f"[✅ SCROLL DONE] ACTION_DONE sent — {int((time.perf_counter()-t0)*1000)}ms after scroll (frame pending)")
+            logger.info(f"[ SCROLL DONE] ACTION_DONE sent — {int((time.perf_counter()-t0)*1000)}ms after scroll (frame pending)")
 
             return {"event_type": EventType.ACTION_DONE, "data": {"type": "scroll", "success": True}}
         except Exception as e:
@@ -451,7 +451,7 @@ class WebSocketHandler:
             # Fire screenshot in background — ACTION_DONE returns immediately
             asyncio.ensure_future(self._bg_screenshot(page, session_id, client_id, "KEY", t0,
                                                        wait_nav=(key == "Enter"), sleep_ms=300, dom_watcher=session.dom_watcher))
-            logger.info(f"[✅ KEY DONE] ACTION_DONE sent — {int((time.perf_counter()-t0)*1000)}ms after key (frame pending)")
+            logger.info(f"[ KEY DONE] ACTION_DONE sent — {int((time.perf_counter()-t0)*1000)}ms after key (frame pending)")
         except Exception as e:
             return self._error_response("KEY_ACTION_ERROR", str(e))
 
@@ -473,7 +473,7 @@ class WebSocketHandler:
         try:
             if wait_nav:
                 try:
-                    await page.wait_for_load_state("load", timeout=5000)
+                    await page.wait_for_load_state("domcontentloaded", timeout=2000)
                     logger.info(f"[▶ {caller}][BG] load settled — {int((time.perf_counter()-t0)*1000)}ms elapsed")
                 except Exception:
                     await asyncio.sleep(0.3)
@@ -483,7 +483,7 @@ class WebSocketHandler:
                 logger.info(f"[▶ {caller}][BG] sleep({sleep_ms}ms) done — {int((time.perf_counter()-t0)*1000)}ms elapsed")
 
             await self.screenshot_service.capture_and_send(page, session_id, client_id, caller=caller)
-            logger.info(f"[✅ {caller}][BG] FRAME sent — {int((time.perf_counter()-t0)*1000)}ms total end-to-end")
+            logger.info(f"[ {caller}][BG] FRAME sent — {int((time.perf_counter()-t0)*1000)}ms total end-to-end")
         except Exception as e:
             logger.warning(f"[{caller}][BG] background screenshot failed: {e}")
         finally:

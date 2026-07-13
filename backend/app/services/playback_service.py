@@ -36,6 +36,15 @@ class PlaybackService:
         self._browser_service   = browser_service
         self._screenshot_service = screenshot_service
         self._connection_manager = connection_manager
+        # Dispatch table: step type → handler method
+        # Add new step types here without touching _execute_step
+        self._STEP_HANDLERS = {
+            "NAVIGATE": self._step_navigate,
+            "CLICK":    self._step_click,
+            "TYPE":     self._step_type,
+            "SCROLL":   self._step_scroll,
+            "KEY":      self._step_key,
+        }
 
     # ─── Public entry point ────────────────────────────────────────────────
     async def run_playback(
@@ -134,35 +143,8 @@ class PlaybackService:
                 finally:
                     watcher.suppress_external(False)
 
-                # Wait for page to settle after each step.
-                # Poll up to 2s for a URL change (fast navigations).
-                # If URL changed, wait for the new page to fully load (up to 8s networkidle).
-                # If no navigation in 2s, just ensure the current page is idle (up to 2s).
                 if not step_failed:
-                    url_at_action = page.url
-                    await asyncio.sleep(0.3)   # let any navigation start
-
-                    try:
-                        await page.wait_for_function(
-                            f"() => location.href !== {json.dumps(url_at_action)}",
-                            timeout=2000,
-                        )
-                        # URL changed — wait for new page to fully load
-                        logger.info(f"[PLAY:{play_id}] step {step_id} navigated → {page.url[:80]}")
-                        try:
-                            await page.wait_for_load_state("domcontentloaded", timeout=5000)
-                        except Exception:
-                            pass
-                        try:
-                            await page.wait_for_load_state("networkidle", timeout=8000)
-                        except Exception:
-                            pass
-                    except Exception:
-                        # No navigation — just settle current page
-                        try:
-                            await page.wait_for_load_state("networkidle", timeout=2000)
-                        except Exception:
-                            pass
+                    await self._settle_page(page, play_id, step_id)
 
                 # waitAfterMs settle delay (100–300ms hardcoded by recorder)
                 if wait_ms > 0 and not step_failed:
@@ -227,119 +209,117 @@ class PlaybackService:
                 session.page    = None
 
     # ─── Step dispatcher ───────────────────────────────────────────────────
+    # ─── Step dispatcher (dispatch table) ────────────────────────────────
     async def _execute_step(self, step: dict, page) -> None:
         step_type = step.get("type")
-
-        if step_type == "NAVIGATE":
-            url = step.get("url") or step.get("pageUrl")
-            if url:
-                await page.goto(url, wait_until="domcontentloaded", timeout=30000)
-
-        elif step_type == "CLICK":
-            coords = step.get("coords")
-            if coords:
-                button = step.get("button", "left") or "left"
-
-                # ── Selector check ────────────────────────────────────────────
-                # If the recorded selector exists on the current page,
-                # click it directly (more accurate than coords).
-                # If not found, fall back to coords — no error raised.
-                recorded_selector = step.get("selector")
-                selector_clicked = False
-                if recorded_selector:
-                    strategy = recorded_selector.get("strategy")
-                    value    = recorded_selector.get("value")
-                    if strategy and value:
-                        if strategy == "id":
-                            pw_selector = f"#{value}"
-                        elif strategy == "css":
-                            pw_selector = value
-                        elif strategy == "xpath":
-                            pw_selector = f"xpath={value}"
-                        else:
-                            pw_selector = None
-
-                        if pw_selector:
-                            try:
-                                match = await page.query_selector(pw_selector)
-                                if match is None:
-                                    logger.warning(
-                                        f"[PLAY] CLICK selector '{pw_selector}' not found — "
-                                        f"falling back to coords ({coords['x']},{coords['y']})"
-                                    )
-                                else:
-                                    await match.click(button=button)
-                                    selector_clicked = True
-                            except Exception as sel_err:
-                                logger.warning(
-                                    f"[PLAY] CLICK selector '{pw_selector}' error ({sel_err}) — "
-                                    f"falling back to coords ({coords['x']},{coords['y']})"
-                                )
-
-                if not selector_clicked:
-                    # Coords fallback — report clearly if it also fails
-                    try:
-                        await self._browser_service.perform_click(
-                            page, int(coords["x"]), int(coords["y"]), button
-                        )
-                    except Exception as coords_err:
-                        raise Exception(
-                            f"CLICK failed: selector not found AND coords ({coords['x']},{coords['y']}) "
-                            f"also failed ({coords_err})"
-                        )
-
-        elif step_type == "TYPE":
-            selector = step.get("selector")
-            text     = step.get("text") or ""
-            if selector:
-                # Pre-check: verify the target element exists before typing
-                strategy = selector.get("strategy")
-                value    = selector.get("value")
-                if strategy == "id":
-                    css_query = f"#{value}"
-                elif strategy == "css":
-                    css_query = value
-                elif strategy == "xpath":
-                    css_query = f"xpath={value}"
-                else:
-                    css_query = None
-
-                if css_query:
-                    match = await page.query_selector(css_query)
-                    if match is None:
-                        raise Exception(
-                            f"Expected element '{css_query}' not found on page "
-                            f"(url={page.url[:80]}). "
-                            f"Application may be in an unexpected state."
-                        )
-
-                await self._browser_service.perform_type(page, selector, text)
-                # If this is a password field, press Enter to submit the form.
-                # Many SSO flows (e.g. Microsoft) require Enter after the password
-                # because the user pressed Enter during recording instead of clicking
-                # the Sign In button, so no explicit CLICK step was recorded.
-                if step.get("isPassword"):
-                    logger.info("[PLAY] isPassword step — pressing Enter to submit")
-                    await page.keyboard.press("Enter")
-            else:
-                await page.keyboard.type(text)
-
-        elif step_type == "SCROLL":
-            coords = step.get("coords", {}) or {}
-            await self._browser_service.perform_scroll(
-                page,
-                int(coords.get("x", 0)),
-                int(coords.get("y", 0)),
-                float(step.get("deltaX") or 0),
-                float(step.get("deltaY") or 0),
-            )
-
-        elif step_type == "KEY":
-            key = step.get("text", "Enter")
-            await self._browser_service.perform_key(page, key)
-
+        handler = self._STEP_HANDLERS.get(step_type)
+        if handler:
+            await handler(step, page)
         else:
             logger.warning(f"[PLAY] unknown step type: {step_type}")
+
+    # ─── Individual step handlers ─────────────────────────────────────────
+    async def _step_navigate(self, step: dict, page) -> None:
+        url = step.get("url") or step.get("pageUrl")
+        if url:
+            await page.goto(url, wait_until="domcontentloaded", timeout=30000)
+
+    async def _step_click(self, step: dict, page) -> None:
+        pw_selector = self._resolve_pw_selector(step.get("selector"))
+        coords = step.get("coords")
+        button = step.get("button", "left") or "left"
+
+        if pw_selector:
+            # Wait up to 5 s for the element to appear in the DOM.
+            # If still absent after timeout the page is in an unexpected state.
+            try:
+                match = await page.wait_for_selector(pw_selector, timeout=5000)
+            except Exception:
+                match = None
+            if match is None:
+                raise Exception(
+                    f"CLICK target '{pw_selector}' not found on page "
+                    f"(url={page.url[:80]}). Page may be in an unexpected state."
+                )
+            await match.click(button=button)
+        elif coords:
+            # No selector recorded — coords-only click (rare: canvas, dynamic elements).
+            await self._browser_service.perform_click(
+                page, int(coords["x"]), int(coords["y"]), button
+            )
+
+    async def _step_type(self, step: dict, page) -> None:
+        selector = step.get("selector")
+        text     = step.get("text") or ""
+        if selector:
+            pw_selector = self._resolve_pw_selector(selector)
+            if pw_selector:
+                # Wait up to 5 s for the element before typing.
+                try:
+                    match = await page.wait_for_selector(pw_selector, timeout=5000)
+                except Exception:
+                    match = None
+                if match is None:
+                    raise Exception(
+                        f"Expected element '{pw_selector}' not found on page "
+                        f"(url={page.url[:80]}). Application may be in an unexpected state."
+                    )
+            await self._browser_service.perform_type(page, selector, text)
+        else:
+            await page.keyboard.type(text)
+
+    async def _step_scroll(self, step: dict, page) -> None:
+        coords = step.get("coords") or {}
+        await self._browser_service.perform_scroll(
+            page,
+            int(coords.get("x", 0)),
+            int(coords.get("y", 0)),
+            float(step.get("deltaX") or 0),
+            float(step.get("deltaY") or 0),
+        )
+
+    async def _step_key(self, step: dict, page) -> None:
+        await self._browser_service.perform_key(page, step.get("text", "Enter"))
+
+    # ─── Selector resolver — maps recorded strategy/value to Playwright selector ───
+    def _resolve_pw_selector(self, recorded_selector: dict | None) -> str | None:
+        if not recorded_selector:
+            return None
+        strategy = recorded_selector.get("strategy")
+        value    = recorded_selector.get("value")
+        if not strategy or not value:
+            return None
+        if strategy == "id":
+            return f"#{value}"
+        if strategy == "css":
+            return value
+        if strategy == "xpath":
+            return f"xpath={value}"
+        return None
+
+    # ─── Page settle — wait for navigation or networkidle after a step ────
+    async def _settle_page(self, page, play_id: str, step_id: int) -> None:
+        url_before = page.url
+        await asyncio.sleep(0.3)
+        try:
+            await page.wait_for_function(
+                f"() => location.href !== {json.dumps(url_before)}",
+                timeout=2000,
+            )
+            logger.info(f"[PLAY:{play_id}] step {step_id} navigated → {page.url[:80]}")
+            try:
+                await page.wait_for_load_state("domcontentloaded", timeout=5000)
+            except Exception:
+                pass
+            try:
+                await page.wait_for_load_state("networkidle", timeout=8000)
+            except Exception:
+                pass
+        except Exception:
+            try:
+                await page.wait_for_load_state("networkidle", timeout=2000)
+            except Exception:
+                pass
 
     # ─── Helper: send WS event to client ──────────────────────────────────
     async def _send(self, play_id: str, client_id: str, event_type: str, data: dict) -> None:

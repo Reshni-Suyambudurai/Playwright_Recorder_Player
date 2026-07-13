@@ -44,11 +44,11 @@
           <!-- Live frame: always in DOM so viewChild ref is available; hidden until first frame -->
           <img #frameImg
                class="player-live-frame"
-               [class.player-live-frame--hidden]="!hasLiveFrame()"
+               [class.player-live-frame--hidden]="!state.hasLiveFrame()"
                alt="Live playback frame" />
 
           <!-- Placeholder: shown until first frame arrives -->
-          @if (!hasLiveFrame()) {
+          @if (!state.hasLiveFrame()) {
             <div class="player-screen-inner">
               <app-svg-icon name="runs" class="player-placeholder-icon" />
               <span class="player-placeholder-text">Ready to play</span>
@@ -57,43 +57,46 @@
           }
 
           <!-- Status overlay -->
-          @if (playStatus() === 'running') {
+          @if (state.playStatus() === 'running') {
             <div class="player-overlay player-overlay--running">
-              <span class="player-overlay-pill">{{ currentType() }}</span>
-              <span class="player-overlay-progress">Step {{ currentStep() + 1 }} / {{ totalSteps() }}</span>
-              @if (playError()) {
-                <span class="player-overlay-step-err">⚠ {{ playError() }}</span>
+              <span class="player-overlay-pill">{{ state.currentType() }}</span>
+              <span class="player-overlay-progress">Step {{ state.currentStep() + 1 }} / {{ state.totalSteps() }}</span>
+              @if (state.playError()) {
+                <span class="player-overlay-step-err">⚠ {{ state.playError() }}</span>
               }
               <button class="player-overlay-stop" (click)="onStopClick()">■ Stop</button>
             </div>
           }
-          @if (playStatus() === 'paused') {
+          @if (state.playStatus() === 'paused') {
             <div class="player-overlay player-overlay--paused">
               <span class="player-overlay-pill player-overlay-pill--paused">⏸ Paused</span>
-              <span class="player-overlay-progress">Step {{ currentStep() + 1 }} / {{ totalSteps() }}</span>
+              <span class="player-overlay-progress">Step {{ state.currentStep() + 1 }} / {{ state.totalSteps() }}</span>
               <button class="player-overlay-resume" (click)="onResumeClick()">▶ Resume</button>
               <button class="player-overlay-stop" (click)="onStopClick()">■ Stop</button>
             </div>
           }
-          @if (playStatus() === 'done') {
+          @if (state.playStatus() === 'done') {
             <div class="player-overlay player-overlay--done">
               <span class="player-overlay-pill player-overlay-pill--done">✓ Done</span>
-              <span class="player-overlay-progress">{{ totalSteps() }} steps completed</span>
+              <span class="player-overlay-progress">{{ state.totalSteps() }} steps completed</span>
             </div>
           }
-          @if (playStatus() === 'done_with_errors') {
+          @if (state.playStatus() === 'done_with_errors') {
             <div class="player-overlay player-overlay--done">
               <span class="player-overlay-pill player-overlay-pill--error">⚠ Done</span>
-              <span class="player-overlay-progress">{{ totalSteps() }} steps — {{ failedCount() }} failed</span>
+              <span class="player-overlay-progress">{{ state.totalSteps() }} steps — {{ state.failedCount() }} failed</span>
+              @if (state.failedSteps()[0]?.error) {
+                <span class="player-overlay-step-err">{{ state.failedSteps()[0].error }}</span>
+              }
             </div>
           }
-          @if (playStatus() === 'error') {
+          @if (state.playStatus() === 'error') {
             <div class="player-overlay player-overlay--error">
               <span class="player-overlay-pill player-overlay-pill--error">✕ Error</span>
-              <span class="player-overlay-msg">{{ playError() }}</span>
+              <span class="player-overlay-msg">{{ state.playError() }}</span>
             </div>
           }
-          @if (playStatus() === 'stopped') {
+          @if (state.playStatus() === 'stopped') {
             <div class="player-overlay player-overlay--done">
               <span class="player-overlay-pill">■ Stopped</span>
             </div>
@@ -125,7 +128,6 @@
         }
 
         @if (!detailLoading() && detail()) {
-          @let groups = tabGroups(detail()!);
 
           <!-- Meta row -->
           <div class="runs-step-meta">
@@ -134,80 +136,16 @@
           </div>
 
           <!-- Scrollable step list -->
-          <div class="runs-step-scroll"
-               style="height: calc(100vh - 380px); overflow-y: auto; overflow-x: hidden; display: block;">
-            @for (group of groups; track group.tabId) {
-              <div class="runs-tab-section">
-                <div class="runs-tab-url">
-                  <span class="runs-tab-icon">🌐</span>
-                  <span class="runs-tab-label" [title]="group.url">{{ group.url }}</span>
-                  <span class="runs-tab-count">{{ group.steps.length }}</span>
-                </div>
-
-                <ol class="runs-step-list">
-                  @for (step of group.steps; track step.id; let i = $index) {
-                    <li class="runs-step-item"
-                        [id]="'play-step-' + step.id"
-                        [class.runs-step-item--password]="step.isPassword"
-                        [class.runs-step-item--skipped]="!getShouldRun(step)"
-                        [class.runs-step-item--active]="currentStepId() === step.id">
-
-                      <!-- Top row: step number + type pill | shouldRun + pause pushed right -->
-                      <div class="step-card-top">
-                        <span class="step-num">{{ i + 1 }}</span>
-                        <span class="step-type-pill">{{ step.type }}</span>
-                        <div class="step-card-actions">
-                          <div class="step-req-toggle"
-                               [class.step-req-on]="getShouldRun(step)"
-                               (click)="toggleShouldRun(step.id, getShouldRun(step))"
-                               [appTooltip]="getShouldRun(step) ? 'click to skip' : 'click to enable'"
-                               tooltipPosition="top">
-                            <span class="step-req-knob"></span>
-                          </div>
-                          <button class="step-pause-btn"
-                                  [class.step-pause-btn--on]="getPause(step)"
-                                  (click)="togglePause(step.id, getPause(step))"
-                                  [appTooltip]="getPause(step) ? 'click to play' : 'Click to pause'"
-                                  tooltipPosition="top">{{ getPause(step) ? '⏸' : '▶' }}</button>
-                        </div>
-                      </div>
-
-                      <!-- Card body: values only, no key labels -->
-                      <div class="step-card-body">
-
-                        @if (step.label) {
-                          <span class="step-val-primary">{{ step.label }}</span>
-                        }
-
-                        @if (step.selector?.value) {
-                          <code class="step-val-selector">{{ step.selector!.value }}</code>
-                        }
-
-                        @if (step.type === 'NAVIGATE') {
-                          <span class="step-val-url">{{ step.url }}</span>
-                        }
-
-                        @if (step.type === 'TYPE' && step.storeValue) {
-                          <input class="runs-step-edit-input"
-                                 [type]="step.isPassword ? 'password' : 'text'"
-                                 [value]="getEditValue(step)"
-                                 (input)="setEditValue(step.id, $any($event.target).value)"
-                                 [placeholder]="step.isPassword ? ' Enter password...' : 'Enter value…'" />
-                        } @else if (step.type === 'TYPE' && step.text) {
-                          <span class="step-val-text">{{ step.text }}</span>
-                        }
-
-                        @if (step.type === 'KEY' && step.text) {
-                          <kbd class="step-val-key">{{ step.text }}</kbd>
-                        }
-
-                      </div>
-                    </li>
-                  }
-                </ol>
-              </div>
-            }
-          </div>
+          <app-step-list
+            [groups]="tabGroups()"
+            [currentStepId]="state.currentStepId()"
+            [editValues]="editValues()"
+            [shouldRunState]="shouldRunState()"
+            [pauseState]="pauseState()"
+            (toggleShouldRun)="toggleShouldRun($event.stepId, $event.current)"
+            (togglePause)="togglePause($event.stepId, $event.current)"
+            (editValue)="setEditValue($event.stepId, $event.value)"
+          />
 
           <!-- Save bar -->
           <div class="runs-save-bar">
@@ -224,7 +162,7 @@
             }
             <button class="runs-run-btn"
                     (click)="onRunClick()"
-                    [disabled]="!detail() || playStatus() === 'running' || playStatus() === 'paused'">
+                    [disabled]="!detail() || state.playStatus() === 'running' || state.playStatus() === 'paused'">
               ▶ 
             </button>
           </div>
