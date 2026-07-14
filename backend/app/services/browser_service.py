@@ -46,6 +46,9 @@ class BrowserService:
     async def take_screenshot(self, page: Page) -> str:
         """Capture a screenshot of the current page and return as base64 data URI."""
         try:
+            import time as _time
+            t_cdp = _time.perf_counter()
+            logger.debug(f"[SCREENSHOT] → sending CDP screenshot request to browser")
             png_bytes = await page.screenshot(
                 type="jpeg",
                 quality=60,
@@ -53,8 +56,20 @@ class BrowserService:
                 clip={"x": 0, "y": 0, "width": VIEWPORT_WIDTH, "height": VIEWPORT_HEIGHT},
                 timeout=5000,  # 5-second cap — never hang on a navigating/loading page
             )
+            t_cdp_done = _time.perf_counter()
+            logger.debug(
+                f"[SCREENSHOT] ← browser returned {len(png_bytes):,} bytes "
+                f"in {int((t_cdp_done - t_cdp)*1000)}ms"
+            )
+
+            t_enc = _time.perf_counter()
             b64 = base64.b64encode(png_bytes).decode("utf-8")
-            return f"data:image/jpeg;base64,{b64}"
+            data_uri = f"data:image/jpeg;base64,{b64}"
+            logger.debug(
+                f"[SCREENSHOT] base64 encode done in {int((_time.perf_counter()-t_enc)*1000)}ms "
+                f"→ payload {len(data_uri):,} chars"
+            )
+            return data_uri
         except Exception as e:
             logger.error(f"Screenshot failed: {e}")
             raise
