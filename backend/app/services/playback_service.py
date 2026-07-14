@@ -12,6 +12,7 @@ from app.models.playback import PlaySession, PlayStatus
 from app.services.browser_service import BrowserService
 from app.services.screenshot_service import ScreenshotService
 from app.services.dom_watcher import DomWatcher
+from app.services.capture_manager import CaptureManager, CaptureReason
 from app.websocket.connection_manager import ConnectionManager
 
 logger = logging.getLogger("playwright_recorder.services.playback")
@@ -89,8 +90,10 @@ class PlaybackService:
             session.browser_context = context
             session.page            = page
 
-            # Attach DomWatcher (same as recording — sends FRAME on DOM changes)
-            watcher = DomWatcher(self._screenshot_service)
+            # Create per-session CaptureManager then attach DomWatcher to it
+            cap_mgr = CaptureManager(self._screenshot_service, play_id, client_id)
+            session.capture_manager = cap_mgr
+            watcher = DomWatcher(cap_mgr)
             await watcher.attach(page, play_id, client_id)
             session.dom_watcher = watcher
 
@@ -119,7 +122,6 @@ class PlaybackService:
                 logger.info(f"[PLAY:{play_id}] step {idx+1}/{total} — {step_type}")
 
                 # Execute
-                watcher.suppress_external(True)
                 step_failed = False
                 try:
                     await self._execute_step(step, page)
@@ -136,12 +138,10 @@ class PlaybackService:
                     })
                     # Capture failure state so frontend shows what went wrong
                     try:
-                        await self._screenshot_service.capture_and_send(page, play_id, client_id, caller="ERROR")
+                        await cap_mgr.request(page, CaptureReason.ERROR)
                     except Exception:
                         pass
                     break  # stop — do not proceed to remaining steps
-                finally:
-                    watcher.suppress_external(False)
 
                 if not step_failed:
                     await self._settle_page(page, play_id, step_id)
@@ -152,7 +152,7 @@ class PlaybackService:
 
                 # Take screenshot after each step (even on error, to show current state)
                 try:
-                    await self._screenshot_service.capture_and_send(page, play_id, client_id, caller=step_type)
+                    await cap_mgr.request(page, CaptureReason.STEP_DONE)
                 except Exception as ss_err:
                     logger.warning(f"[PLAY:{play_id}] screenshot after step {step_id} failed (continuing): {ss_err}")
 
@@ -230,10 +230,10 @@ class PlaybackService:
         button = step.get("button", "left") or "left"
 
         if pw_selector:
-            # Wait up to 5 s for the element to appear in the DOM.
-            # If still absent after timeout the page is in an unexpected state.
+            # Wait up to 15 s for the element to appear in the DOM.
+            # SPAs may take several seconds to render after a preceding click.
             try:
-                match = await page.wait_for_selector(pw_selector, timeout=5000)
+                match = await page.wait_for_selector(pw_selector, timeout=15000)
             except Exception:
                 match = None
             if match is None:
@@ -254,9 +254,9 @@ class PlaybackService:
         if selector:
             pw_selector = self._resolve_pw_selector(selector)
             if pw_selector:
-                # Wait up to 5 s for the element before typing.
+                # Wait up to 15 s for the element before typing.
                 try:
-                    match = await page.wait_for_selector(pw_selector, timeout=5000)
+                    match = await page.wait_for_selector(pw_selector, timeout=15000)
                 except Exception:
                     match = None
                 if match is None:

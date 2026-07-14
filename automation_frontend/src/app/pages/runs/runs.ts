@@ -3,9 +3,10 @@ import { FormsModule } from '@angular/forms';
 import { RecordingsApi } from '../../services/recordings.api';
 import { PlaybackApi, PlayEvent } from '../../services/playback.api';
 import { PlaybackStateApi } from '../../services/playback-state.api';
-import { RecordingListItem, RecordingDetail, RecordingStep } from '../../types/websocket';
+import { RecordingListItem, RecordingDetail, RecordingStep, InputDetectedData } from '../../types/websocket';
 import { SvgIcon } from '../../components/svg-icon/svg-icon';
 import { StepList } from '../../components/step-list/step-list';
+import { InputOverlay } from '../../components/input-overlay/input-overlay';
 
 export interface TabGroup {
   tabId: string;
@@ -16,7 +17,7 @@ export interface TabGroup {
 @Component({
   selector: 'app-runs',
   standalone: true,
-  imports: [SvgIcon, FormsModule, StepList],
+  imports: [SvgIcon, FormsModule, StepList, InputOverlay],
   templateUrl: './runs.html',
   styleUrl: './runs.css',
 })
@@ -45,6 +46,11 @@ export class Runs implements OnInit, OnDestroy {
 
   // Direct DOM reference — we set img.src directly to bypass Angular zone
   private _frameImgRef = viewChild<ElementRef<HTMLImageElement>>('frameImg');
+
+  // Pause-time input overlay
+  readonly pauseInputData   = signal<InputDetectedData | null>(null);
+  readonly pauseOverlayX    = signal(0);
+  readonly pauseOverlayY    = signal(0);
 
   private _playWs: WebSocket | null = null;
   private _clientId = `client-${Math.random().toString(36).slice(2)}`;
@@ -218,7 +224,120 @@ export class Runs implements OnInit, OnDestroy {
     this._disconnectPlay();
   }
 
+  onFrameClick(event: MouseEvent): void {
+    if (this.state.playStatus() !== 'paused') return;
+    if ((event.target as HTMLElement).tagName === 'BUTTON') return;
+    const img = this._frameImgRef()?.nativeElement;
+    if (!img || !this._playWs || this._playWs.readyState !== WebSocket.OPEN) return;
+
+    const coords = this._toPageCoords(event.clientX, event.clientY, img);
+    if (!coords) return;
+    this._playWs.send(JSON.stringify({ event_type: 'PAUSE_CLICK', data: coords }));
+  }
+
+  onFrameWheel(event: WheelEvent): void {
+    if (this.state.playStatus() !== 'paused') return;
+    event.preventDefault();
+    const img = this._frameImgRef()?.nativeElement;
+    if (!img || !this._playWs || this._playWs.readyState !== WebSocket.OPEN) return;
+
+    const coords = this._toPageCoords(event.clientX, event.clientY, img);
+    if (!coords) return;
+    this._playWs.send(JSON.stringify({
+      event_type: 'PAUSE_SCROLL',
+      data: { ...coords, delta_y: event.deltaY }
+    }));
+  }
+
+  /**
+   * Maps a viewport click position to page coordinates (1280×720).
+   * Accounts for object-fit: contain — the screenshot is letterboxed inside
+   * the <img> element, so raw element-relative coords would be wrong.
+   * Returns null if the click landed outside the rendered image area.
+   */
+  private _showPauseInputOverlay(data: InputDetectedData): void {
+    const img = this._frameImgRef()?.nativeElement;
+    if (!img) { this.pauseInputData.set(data); return; }
+
+    const rect = img.getBoundingClientRect();
+    const PAGE_W = 1280, PAGE_H = 720;
+    const contentAspect = PAGE_W / PAGE_H;
+    const boxAspect     = rect.width / rect.height;
+    let renderedW: number, renderedH: number, offsetX: number, offsetY: number;
+    if (boxAspect > contentAspect) {
+      renderedH = rect.height; renderedW = renderedH * contentAspect;
+      offsetX = (rect.width - renderedW) / 2; offsetY = 0;
+    } else {
+      renderedW = rect.width; renderedH = renderedW / contentAspect;
+      offsetX = 0; offsetY = (rect.height - renderedH) / 2;
+    }
+    const scaleX = renderedW / PAGE_W;
+    const scaleY = renderedH / PAGE_H;
+    // Position relative to .player-screen container
+    const containerRect = (img.closest('.player-screen') as HTMLElement)?.getBoundingClientRect() ?? rect;
+    this.pauseOverlayX.set(Math.round(data.x * scaleX + (rect.left - containerRect.left) + offsetX));
+    this.pauseOverlayY.set(Math.round(data.y * scaleY + (rect.top  - containerRect.top)  + offsetY));
+    this.pauseInputData.set(data);
+  }
+
+  onPauseTypeConfirm(text: string): void {
+    const data = this.pauseInputData();
+    this.pauseInputData.set(null);
+    if (!data?.selector || !this._playWs || this._playWs.readyState !== WebSocket.OPEN) return;
+    this._playWs.send(JSON.stringify({
+      event_type: 'PAUSE_TYPE',
+      data: { selector: data.selector, text },
+    }));
+  }
+
+  onPauseTypeCancel(): void {
+    this.pauseInputData.set(null);
+  }
+
+  private _toPageCoords(
+    clientX: number,
+    clientY: number,
+    img: HTMLImageElement,
+  ): { x: number; y: number } | null {
+    const rect = img.getBoundingClientRect();
+    const PAGE_W = 1280, PAGE_H = 720;
+    const contentAspect = PAGE_W / PAGE_H;
+    const boxAspect     = rect.width / rect.height;
+
+    let renderedW: number, renderedH: number, offsetX: number, offsetY: number;
+    if (boxAspect > contentAspect) {
+      // Box is wider than content — horizontal pillarboxing
+      renderedH = rect.height;
+      renderedW = renderedH * contentAspect;
+      offsetX   = (rect.width - renderedW) / 2;
+      offsetY   = 0;
+    } else {
+      // Box is taller than content — vertical letterboxing
+      renderedW = rect.width;
+      renderedH = renderedW / contentAspect;
+      offsetX   = 0;
+      offsetY   = (rect.height - renderedH) / 2;
+    }
+
+    const relX = clientX - rect.left - offsetX;
+    const relY = clientY - rect.top  - offsetY;
+
+    // Click was in the padding area, not on the actual screenshot
+    if (relX < 0 || relY < 0 || relX > renderedW || relY > renderedH) return null;
+
+    return {
+      x: Math.round((relX / renderedW) * PAGE_W),
+      y: Math.round((relY / renderedH) * PAGE_H),
+    };
+  }
+
   private _onPlayEvent(evt: PlayEvent): void {
+    // Handle pause-type overlay events before the state machine
+    if (evt.event_type === 'PAUSE_INPUT_DETECTED') {
+      this._showPauseInputOverlay(evt.data as InputDetectedData);
+      return;
+    }
+
     const isFrame = this.state.handleEvent(evt);
     if (!isFrame) return;
 

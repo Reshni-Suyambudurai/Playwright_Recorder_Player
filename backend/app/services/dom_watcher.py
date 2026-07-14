@@ -1,43 +1,35 @@
 """
-DomWatcher — attaches Playwright event listeners to a page and emits a new
-FRAME screenshot whenever the DOM changes (navigation, load, network idle).
+DomWatcher — pure event detector.
 
-Uses asyncio debouncing so rapid DOM mutations produce at most one frame
-per DEBOUNCE_MS window rather than flooding the WebSocket.
+Attaches Playwright event listeners to a page and notifies CaptureManager
+whenever the DOM changes.  All screenshot scheduling, debouncing, and
+settle logic now lives in CaptureManager.
 """
 import asyncio
 import logging
-import time
 from playwright.async_api import Page
 try:
     from playwright._impl._errors import TargetClosedError
 except ImportError:
     TargetClosedError = Exception  # fallback for older playwright versions
-from app.services.screenshot_service import ScreenshotService
+from app.services.capture_manager import CaptureReason as _CaptureReason
 
 logger = logging.getLogger("playwright_recorder.services.dom_watcher")
 
-DEBOUNCE_MS = 300   # wait this many ms after last change before capturing
-
 
 class DomWatcher:
-    def __init__(self, screenshot_service: ScreenshotService):
-        self._screenshot_service = screenshot_service
-        self._debounce_task: asyncio.Task | None = None
+    def __init__(self, capture_manager):
+        self._capture_manager = capture_manager
         self._page: Page | None = None
-        self._session_id: str = ""
-        self._client_id: str = ""
         self._active: bool = False
-        self._in_flight: bool = False  # prevent screenshot flooding from rapid mutations
 
     async def attach(self, page: Page, session_id: str, client_id: str) -> None:
         """
         Attach DOM change listeners to the Playwright page.
         Call once after navigation has started.
+        session_id and client_id are kept only for logging.
         """
         self._page = page
-        self._session_id = session_id
-        self._client_id = client_id
         self._active = True
 
         # Fired on every full page navigation / reload
@@ -74,85 +66,21 @@ class DomWatcher:
             pass  # page may be navigating, init_script covers next load
         logger.info(f"DomWatcher attached to session {session_id}")
 
-    def suppress_external(self, value: bool) -> None:
-        """
-        Called by _bg_screenshot to mark that an action screenshot is in flight.
-        While True, DomWatcher will back off and reschedule instead of capturing.
-        """
-        self._in_flight = value
-        if value:
-            logger.info("[⏸ DOM-WATCHER] suppressed by action screenshot")
-        else:
-            logger.info("[▶ DOM-WATCHER] suppression lifted")
-
     async def detach(self) -> None:
-        """Stop watching and cancel any pending debounce task."""
+        """Stop watching."""
         self._active = False
-        if self._debounce_task and not self._debounce_task.done():
-            self._debounce_task.cancel()
-        logger.info(f"DomWatcher detached from session {self._session_id}")
+        logger.info(f"DomWatcher detached")
 
     # ── internal ──────────────────────────────────────────────────
 
     def _on_page_event(self, *_) -> None:
-        """Sync Playwright event callback — schedules async capture."""
-        if self._active:
-            asyncio.ensure_future(self._schedule_capture())
+        """Sync Playwright event callback — delegates to CaptureManager."""
+        if self._active and self._page:
+            asyncio.ensure_future(
+                self._capture_manager.request(self._page, _CaptureReason.DOM_MUTATION)
+            )
 
     async def _on_dom_mutation(self, *_) -> None:
         """Called from JS MutationObserver via expose_function."""
-        if self._active:
-            await self._schedule_capture()
-
-    async def _schedule_capture(self) -> None:
-        """Debounce: cancel pending task and reschedule."""
-        if self._debounce_task and not self._debounce_task.done():
-            self._debounce_task.cancel()
-        self._debounce_task = asyncio.ensure_future(self._debounced_capture())
-
-    async def _debounced_capture(self) -> None:
-        try:
-            await asyncio.sleep(DEBOUNCE_MS / 1000)
-            # Re-check after sleep — detach() may have fired during the wait
-            if not self._active or not self._page:
-                return
-            # Skip if a screenshot is already in progress — reschedule once it clears
-            if self._in_flight:
-                await asyncio.sleep(0.6)
-                if self._active and not self._in_flight:
-                    await self._schedule_capture()
-                return
-            logger.info("[⏳ DOM-WATCHER] debounce done — waiting for domcontentloaded...")
-            t0 = time.perf_counter()
-            try:
-                await self._page.wait_for_load_state("domcontentloaded", timeout=1500)
-                logger.info(f"[⏳ DOM-WATCHER] load in {int((time.perf_counter()-t0)*1000)}ms")
-            except TargetClosedError:
-                self._active = False
-                return
-            except Exception:
-                logger.info(f"[⏳ DOM-WATCHER] load timeout after {int((time.perf_counter()-t0)*1000)}ms — proceeding")
-            if not self._active or not self._page:
-                return
-            self._in_flight = True
-            try:
-                await self._screenshot_service.capture_and_send(
-                    self._page, self._session_id, self._client_id, caller="DOM-WATCHER"
-                )
-                # Follow-up frame after 1.2s to catch lazy-loaded / embedded content
-                await asyncio.sleep(1.2)
-                if self._active and self._page:
-                    logger.info("[⏳ DOM-WATCHER] sending follow-up frame (lazy content)")
-                    await self._screenshot_service.capture_and_send(
-                        self._page, self._session_id, self._client_id, caller="DOM-WATCHER-FOLLOWUP"
-                    )
-            except TargetClosedError:
-                self._active = False
-            finally:
-                self._in_flight = False
-        except asyncio.CancelledError:
-            pass
-        except TargetClosedError:
-            self._active = False
-        except Exception as e:
-            logger.error(f"[❌ DOM-WATCHER] capture error: {e}")
+        if self._active and self._page:
+            await self._capture_manager.request(self._page, _CaptureReason.DOM_MUTATION)

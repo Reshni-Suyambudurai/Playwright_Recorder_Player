@@ -24,6 +24,7 @@ class RecordingSession:
     browser_context: Optional[object] = None
     page: Optional[object] = None
     dom_watcher: Optional[object] = None   # DomWatcher — detached on disconnect
+    capture_manager: Optional[object] = None  # CaptureManager — per-session screenshot coordinator
     current_url: str = ""
     status: SessionStatus = SessionStatus.ACTIVE
     created_at: datetime = field(default_factory=datetime.now)

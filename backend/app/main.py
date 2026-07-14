@@ -64,7 +64,7 @@ def create_app():
     screenshot_service = ScreenshotService(browser_service, connection_manager)
     websocket_handler = WebSocketHandler(connection_manager, session_manager, browser_service, screenshot_service, db)
     playback_service  = PlaybackService(browser_service, screenshot_service, connection_manager)
-    playback_handler  = PlaybackHandler(connection_manager, playback_service)
+    playback_handler  = PlaybackHandler(connection_manager, playback_service, browser_service)
     logger.info("All services initialized")
 
     # Register routers

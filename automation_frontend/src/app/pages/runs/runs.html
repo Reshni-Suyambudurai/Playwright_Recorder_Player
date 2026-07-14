@@ -40,12 +40,26 @@
       <!-- LEFT: Player browser screen -->
       <div class="runs-right">
      
-        <div class="player-screen">
+        <div class="player-screen"
+             [class.player-screen--interactive]="state.playStatus() === 'paused'"
+             (click)="onFrameClick($event)"
+             (wheel)="onFrameWheel($event)">
           <!-- Live frame: always in DOM so viewChild ref is available; hidden until first frame -->
           <img #frameImg
                class="player-live-frame"
                [class.player-live-frame--hidden]="!state.hasLiveFrame()"
                alt="Live playback frame" />
+
+          <!-- Pause-time input overlay — rendered when backend detects an input element was clicked -->
+          @if (pauseInputData()) {
+            <app-input-overlay
+              class="pause-input-overlay"
+              [style.left.px]="pauseOverlayX()"
+              [style.top.px]="pauseOverlayY()"
+              [inputData]="pauseInputData()!"
+              (confirm)="onPauseTypeConfirm($event)"
+              (cancel)="onPauseTypeCancel()" />
+          }
 
           <!-- Placeholder: shown until first frame arrives -->
           @if (!state.hasLiveFrame()) {

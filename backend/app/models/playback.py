@@ -26,6 +26,7 @@ class PlaySession:
     browser_context: Optional[Any] = None
     page: Optional[Any]     = None
     dom_watcher: Optional[Any] = None
+    capture_manager: Optional[Any] = None  # CaptureManager — per-session
 
     status: PlayStatus = PlayStatus.PENDING
 

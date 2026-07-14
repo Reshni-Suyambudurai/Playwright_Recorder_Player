@@ -704,3 +704,21 @@
   width: auto;
   flex-wrap: nowrap;
 }
+
+/* Pause-time input overlay — anchored to the clicked element position */
+.pause-input-overlay {
+  position: absolute;
+  z-index: 30;
+  pointer-events: auto;
+}
+.player-screen--interactive {
+  cursor: crosshair;
+}
+
+/* Paused overlay must not block clicks on the frame beneath it */
+.player-overlay--paused {
+  pointer-events: none;
+}
+.player-overlay--paused button {
+  pointer-events: auto;
+}

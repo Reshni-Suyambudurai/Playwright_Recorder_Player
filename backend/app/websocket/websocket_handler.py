@@ -16,6 +16,7 @@ from app.services.browser_service import BrowserService
 from app.services.screenshot_service import ScreenshotService
 from app.services.recording_storage import RecordingStorage
 from app.services.dom_watcher import DomWatcher
+from app.services.capture_manager import CaptureManager, CaptureReason, SettleStrategy
 from app.services.database import DatabaseService
 from app.models.recording import Recording, RecordingMeta, RecordingStep, Coords, SelectorInfo
 from app.utils.selector_builder import build_selector
@@ -190,8 +191,10 @@ class WebSocketHandler:
             result = await self.browser_service.navigate_to_url(session.page, url)
             session.current_url = result["url"]
 
-            # Attach DOM watcher — it will push frames on every change
-            watcher = DomWatcher(self.screenshot_service)
+            # Create per-session CaptureManager then attach DomWatcher to it
+            cap_mgr = CaptureManager(self.screenshot_service, session_id, client_id)
+            session.capture_manager = cap_mgr
+            watcher = DomWatcher(cap_mgr)
             await watcher.attach(session.page, session_id, client_id)
             session.dom_watcher = watcher
 
@@ -230,7 +233,7 @@ class WebSocketHandler:
             session.recording_steps.append(nav_step)
 
             # Push the first frame immediately
-            await self.screenshot_service.capture_and_send(session.page, session_id, client_id)
+            await cap_mgr.request(session.page, CaptureReason.MANUAL)
 
             return {
                 "event_type": EventType.RECORDING_STARTED,
@@ -319,7 +322,9 @@ class WebSocketHandler:
                     logger.warning(f"[⚠ CLICK] step recording skipped: {record_err}")
 
             # Fire screenshot in background — ACTION_DONE returns immediately
-            asyncio.ensure_future(self._bg_screenshot(page, session_id, client_id, "CLICK", t0, wait_nav=True, dom_watcher=session.dom_watcher))
+            cap_mgr = session.capture_manager
+            if cap_mgr:
+                asyncio.ensure_future(cap_mgr.request(page, CaptureReason.ACTION_CLICK))
             logger.info(f"[✅ CLICK DONE] ACTION_DONE sent — {int((time.perf_counter()-t0)*1000)}ms after click (frame pending)")
 
             return {
@@ -371,7 +376,9 @@ class WebSocketHandler:
                 session.recording_steps.append(step)
 
             # Fire screenshot in background — ACTION_DONE returns immediately
-            asyncio.ensure_future(self._bg_screenshot(page, session_id, client_id, "TYPE", t0, sleep_ms=300, dom_watcher=session.dom_watcher))
+            cap_mgr = session.capture_manager
+            if cap_mgr:
+                asyncio.ensure_future(cap_mgr.request(page, CaptureReason.ACTION_TYPE))
             logger.info(f"[✅ TYPE DONE] ACTION_DONE sent — {int((time.perf_counter()-t0)*1000)}ms after type (frame pending)")
 
             return {"event_type": EventType.ACTION_DONE, "data": {"type": "type", "success": True}}
@@ -412,7 +419,9 @@ class WebSocketHandler:
                 session.recording_steps.append(step)
 
             # Fire screenshot in background — ACTION_DONE returns immediately
-            asyncio.ensure_future(self._bg_screenshot(page, session_id, client_id, "SCROLL", t0, dom_watcher=session.dom_watcher))
+            cap_mgr = session.capture_manager
+            if cap_mgr:
+                asyncio.ensure_future(cap_mgr.request(page, CaptureReason.ACTION_SCROLL))
             logger.info(f"[ SCROLL DONE] ACTION_DONE sent — {int((time.perf_counter()-t0)*1000)}ms after scroll (frame pending)")
 
             return {"event_type": EventType.ACTION_DONE, "data": {"type": "scroll", "success": True}}
@@ -449,46 +458,13 @@ class WebSocketHandler:
                 session.recording_steps.append(step)
 
             # Fire screenshot in background — ACTION_DONE returns immediately
-            asyncio.ensure_future(self._bg_screenshot(page, session_id, client_id, "KEY", t0,
-                                                       wait_nav=(key == "Enter"), sleep_ms=300, dom_watcher=session.dom_watcher))
+            cap_mgr = session.capture_manager
+            if cap_mgr:
+                reason = CaptureReason.ACTION_CLICK if key == "Enter" else CaptureReason.ACTION_TYPE
+                asyncio.ensure_future(cap_mgr.request(page, reason))
             logger.info(f"[ KEY DONE] ACTION_DONE sent — {int((time.perf_counter()-t0)*1000)}ms after key (frame pending)")
         except Exception as e:
             return self._error_response("KEY_ACTION_ERROR", str(e))
-
-    async def _bg_screenshot(self, page, session_id: str, client_id: str,
-                              caller: str, t0: float,
-                              wait_nav: bool = False, sleep_ms: int = 0,
-                              dom_watcher=None) -> None:
-        """
-        Background screenshot task — always fired via asyncio.ensure_future so the
-        caller returns ACTION_DONE immediately without waiting.
-
-        wait_nav   : wait for full page load (clicks/Enter that may navigate)
-        sleep_ms   : fixed settle delay in ms before screenshot (type/key/scroll)
-        t0         : original perf_counter from the handler, for end-to-end timing logs
-        dom_watcher: DomWatcher instance to suppress while this screenshot runs
-        """
-        if dom_watcher:
-            dom_watcher.suppress_external(True)
-        try:
-            if wait_nav:
-                try:
-                    await page.wait_for_load_state("domcontentloaded", timeout=2000)
-                    logger.info(f"[▶ {caller}][BG] load settled — {int((time.perf_counter()-t0)*1000)}ms elapsed")
-                except Exception:
-                    await asyncio.sleep(0.3)
-                    logger.info(f"[▶ {caller}][BG] load timeout — used 300ms fallback")
-            elif sleep_ms:
-                await asyncio.sleep(sleep_ms / 1000)
-                logger.info(f"[▶ {caller}][BG] sleep({sleep_ms}ms) done — {int((time.perf_counter()-t0)*1000)}ms elapsed")
-
-            await self.screenshot_service.capture_and_send(page, session_id, client_id, caller=caller)
-            logger.info(f"[ {caller}][BG] FRAME sent — {int((time.perf_counter()-t0)*1000)}ms total end-to-end")
-        except Exception as e:
-            logger.warning(f"[{caller}][BG] background screenshot failed: {e}")
-        finally:
-            if dom_watcher:
-                dom_watcher.suppress_external(False)
 
     async def _capture_after_nav(self, page, session_id: str, client_id: str, session, step_type: str) -> None:
         """Wait for page to settle then record a NAVIGATE step and send a screenshot."""
