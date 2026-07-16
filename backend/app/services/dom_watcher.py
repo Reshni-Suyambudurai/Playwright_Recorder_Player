@@ -8,11 +8,6 @@ settle logic now lives in CaptureManager.
 import asyncio
 import logging
 from playwright.async_api import Page
-try:
-    from playwright._impl._errors import TargetClosedError
-except ImportError:
-    TargetClosedError = Exception  # fallback for older playwright versions
-from app.services.capture_manager import CaptureReason as _CaptureReason
 
 logger = logging.getLogger("playwright_recorder.services.dom_watcher")
 
@@ -64,23 +59,25 @@ class DomWatcher:
             await page.evaluate(_OBSERVER_SCRIPT)
         except Exception:
             pass  # page may be navigating, init_script covers next load
+
+        # Start the dirty-flag capture worker
+        self._capture_manager.start_worker(page)
         logger.info(f"DomWatcher attached to session {session_id}")
 
     async def detach(self) -> None:
-        """Stop watching."""
+        """Stop watching and shut down the capture worker."""
         self._active = False
+        self._capture_manager.stop()
         logger.info(f"DomWatcher detached")
 
     # ── internal ──────────────────────────────────────────────────
 
     def _on_page_event(self, *_) -> None:
-        """Sync Playwright event callback — delegates to CaptureManager."""
-        if self._active and self._page:
-            asyncio.ensure_future(
-                self._capture_manager.request(self._page, _CaptureReason.DOM_MUTATION)
-            )
+        """Sync Playwright event callback — mark page dirty, worker captures it."""
+        if self._active:
+            self._capture_manager._dirty = True
 
     async def _on_dom_mutation(self, *_) -> None:
-        """Called from JS MutationObserver via expose_function."""
-        if self._active and self._page:
-            await self._capture_manager.request(self._page, _CaptureReason.DOM_MUTATION)
+        """Called from JS MutationObserver via expose_function — mark dirty only."""
+        if self._active:
+            self._capture_manager._dirty = True

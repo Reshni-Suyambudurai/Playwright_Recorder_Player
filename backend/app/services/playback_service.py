@@ -144,7 +144,7 @@ class PlaybackService:
                     break  # stop — do not proceed to remaining steps
 
                 if not step_failed:
-                    await self._settle_page(page, play_id, step_id)
+                    await self._settle_page(page, play_id, step_id, step_type, step.get("text", ""))
 
                 # waitAfterMs settle delay (100–300ms hardcoded by recorder)
                 if wait_ms > 0 and not step_failed:
@@ -297,29 +297,29 @@ class PlaybackService:
             return f"xpath={value}"
         return None
 
-    # ─── Page settle — wait for navigation or networkidle after a step ────
-    async def _settle_page(self, page, play_id: str, step_id: int) -> None:
+    # ─── Page settle — detect navigation only; CaptureManager owns all timing ──
+    async def _settle_page(self, page, play_id: str, step_id: int, step_type: str, key_text: str = "") -> None:
+        """
+        Only CLICK and KEY=Enter can trigger a full-page navigation.
+        All other step types return immediately — CaptureManager's FIXED_DELAY owns settle.
+        """
+        can_navigate = step_type == "CLICK" or (step_type == "KEY" and key_text == "Enter")
+        if not can_navigate:
+            return
+
         url_before = page.url
-        await asyncio.sleep(0.3)
         try:
             await page.wait_for_function(
                 f"() => location.href !== {json.dumps(url_before)}",
-                timeout=2000,
+                timeout=500,
             )
-            logger.info(f"[PLAY:{play_id}] step {step_id} navigated → {page.url[:80]}")
+            logger.info(f"[PLAY:{play_id}] step {step_id} navigated \u2192 {page.url[:80]}")
             try:
-                await page.wait_for_load_state("domcontentloaded", timeout=5000)
-            except Exception:
-                pass
-            try:
-                await page.wait_for_load_state("networkidle", timeout=8000)
+                await page.wait_for_load_state("domcontentloaded", timeout=3000)
             except Exception:
                 pass
         except Exception:
-            try:
-                await page.wait_for_load_state("networkidle", timeout=2000)
-            except Exception:
-                pass
+            pass  # no navigation detected — CaptureManager's FIXED_DELAY owns settle
 
     # ─── Helper: send WS event to client ──────────────────────────────────
     async def _send(self, play_id: str, client_id: str, event_type: str, data: dict) -> None:

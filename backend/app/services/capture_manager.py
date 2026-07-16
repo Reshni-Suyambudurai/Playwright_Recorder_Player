@@ -5,16 +5,19 @@ One instance per browser/page session (recording or playback).
 Never shared across unrelated sessions or clients.
 
 Owns:
-  - asyncio.Lock       — serialises all capture I/O
-  - _pending_dom task  — debounce handle for DOM_MUTATION events
-  - settle logic       — per-reason wait strategy
+  - asyncio.Lock        — serialises all capture I/O
+  - _dirty flag         — set by DOM mutations, cleared by the worker after capture
+  - _worker_task        — single background loop polling dirty flag every DOM_POLL_MS
+  - settle logic        — per-reason wait strategy
 
 Priority model
   HIGH: ACTION_CLICK, ACTION_TYPE, ACTION_SCROLL, STEP_DONE,
         PAUSE_CLICK, PAUSE_SCROLL, PAUSE_TYPE, ERROR, MANUAL
-  LOW:  DOM_MUTATION
+        → acquire lock immediately, apply settle, take screenshot
 
-A HIGH request cancels any pending LOW debounce task before acquiring the lock.
+  LOW: DOM_MUTATION
+        → set _dirty = True only (zero tasks, zero lock contention)
+        → worker polls every DOM_POLL_MS; if dirty: capture once, clear flag
 """
 import asyncio
 import logging
@@ -22,7 +25,7 @@ from enum import Enum
 
 logger = logging.getLogger("playwright_recorder.services.capture_manager")
 
-DEBOUNCE_MS = 300  # DOM_MUTATION debounce window
+DOM_POLL_MS = 300  # Worker polling interval — max latency between a mutation and its frame
 
 
 class CaptureReason(Enum):
@@ -61,13 +64,13 @@ _HIGH_PRIORITY = {
 # Default (settle_strategy, timeout_ms) per reason
 _SETTLE_DEFAULTS: dict[CaptureReason, tuple[SettleStrategy, int]] = {
     CaptureReason.DOM_MUTATION:  (SettleStrategy.NONE,          0),
-    CaptureReason.ACTION_CLICK:  (SettleStrategy.WAIT_FOR_NAV,  2000),
+    CaptureReason.ACTION_CLICK:  (SettleStrategy.FIXED_DELAY,   300),
     CaptureReason.ACTION_TYPE:   (SettleStrategy.FIXED_DELAY,   300),
     CaptureReason.ACTION_SCROLL: (SettleStrategy.NONE,          0),
-    CaptureReason.STEP_DONE:     (SettleStrategy.WAIT_FOR_IDLE, 2000),
+    CaptureReason.STEP_DONE:     (SettleStrategy.FIXED_DELAY,   300),
     CaptureReason.ERROR:         (SettleStrategy.NONE,          0),
     CaptureReason.MANUAL:        (SettleStrategy.NONE,          0),
-    CaptureReason.PAUSE_CLICK:   (SettleStrategy.WAIT_FOR_IDLE, 2000),
+    CaptureReason.PAUSE_CLICK:   (SettleStrategy.FIXED_DELAY,   300),
     CaptureReason.PAUSE_SCROLL:  (SettleStrategy.NONE,          0),
     CaptureReason.PAUSE_TYPE:    (SettleStrategy.FIXED_DELAY,   300),
 }
@@ -83,9 +86,34 @@ class CaptureManager:
         self._session_id = session_id
         self._client_id  = client_id
         self._lock        = asyncio.Lock()
-        self._pending_dom: asyncio.Task | None = None
+        # Dirty-flag worker state
+        self._dirty: bool = False          # set by mutations, cleared by worker after capture
+        self._page   = None                # page reference for the worker loop
+        self._worker_task: asyncio.Task | None = None
 
     # ── Public API ─────────────────────────────────────────────────────────
+
+    def start_worker(self, page) -> None:
+        """
+        Launch the DOM capture worker loop.
+        Called once by DomWatcher.attach() after the page is ready.
+        Safe to call multiple times — only starts one worker.
+        """
+        self._page = page
+        if self._worker_task is None or self._worker_task.done():
+            self._worker_task = asyncio.ensure_future(self._dom_capture_worker())
+            logger.info(f"[CAPTURE] DOM worker started (poll={DOM_POLL_MS}ms) session={self._session_id}")
+
+    def stop(self) -> None:
+        """
+        Stop the DOM capture worker.
+        Called by DomWatcher.detach() or session cleanup.
+        """
+        if self._worker_task and not self._worker_task.done():
+            self._worker_task.cancel()
+            logger.info(f"[CAPTURE] DOM worker stopped session={self._session_id}")
+        self._worker_task = None
+        self._dirty = False
 
     async def request(
         self,
@@ -97,8 +125,8 @@ class CaptureManager:
         """
         Request a screenshot.
 
-        HIGH-priority reasons cancel any pending DOM debounce then capture immediately.
-        LOW-priority (DOM_MUTATION) requests are debounced by DEBOUNCE_MS.
+        HIGH-priority reasons acquire the lock immediately and capture.
+        LOW-priority (DOM_MUTATION) just sets the dirty flag — the worker captures it.
 
         Args:
             page:      Playwright page object.
@@ -106,39 +134,37 @@ class CaptureManager:
             settle:    Override the default SettleStrategy for this reason.
             settle_ms: Override the default timeout for the settle strategy.
 
-        Returns True if a screenshot was successfully sent.
+        Returns True if a screenshot was sent (always True for DOM_MUTATION — async).
         """
         if reason in _HIGH_PRIORITY:
-            self._cancel_pending_dom()
+            # Clear dirty flag — worker should not double-capture what we're about to capture
+            self._dirty = False
             return await self._capture_now(page, reason, settle, settle_ms)
         else:
-            # LOW priority — debounce
-            self._cancel_pending_dom()
-            self._pending_dom = asyncio.ensure_future(
-                self._debounced_dom(page, reason, settle, settle_ms)
-            )
-            return True  # not yet captured, but scheduled
+            # DOM_MUTATION — just mark dirty; worker will capture at next poll tick
+            self._dirty = True
+            self._page  = page  # keep page reference fresh
+            return True  # capture is scheduled via worker
 
     # ── Internal helpers ───────────────────────────────────────────────────
 
-    def _cancel_pending_dom(self) -> None:
-        if self._pending_dom and not self._pending_dom.done():
-            self._pending_dom.cancel()
-            logger.debug("[CAPTURE] pending DOM capture cancelled (higher-priority action)")
-        self._pending_dom = None
-
-    async def _debounced_dom(
-        self,
-        page,
-        reason: CaptureReason,
-        settle: SettleStrategy | None,
-        settle_ms: int | None,
-    ) -> None:
+    async def _dom_capture_worker(self) -> None:
+        """
+        Background loop: polls _dirty every DOM_POLL_MS.
+        If dirty: clears flag, acquires lock, takes one screenshot.
+        Structurally impossible to queue up multiple captures.
+        """
         try:
-            await asyncio.sleep(DEBOUNCE_MS / 1000)
-            await self._capture_now(page, reason, settle, settle_ms)
+            while True:
+                await asyncio.sleep(DOM_POLL_MS / 1000)
+                if self._dirty and self._page:
+                    self._dirty = False
+                    logger.debug("[CAPTURE][DOM-WATCHER] dirty flag set — capturing")
+                    await self._capture_now(self._page, CaptureReason.DOM_MUTATION)
         except asyncio.CancelledError:
             pass
+        except Exception as e:
+            logger.error(f"[CAPTURE] DOM worker crashed: {e}", exc_info=True)
 
     async def _capture_now(
         self,
@@ -184,18 +210,7 @@ class CaptureManager:
                 logger.error(f"[CAPTURE][{caller}] error: {e}", exc_info=True)
                 return False
 
-        # DOM_MUTATION: 1.2s follow-up outside the lock (lets other captures run during sleep)
-        if reason == CaptureReason.DOM_MUTATION:
-            await asyncio.sleep(1.2)
-            if page:
-                async with self._lock:
-                    try:
-                        await self._screenshot_service.capture_and_send(
-                            page, self._session_id, self._client_id,
-                            caller="DOM-WATCHER-FOLLOWUP"
-                        )
-                        logger.info("[CAPTURE][DOM-WATCHER-FOLLOWUP] follow-up frame sent")
-                    except Exception as e:
-                        logger.warning(f"[CAPTURE][DOM-WATCHER-FOLLOWUP] error: {e}")
-
+        # TODO Phase 2 — replace fixed settle with DOM stability detection:
+        #   Option A: MutationObserver counter — wait until zero mutations for N ms
+        #   Option B: perceptual hash comparison — recapture if hash differs after delay
         return ok
