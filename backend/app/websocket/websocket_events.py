@@ -1,5 +1,14 @@
 """
 WebSocket event definitions and schemas.
+
+If BrowserService is the worker and WebSocketHandler is the controller, then this file is the dictionary that defines:
+
+What messages can be sent
+What data each message contains
+The names of all WebSocket events
+
+Think of it like an API specification.
+It only defines the structure.
 """
 from datetime import datetime
 from typing import Dict, Any, Optional

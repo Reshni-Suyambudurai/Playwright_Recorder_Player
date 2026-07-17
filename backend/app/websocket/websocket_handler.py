@@ -1,5 +1,22 @@
 """
 WebSocket event handler for routing and processing WebSocket events.
+Angular Frontend
+       │
+       │ WebSocket JSON
+       ▼
+WebSocketHandler.handle_event()
+       │
+       ├── HELLO
+       ├── START_RECORDING
+       ├── CLICK_ACTION
+       ├── TYPE_ACTION
+       ├── SCROLL_ACTION
+       ├── KEY_ACTION
+       ├── PAGE_REFRESH
+       ├── PAGE_BACK
+       ├── STOP_RECORDING
+       ├── SWITCH_TAB
+       └── ...
 """
 import asyncio
 import time

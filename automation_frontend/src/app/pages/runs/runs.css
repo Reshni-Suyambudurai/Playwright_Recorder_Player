@@ -691,18 +691,21 @@
   white-space: nowrap;
 }
 
-/* Done/error overlay (full center) */
+/* Done/error overlay (centered horizontally, near top) */
 .player-overlay--done,
 .player-overlay--error {
-  top: 0;
+  top: 1.25rem;
   bottom: auto;
   left: 50%;
   right: auto;
   transform: translateX(-50%);
-  margin-top: 0.75rem;
+  margin-top: 0;
   border-radius: var(--rounded-lg);
   width: auto;
-  flex-wrap: nowrap;
+  max-width: 80%;
+  flex-wrap: wrap;
+  justify-content: center;
+  text-align: center;
 }
 
 /* Pause-time input overlay — anchored to the clicked element position */

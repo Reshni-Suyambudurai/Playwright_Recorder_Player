@@ -1,5 +1,18 @@
 """
 CaptureManager — central screenshot coordinator.
+The CaptureManager centralizes all screenshot requests and decides:
+
+When to take a screenshot
+Whether to wait before taking it
+Whether to ignore duplicate requests
+Whether to delay DOM updates
+Whether to serialize multiple capture requests
+
+Think of it as a traffic controller for screenshots.
+
+Notice that CaptureManager never takes screenshots itself.
+
+It only decides when ScreenshotService.capture_and_send() should be called.
 
 One instance per browser/page session (recording or playback).
 Never shared across unrelated sessions or clients.

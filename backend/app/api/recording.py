@@ -1,5 +1,13 @@
 """
 Recording API endpoints.
+
+Spring Boot                     FastAPI Project
+--------------------------------------------------------
+@Entity / DTO            -->    Recording Model
+Repository               -->    RecordingStorage
+Service                  -->    WebSocketHandler
+Controller               -->    recording.py
+
 """
 import logging
 from fastapi import APIRouter, HTTPException

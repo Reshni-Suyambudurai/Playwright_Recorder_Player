@@ -1,6 +1,30 @@
 """
 DomWatcher — pure event detector.
 
+DomWatcher = Detector
+CaptureManager = Decision Maker
+ScreenshotService = Executor
+
+Each class has a single responsibility.
+flow:-
+Browser DOM
+
+↓
+
+DomWatcher
+
+↓
+
+CaptureManager
+
+↓
+
+ScreenshotService
+
+↓
+
+Frontend
+
 Attaches Playwright event listeners to a page and notifies CaptureManager
 whenever the DOM changes.  All screenshot scheduling, debouncing, and
 settle logic now lives in CaptureManager.

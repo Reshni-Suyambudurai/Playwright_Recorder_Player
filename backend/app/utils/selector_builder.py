@@ -2,6 +2,24 @@
 SelectorBuilder — given a Playwright page and (x, y) viewport coordinates,
 returns the best available selector for the element at that position plus
 metadata needed to decide how to handle the action (click vs input overlay).
+
+
+page.evaluate() executes JavaScript inside the browser page and returns the result back to Python.
+
+| Priority | Selector Type                                 | Example                                |
+| -------- | --------------------------------------------- | -------------------------------------- |
+| 1        | **id**                                        | `#loginBtn`                            |
+| 2        | **data-testid / data-id / data-cy / data-qa** | `[data-testid="submit"]`               |
+| 3        | **aria-label**                                | `[aria-label="Username"]`              |
+| 4        | **name**                                      | `input[name="username"]`               |
+| 5        | **label[for]**                                | `label[for="email"]`                   |
+| 6        | **input[type=submit/button] + value**         | `input[type="submit"][value="Login"]`  |
+| 7        | **role** (or role + title)                    | `[role="button"]`                      |
+| 8        | **title**                                     | `[title="Refresh"]`                    |
+| 9        | **Text-based XPath**                          | `//button[normalize-space(.)="Login"]` |
+| 10       | **Anchored CSS Path**                         | `#form > button > span`                |
+| 11       | **Full XPath (last resort)**                  | `/html/body/div/form/button[1]`        |
+
 """
 import logging
 from playwright.async_api import Page

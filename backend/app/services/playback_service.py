@@ -144,7 +144,12 @@ class PlaybackService:
                     break  # stop — do not proceed to remaining steps
 
                 if not step_failed:
-                    await self._settle_page(page, play_id, step_id, step_type, step.get("text", ""))
+                    await self._settle_page(
+                        page, play_id, step_id, step_type,
+                        key_text=step.get("text", ""),
+                        step_url=step.get("url"),
+                        page_url=step.get("pageUrl"),
+                    )
 
                 # waitAfterMs settle delay (100–300ms hardcoded by recorder)
                 if wait_ms > 0 and not step_failed:
@@ -298,13 +303,25 @@ class PlaybackService:
         return None
 
     # ─── Page settle — detect navigation only; CaptureManager owns all timing ──
-    async def _settle_page(self, page, play_id: str, step_id: int, step_type: str, key_text: str = "") -> None:
+    async def _settle_page(
+        self,
+        page,
+        play_id: str,
+        step_id: int,
+        step_type: str,
+        key_text: str = "",
+        step_url: str | None = None,
+        page_url: str | None = None,
+    ) -> None:
         """
-        Only CLICK and KEY=Enter can trigger a full-page navigation.
-        All other step types return immediately — CaptureManager's FIXED_DELAY owns settle.
+        Only run the URL-change poll when the recording proves navigation happened.
+        A step navigated if: step_url is non-null AND differs from pageUrl.
+        For SPA clicks (dropdown, tab, button) step_url == pageUrl → skip immediately.
+        CaptureManager's FIXED_DELAY(300ms) owns settle for all non-navigating steps.
         """
-        can_navigate = step_type == "CLICK" or (step_type == "KEY" and key_text == "Enter")
-        if not can_navigate:
+        is_navigating_type = step_type == "CLICK" or (step_type == "KEY" and key_text == "Enter")
+        recorded_navigation = step_url is not None and step_url != page_url
+        if not is_navigating_type or not recorded_navigation:
             return
 
         url_before = page.url

@@ -1,5 +1,9 @@
 """
 TabManager — helpers for managing multiple Playwright pages (tabs) per session.
+
+This file manages browser tabs (open, switch, get active tab, and clean up tab watchers) during a recording session.
+
+It doesn't open tabs or close tabs itself. It only manages information about them.
 """
 import logging
 from playwright.async_api import Page
