@@ -1,5 +1,8 @@
 """
 WebSocket connection manager for maintaining session-to-connection mappings.
+
+ConnectionManager manages all WebSocket connections, mapping sessions and clients to their
+ WebSocket connections so the backend can send messages to the correct frontend.
 """
 from typing import Dict, List, Optional
 from fastapi import WebSocket

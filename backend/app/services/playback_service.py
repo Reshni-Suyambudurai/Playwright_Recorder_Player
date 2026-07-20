@@ -12,7 +12,7 @@ from app.models.playback import PlaySession, PlayStatus
 from app.services.browser_service import BrowserService
 from app.services.screenshot_service import ScreenshotService
 from app.services.dom_watcher import DomWatcher
-from app.services.capture_manager import CaptureManager, CaptureReason
+from app.services.capture_manager import CaptureManager, CaptureReason, SettleStrategy
 from app.websocket.connection_manager import ConnectionManager
 
 logger = logging.getLogger("playwright_recorder.services.playback")
@@ -151,15 +151,15 @@ class PlaybackService:
                         page_url=step.get("pageUrl"),
                     )
 
-                # waitAfterMs settle delay (100–300ms hardcoded by recorder)
-                if wait_ms > 0 and not step_failed:
-                    await asyncio.sleep(wait_ms / 1000)
-
-                # Take screenshot after each step (even on error, to show current state)
-                try:
-                    await cap_mgr.request(page, CaptureReason.STEP_DONE)
-                except Exception as ss_err:
-                    logger.warning(f"[PLAY:{play_id}] screenshot after step {step_id} failed (continuing): {ss_err}")
+                # Opt 1: waitAfterMs removed — CaptureManager's FIXED_DELAY owns settle timing.
+                # Opt 2: SCROLL/KEY use NONE settle (instant capture, no 300ms delay).
+                # Opt 3: NAVIGATE skips STEP_DONE — DomWatcher streams the initial page frames.
+                if not step_failed and step_type != "NAVIGATE":
+                    _settle = SettleStrategy.NONE if step_type in ("SCROLL", "KEY") else None
+                    try:
+                        await cap_mgr.request(page, CaptureReason.STEP_DONE, settle=_settle)
+                    except Exception as ss_err:
+                        logger.warning(f"[PLAY:{play_id}] screenshot after step {step_id} failed (continuing): {ss_err}")
 
                 # Pause check — block until PLAY_RESUME received
                 if pause:
@@ -227,7 +227,7 @@ class PlaybackService:
     async def _step_navigate(self, step: dict, page) -> None:
         url = step.get("url") or step.get("pageUrl")
         if url:
-            await page.goto(url, wait_until="domcontentloaded", timeout=30000)
+            await page.goto(url, wait_until="domcontentloaded", timeout=15000)
 
     async def _step_click(self, step: dict, page) -> None:
         pw_selector = self._resolve_pw_selector(step.get("selector"))
@@ -238,15 +238,29 @@ class PlaybackService:
             # Wait up to 15 s for the element to appear in the DOM.
             # SPAs may take several seconds to render after a preceding click.
             try:
-                match = await page.wait_for_selector(pw_selector, timeout=15000)
+                match = await page.wait_for_selector(pw_selector, timeout=3000)
             except Exception:
                 match = None
-            if match is None:
-                raise Exception(
-                    f"CLICK target '{pw_selector}' not found on page "
-                    f"(url={page.url[:80]}). Page may be in an unexpected state."
+
+            if match is not None:
+                await match.click(button=button)
+                return
+
+            # Selector not found in 3s — try coords fallback before raising
+            if coords:
+                logger.warning(
+                    f"[PLAY] selector '{pw_selector}' not found — "
+                    f"falling back to coords ({coords['x']},{coords['y']})"
                 )
-            await match.click(button=button)
+                await self._browser_service.perform_click(
+                    page, int(coords["x"]), int(coords["y"]), button
+                )
+                return
+
+            raise Exception(
+                f"CLICK target '{pw_selector}' not found on page "
+                f"(url={page.url[:80]}). Page may be in an unexpected state."
+            )
         elif coords:
             # No selector recorded — coords-only click (rare: canvas, dynamic elements).
             await self._browser_service.perform_click(
@@ -259,9 +273,9 @@ class PlaybackService:
         if selector:
             pw_selector = self._resolve_pw_selector(selector)
             if pw_selector:
-                # Wait up to 15 s for the element before typing.
+                # Wait up to 5s for the element before typing.
                 try:
-                    match = await page.wait_for_selector(pw_selector, timeout=15000)
+                    match = await page.wait_for_selector(pw_selector, timeout=5000)
                 except Exception:
                     match = None
                 if match is None:
@@ -297,6 +311,10 @@ class PlaybackService:
         if strategy == "id":
             return f"#{value}"
         if strategy == "css":
+            idx = recorded_selector.get("occurrence_index") or 0
+            if idx > 0:
+                # :nth-match(n) is 1-indexed — picks the nth element matching the selector
+                return f"{value}:nth-match({idx + 1})"
             return value
         if strategy == "xpath":
             return f"xpath={value}"

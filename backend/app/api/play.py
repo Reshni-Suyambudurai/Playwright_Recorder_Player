@@ -2,6 +2,10 @@
 REST endpoint: POST /play/start
 Accepts the full recording JSON from the frontend, creates a PlaySession,
 and returns the play_session_id for the frontend to connect over WebSocket.
+
+Creates and manages playback sessions using REST APIs before playback starts over WebSocket.
+
+creates Playback Session
 """
 import uuid
 import logging

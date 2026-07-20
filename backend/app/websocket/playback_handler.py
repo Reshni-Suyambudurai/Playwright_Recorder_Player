@@ -1,6 +1,23 @@
 """
 WebSocket handler for playback sessions (/ws/play/{play_id}).
 Mirrors the structure of WebSocketHandler but for playback lifecycle.
+
+It receives messages and decides who should handle them.
+
+PlaybackHandler is the WebSocket controller for the Player. 
+It receives all real-time messages from the frontend during playback, routes them to the appropriate handler, controls pause/resume/stop actions, and communicates with the browser and frontend.
+Frontend
+   │
+   ▼
+PlaybackHandler.handle_event()
+   │
+   ├── HELLO
+   ├── PLAY_RESUME
+   ├── PLAY_STOP
+   ├── PAUSE_CLICK
+   ├── PAUSE_SCROLL
+   ├── PAUSE_TYPE
+   └── PING
 """
 import asyncio
 import logging
