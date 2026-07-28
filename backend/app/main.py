@@ -18,6 +18,7 @@ from app.websocket.connection_manager import ConnectionManager
 from app.websocket.websocket_handler import WebSocketHandler
 from app.services.playback_service import PlaybackService
 from app.websocket.playback_handler import PlaybackHandler
+from app.utils import tab_manager
 
 # ==================== Logging Setup ====================
 LOG_FILE = os.path.join(os.path.dirname(os.path.dirname(__file__)), "debug.log")
@@ -111,11 +112,13 @@ def create_app():
 
         except WebSocketDisconnect:
             logger.info(f"[WS] Client disconnected from session {session_id}")
-            # Detach DomWatcher so no more frames are emitted for this client
+            # Detach all tab watchers so no more frames are emitted for this client
             session = session_manager.get_session(session_id)
-            if session and session.dom_watcher:
-                await session.dom_watcher.detach()
-                session.dom_watcher = None
+            if session:
+                await tab_manager.detach_all_watchers(session)
+                if session.dom_watcher:
+                    await session.dom_watcher.detach()
+                    session.dom_watcher = None
             await connection_manager.disconnect(websocket)
 
         except Exception as e:

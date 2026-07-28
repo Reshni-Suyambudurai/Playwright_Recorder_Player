@@ -34,11 +34,16 @@ Priority model
 """
 import asyncio
 import logging
+import time
 from enum import Enum
 
 logger = logging.getLogger("playwright_recorder.services.capture_manager")
 
 DOM_POLL_MS = 300  # Worker polling interval — max latency between a mutation and its frame
+MAX_BURST_FRAMES = 4  # max consecutive DOM-driven frames sent per unbroken mutation burst
+QUIET_MS_BASE = 900   # base quiet window (~3 poll ticks) before a burst is considered over
+QUIET_MS_MAX = 8000    # cap on the escalating quiet window — never wait longer than this
+RAPID_RECUR_S = 2.0    # a burst restarting within this long after the last one ended counts as "rapid"
 
 
 class CaptureReason(Enum):
@@ -103,6 +108,14 @@ class CaptureManager:
         self._dirty: bool = False          # set by mutations, cleared by worker after capture
         self._page   = None                # page reference for the worker loop
         self._worker_task: asyncio.Task | None = None
+        self._burst_count = 0              # DOM-watcher frames sent so far in the current unbroken burst
+        self._last_dirty_at: float = 0.0   # monotonic time of the last dirty signal seen
+        self._burst_index = 0              # session-wide count of bursts started (for log tracking)
+        self._total_dom_frames = 0         # session-wide count of DOM-watcher frames sent (for log tracking)
+        self._last_burst_ended_at: float = 0.0  # monotonic time the previous burst ended, 0.0 if none yet
+        self._rapid_streak = 0             # consecutive bursts that restarted within RAPID_RECUR_S
+        self._quiet_ms_current: float = QUIET_MS_BASE  # current required quiet window, escalates on rapid recurrence
+        self._wake_event = asyncio.Event()  # allows high-priority actions to wake worker immediately
 
     # ── Public API ─────────────────────────────────────────────────────────
 
@@ -127,6 +140,14 @@ class CaptureManager:
             logger.info(f"[CAPTURE] DOM worker stopped session={self._session_id}")
         self._worker_task = None
         self._dirty = False
+        self._burst_count = 0
+        self._last_dirty_at = 0.0
+        self._burst_index = 0
+        self._total_dom_frames = 0
+        self._last_burst_ended_at = 0.0
+        self._rapid_streak = 0
+        self._quiet_ms_current = QUIET_MS_BASE
+        self._wake_event.clear()
 
     async def request(
         self,
@@ -150,9 +171,12 @@ class CaptureManager:
         Returns True if a screenshot was sent (always True for DOM_MUTATION — async).
         """
         if reason in _HIGH_PRIORITY:
-            # Clear dirty flag — worker should not double-capture what we're about to capture
-            self._dirty = False
-            return await self._capture_now(page, reason, settle, settle_ms)
+            # Keep dirty signal intact; action frame must be followed by DOM frame if page changed.
+            result = await self._capture_now(page, reason, settle, settle_ms)
+            self._page = page
+            # Wake worker now instead of waiting up to DOM_POLL_MS for next tick.
+            self._wake_event.set()
+            return result
         else:
             # DOM_MUTATION — just mark dirty; worker will capture at next poll tick
             self._dirty = True
@@ -164,16 +188,74 @@ class CaptureManager:
     async def _dom_capture_worker(self) -> None:
         """
         Background loop: polls _dirty every DOM_POLL_MS.
-        If dirty: clears flag, acquires lock, takes one screenshot.
-        Structurally impossible to queue up multiple captures.
+
+        Caps consecutive DOM-driven captures at MAX_BURST_FRAMES per unbroken
+        mutation burst — a continuously-changing page (animations, polling
+        widgets, chat) would otherwise get a screenshot on nearly every poll
+        tick indefinitely. Once the cap is hit, further dirty ticks are
+        skipped entirely until the page has been quiet for a sustained
+        quiet window (not just one lucky poll tick — continuous churn has
+        small natural lulls that a single-tick check would misread as
+        "settled" and restart a fresh burst far too early). Once truly quiet,
+        one last frame captures the settled state and the burst counter resets.
+
+        Escalating backoff: if a page is periodic (a burst keeps restarting
+        within RAPID_RECUR_S of the previous one ending — a clock, ticker,
+        polling widget, etc.), the required quiet window doubles each time,
+        up to QUIET_MS_MAX. This makes such a page taper down to progressively
+        rarer bursts instead of producing a fresh capped burst forever. A
+        burst that restarts slowly (the page genuinely calmed down for a
+        while) resets the window back to QUIET_MS_BASE.
         """
         try:
             while True:
-                await asyncio.sleep(DOM_POLL_MS / 1000)
+                try:
+                    await asyncio.wait_for(self._wake_event.wait(), timeout=DOM_POLL_MS / 1000)
+                except asyncio.TimeoutError:
+                    pass
+                self._wake_event.clear()
                 if self._dirty and self._page:
                     self._dirty = False
-                    logger.debug("[CAPTURE][DOM-WATCHER] dirty flag set — capturing")
-                    await self._capture_now(self._page, CaptureReason.DOM_MUTATION)
+                    self._last_dirty_at = time.monotonic()
+                    if self._burst_count == 0:
+                        self._burst_index += 1
+                        if self._last_burst_ended_at:
+                            gap_s = self._last_dirty_at - self._last_burst_ended_at
+                            if gap_s < RAPID_RECUR_S:
+                                self._rapid_streak += 1
+                                self._quiet_ms_current = min(
+                                    QUIET_MS_BASE * (2 ** self._rapid_streak), QUIET_MS_MAX
+                                )
+                            else:
+                                self._rapid_streak = 0
+                                self._quiet_ms_current = QUIET_MS_BASE
+                            gap = f"{gap_s:.1f}s since last burst ended, quiet window now {self._quiet_ms_current:.0f}ms"
+                        else:
+                            gap = "first burst this session"
+                        logger.info(f"[CAPTURE][DOM-WATCHER] burst #{self._burst_index} started ({gap})")
+                    if self._burst_count < MAX_BURST_FRAMES:
+                        self._burst_count += 1
+                        self._total_dom_frames += 1
+                        logger.debug(
+                            f"[CAPTURE][DOM-WATCHER] dirty flag set — capturing "
+                            f"({self._burst_count}/{MAX_BURST_FRAMES}, session total={self._total_dom_frames})"
+                        )
+                        await self._capture_now(self._page, CaptureReason.DOM_MUTATION)
+                    else:
+                        logger.debug("[CAPTURE][DOM-WATCHER] burst cap reached — skipping capture")
+                elif self._burst_count > 0 and self._page:
+                    if time.monotonic() - self._last_dirty_at >= self._quiet_ms_current / 1000:
+                        # Sustained quiet — the burst is genuinely over.
+                        self._total_dom_frames += 1
+                        logger.info(
+                            f"[CAPTURE][DOM-WATCHER] burst #{self._burst_index} ended — "
+                            f"{self._burst_count} progress frame(s) + 1 final "
+                            f"(session total={self._total_dom_frames})"
+                        )
+                        await self._capture_now(self._page, CaptureReason.DOM_MUTATION)
+                        self._burst_count = 0
+                        self._last_burst_ended_at = time.monotonic()
+                    # else: still within the grace window — page may still be mid-churn, wait
         except asyncio.CancelledError:
             pass
         except Exception as e:
@@ -183,8 +265,8 @@ class CaptureManager:
         self,
         page,
         reason: CaptureReason,
-        settle: SettleStrategy | None,
-        settle_ms: int | None,
+        settle: SettleStrategy | None = None,
+        settle_ms: int | None = None,
     ) -> bool:
         """Acquire the lock, apply settle strategy, take screenshot."""
         default_settle, default_ms = _SETTLE_DEFAULTS[reason]

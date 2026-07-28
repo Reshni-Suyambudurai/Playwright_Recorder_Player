@@ -99,9 +99,15 @@ class DomWatcher:
     def _on_page_event(self, *_) -> None:
         """Sync Playwright event callback — mark page dirty, worker captures it."""
         if self._active:
+            # Keep page context fresh, especially when one CaptureManager is shared across tabs.
+            self._capture_manager._page = self._page
             self._capture_manager._dirty = True
+            logger.debug("[DOM] page lifecycle event detected; marked dirty")
 
     async def _on_dom_mutation(self, *_) -> None:
         """Called from JS MutationObserver via expose_function — mark dirty only."""
         if self._active:
+            # Mutation happened on this watcher's page; update context before flagging dirty.
+            self._capture_manager._page = self._page
             self._capture_manager._dirty = True
+            logger.debug("[DOM] mutation observed; marked dirty")

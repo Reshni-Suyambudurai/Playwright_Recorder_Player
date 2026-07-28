@@ -228,6 +228,7 @@ class WebSocketHandler:
             # Register first tab
             tab_manager.register_tab(session, session.page, "tab-1")
             session.active_tab_id = "tab-1"
+            session.tab_watchers["tab-1"] = watcher
 
             # Listen for new browser tabs opened by the page
             session.browser_context.on(
@@ -480,6 +481,7 @@ class WebSocketHandler:
                 reason = CaptureReason.ACTION_CLICK if key == "Enter" else CaptureReason.ACTION_TYPE
                 asyncio.ensure_future(cap_mgr.request(page, reason))
             logger.info(f"[ KEY DONE] ACTION_DONE sent — {int((time.perf_counter()-t0)*1000)}ms after key (frame pending)")
+            return {"event_type": EventType.ACTION_DONE, "data": {"type": "key", "success": True}}
         except Exception as e:
             return self._error_response("KEY_ACTION_ERROR", str(e))
 
@@ -556,7 +558,9 @@ class WebSocketHandler:
             if not session:
                 return self._error_response("SESSION_NOT_FOUND", "No active session")
 
-            # Detach DomWatcher
+            # Detach watchers across all tabs first.
+            await tab_manager.detach_all_watchers(session)
+            # Backward-compat: if a legacy singleton watcher is still present, detach it too.
             if session.dom_watcher:
                 await session.dom_watcher.detach()
                 session.dom_watcher = None
@@ -636,7 +640,9 @@ class WebSocketHandler:
                 session.recording_steps[-1].is_trigger_new_tab = True
 
             # Attach DomWatcher for new tab
-            watcher = DomWatcher(self.screenshot_service)
+            if not session.capture_manager:
+                session.capture_manager = CaptureManager(self.screenshot_service, session_id, client_id)
+            watcher = DomWatcher(session.capture_manager)
             await watcher.attach(new_page, session_id, client_id)
             session.tab_watchers[tab_id] = watcher
 
@@ -670,7 +676,7 @@ class WebSocketHandler:
             # Send first frame of new tab
             await self.screenshot_service.capture_and_send(new_page, session_id, client_id)
         except Exception as e:
-            logger.error(f"_on_new_tab error: {e}", exc_info=True) if hasattr(self, 'logger') else None
+            logger.error(f"_on_new_tab error: {e}", exc_info=True)
 
     async def handle_switch_tab(self, session_id: str, client_id: str, data: dict) -> dict:
         """Switch active tab and send a fresh frame."""
