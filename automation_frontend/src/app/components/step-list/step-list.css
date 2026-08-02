@@ -143,6 +143,22 @@
   color: var(--color-primary-600, #2563eb);
 }
 
+.step-validation-pill {
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 0.18rem 0.45rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, #10b981 15%, transparent);
+  color: #047857;
+}
+
+.step-validation-pill--accent {
+  background: color-mix(in srgb, var(--color-primary-500) 15%, transparent);
+  color: var(--color-primary-700, #1d4ed8);
+}
+
 /* Pause icon button */
 .step-pause-btn {
   background: none;

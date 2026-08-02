@@ -1,0 +1,73 @@
+<section class="validation-panel">
+  <div class="validation-panel__header">
+    <div>
+      <p class="validation-panel__eyebrow">Validation</p>
+      <h3 class="validation-panel__title">Discovery panel</h3>
+    </div>
+    @if (hasContext()) {
+      <span class="validation-panel__status validation-panel__status--live">Live</span>
+    } @else {
+      <span class="validation-panel__status">Idle</span>
+    }
+  </div>
+
+  @if (!hasContext()) {
+    <div class="validation-panel__empty">
+      <strong>No validation context yet.</strong>
+      <p>Click a supported element while recording to load the filtered validation groups.</p>
+    </div>
+  } @else {
+    @let validation = context();
+    @if (validation) {
+      <div class="validation-panel__element">
+        <div class="validation-panel__element-head">
+          <span class="validation-panel__element-tag">{{ validation.elementSnapshot.tagName }}</span>
+          @if (validation.isValidatable) {
+            <span class="validation-panel__chip validation-panel__chip--success">Validatable</span>
+          } @else {
+            <span class="validation-panel__chip">Not supported</span>
+          }
+        </div>
+        <div class="validation-panel__element-summary">{{ elementSummary() }}</div>
+        @if (validation.elementCategory) {
+          <div class="validation-panel__meta">Category: {{ validation.elementCategory }}</div>
+        }
+      </div>
+
+      @if (selectedLabels().length > 0) {
+        <div class="validation-panel__selected">
+          <div class="validation-panel__selected-label">Selected validations</div>
+          <div class="validation-panel__chip-row">
+            @for (label of selectedLabels(); track label) {
+              <span class="validation-panel__chip validation-panel__chip--selected">{{ label }}</span>
+            }
+          </div>
+        </div>
+      }
+
+      <div class="validation-panel__groups">
+        @for (group of validation.availableGroups; track group.key) {
+          <details class="validation-group" [open]="$index === 0">
+            <summary class="validation-group__summary">
+              <span>{{ group.displayName }}</span>
+              <span class="validation-group__count">{{ group.options.length }}</span>
+            </summary>
+            <div class="validation-group__options">
+              @for (option of group.options; track option.key) {
+                <button type="button"
+                        class="validation-option"
+                        [class.validation-option--selected]="isSelected(group.key, option.key)"
+                        (click)="toggleOption(group.key, option.key)">
+                  <span class="validation-option__label">{{ option.displayName }}</span>
+                  @if (option.description) {
+                    <span class="validation-option__description">{{ option.description }}</span>
+                  }
+                </button>
+              }
+            </div>
+          </details>
+        }
+      </div>
+    }
+  }
+</section>

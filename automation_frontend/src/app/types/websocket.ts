@@ -107,6 +107,8 @@ export interface ActionDoneData {
   x?: number;
   y?: number;
   success: boolean;
+  isValidatable?: boolean;
+  validation?: ValidationDiscoveryData | null;
 }
 
 /* Selector info from backend */
@@ -128,6 +130,8 @@ export interface InputDetectedData {
   current_value: string;
   is_password: boolean;
   selector: SelectorInfo | null;
+  isValidatable?: boolean;
+  validation?: ValidationDiscoveryData | null;
 }
 
 export interface TypeActionData {
@@ -138,6 +142,74 @@ export interface TypeActionData {
   is_password: boolean;
   label?: string | null;
   tag?: string;
+}
+
+export interface ValidationCondition {
+  field: string;
+  op: string;
+  value?: unknown;
+}
+
+export interface ValidationConditionSet {
+  allOf?: ValidationCondition[];
+  anyOf?: ValidationCondition[];
+}
+
+export interface ValidationOption {
+  key: string;
+  displayName: string;
+  appliesWhen?: ValidationConditionSet;
+  description?: string | null;
+}
+
+export interface ValidationGroup {
+  key: string;
+  displayName: string;
+  options: ValidationOption[];
+}
+
+export interface ValidationElementSnapshot {
+  tagName: string;
+  type?: string | null;
+  inputType?: string | null;
+  role?: string | null;
+  ariaRole?: string | null;
+  ariaLabel?: string | null;
+  ariaHasPopup?: boolean | null;
+  ariaModal?: boolean | null;
+  ariaLive?: string | null;
+  title?: string | null;
+  id?: string | null;
+  name?: string | null;
+  placeholder?: string | null;
+  value?: string | null;
+  currentValue?: string | null;
+  textContent?: string | null;
+  disabled?: boolean;
+  readonly?: boolean;
+  checked?: boolean;
+  required?: boolean;
+  multiple?: boolean;
+  hidden?: boolean;
+  visible?: boolean;
+  contentEditable?: boolean;
+  href?: string | null;
+  target?: string | null;
+  download?: boolean;
+  hasIcon?: boolean;
+  isPassword?: boolean;
+  className?: string | null;
+  boundingRect?: { x: number; y: number; width: number; height: number };
+  computedStyle?: { color?: string | null; backgroundColor?: string | null; borderColor?: string | null; fontFamily?: string | null };
+  selector?: SelectorInfo | null;
+}
+
+export interface ValidationDiscoveryData {
+  isValidatable: boolean;
+  elementCategory?: string | null;
+  matchedCatalogKeys: string[];
+  elementSnapshot: ValidationElementSnapshot;
+  availableGroups: ValidationGroup[];
 }
 
 /* Scroll */
@@ -227,6 +299,8 @@ export interface RecordingStep {
   shouldRun?: boolean;
   pause?: boolean;
   storeValue?: boolean;
+  isValidatable?: boolean;
+  validations?: ValidationDiscoveryData | null;
 }
 
 export interface RecordingDetail {

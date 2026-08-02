@@ -21,6 +21,7 @@ export interface TabGroup {
   templateUrl: './runs.html',
   styleUrl: './runs.css',
 })
+
 export class Runs implements OnInit, OnDestroy {
   private api = inject(RecordingsApi);
   private playbackApi = inject(PlaybackApi);

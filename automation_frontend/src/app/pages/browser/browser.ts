@@ -3,13 +3,14 @@ import { Toolbar } from '../../components/toolbar/toolbar';
 import { Status } from '../../components/status/status';
 import { BrowserView } from '../../components/browser-view/browser-view';
 import { RecordingModal } from '../../components/recording-modal/recording-modal';
+import { ValidationPanel } from '../../components/validation-panel/validation-panel';
 import { WebsocketApi } from '../../services/websocket.api';
 import { StartRecordingData } from '../../types/websocket';
 
 @Component({
   selector: 'app-browser',
   standalone: true,
-  imports: [Toolbar, Status, BrowserView, RecordingModal],
+  imports: [Toolbar, Status, BrowserView, RecordingModal, ValidationPanel],
   templateUrl: './browser.html',
   styleUrl: './browser.css',
 })
