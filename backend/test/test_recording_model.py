@@ -18,3 +18,15 @@ def test_recording_step_count_counts_tab_1_groups():
     recording = Recording(meta=RecordingMeta(id="r1", title="t1"))
     recording.add_step(RecordingStep(id=1, type="NAVIGATE", tab_id="tab-1"))
     assert recording.step_count() == 1
+
+
+def test_click_step_serializes_target_meta_alias():
+    step = RecordingStep(
+        id=1,
+        type="CLICK",
+        targetMeta={"tag": "div", "normalizedText": "obgyn", "dataTestId": "dept"},
+        tab_id="tab-1",
+    )
+    payload = step.to_json_dict()
+    assert payload["targetMeta"]["tag"] == "div"
+    assert payload["targetMeta"]["normalizedText"] == "obgyn"

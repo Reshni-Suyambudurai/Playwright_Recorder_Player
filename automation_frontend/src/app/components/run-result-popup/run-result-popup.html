@@ -1,0 +1,20 @@
+@if (visible) {
+  <div class="run-popup-backdrop" role="presentation">
+    <section class="run-popup" [class.run-popup--error]="variant === 'error'">
+      <button type="button" class="run-popup-close btn btn-ghost btn-xs" (click)="close()" aria-label="Close popup">
+        X
+      </button>
+
+      <div class="run-popup-icon-wrap" role="status" aria-live="polite" aria-atomic="true">
+        @if (variant === 'error') {
+          <span class="run-popup-icon run-popup-icon--error" aria-hidden="true">⚠</span>
+        } @else {
+          <span class="run-popup-icon run-popup-icon--success" aria-hidden="true">✓</span>
+        }
+      </div>
+
+      <h3 class="run-popup-title">{{ title }}</h3>
+      <p class="run-popup-message">{{ message }}</p>
+    </section>
+  </div>
+}

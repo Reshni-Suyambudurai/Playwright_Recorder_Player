@@ -25,13 +25,21 @@ export class InputOverlay {
     this.inputData().is_password ? 'password' : 'text'
   );
 
+  readonly inputPlaceholder = computed(() =>
+    this.inputData().placeholder || 'Type value and press OK or Enter'
+  );
+
   readonly displayLabel = computed(() =>
     this.inputData().label || this.inputData().placeholder || 'Enter value'
   );
 
   ngOnInit(): void {
-    // Pre-fill with current page value if any
-    this.inputValue.set(this.inputData().current_value || '');
+    const currentValue = this.inputData().current_value || '';
+    const placeholder = this.inputData().placeholder || '';
+
+    // If the detected value is just mirroring placeholder text, keep the input empty
+    // and let the placeholder guide the user instead of treating it as typed content.
+    this.inputValue.set(currentValue === placeholder ? '' : currentValue);
   }
 
   onOk(): void {

@@ -27,20 +27,18 @@
             [style.left.px]="overlayX()"
             [style.top.px]="overlayY()"
           ></div>
+
+          <app-input-overlay
+            class="browser-input-overlay"
+            [style.left.px]="overlayX()"
+            [style.top.px]="overlayY()"
+            [inputData]="overlayData()!"
+            (confirm)="onOverlayConfirm($event)"
+            (cancel)="onOverlayCancel()"
+          />
         }
       </div>
     </div>
-
-    <!-- Input panel docked below screenshot -->
-    @if (overlayData()) {
-      <app-input-overlay
-        [inputData]="overlayData()!"
-        [posX]="0"
-        [posY]="0"
-        (confirm)="onOverlayConfirm($event)"
-        (cancel)="onOverlayCancel()"
-      />
-    }
 
   </div>
 } @else if (isNavigating()) {

@@ -7,12 +7,14 @@ Reuses: BrowserService, ScreenshotService, DomWatcher from the recording stack.
 import asyncio
 import json
 import logging
+from typing import Any
 
 from app.models.playback import PlaySession, PlayStatus
 from app.services.browser_service import BrowserService
 from app.services.screenshot_service import ScreenshotService
 from app.services.dom_watcher import DomWatcher
 from app.services.capture_manager import CaptureManager, CaptureReason, SettleStrategy
+from app.utils.selector_builder import build_selector
 from app.websocket.connection_manager import ConnectionManager
 
 logger = logging.getLogger("playwright_recorder.services.playback")
@@ -230,26 +232,48 @@ class PlaybackService:
             await page.goto(url, wait_until="domcontentloaded", timeout=15000)
 
     async def _step_click(self, step: dict, page) -> None:
-        pw_selector = self._resolve_pw_selector(step.get("selector"))
+        selector = step.get("selector")
+        pw_selector = self._resolve_pw_selector(selector)
         coords = step.get("coords")
         button = step.get("button", "left") or "left"
 
         if pw_selector:
-            # Wait up to 15 s for the element to appear in the DOM.
+            occurrence_index = self._get_occurrence_index(selector)
+            # Wait for the base selector to appear in the DOM.
             # SPAs may take several seconds to render after a preceding click.
             try:
-                match = await page.wait_for_selector(pw_selector, timeout=3000)
+                await page.wait_for_selector(pw_selector, timeout=3000)
             except Exception:
-                match = None
+                pass
 
-            if match is not None:
-                await match.click(button=button)
+            matches = await page.query_selector_all(pw_selector)
+            match_count = len(matches)
+
+            if match_count == 0:
+                if coords and await self._can_fallback_on_zero_match(step, page):
+                    logger.warning(
+                        f"[PLAY] selector '{pw_selector}' matched 0 elements, "
+                        f"but targetMeta matched at coords ({coords['x']},{coords['y']}) — "
+                        f"falling back to coords"
+                    )
+                    await self._browser_service.perform_click(
+                        page, int(coords["x"]), int(coords["y"]), button
+                    )
+                    return
+                raise Exception(
+                    f"CLICK target '{pw_selector}' matched 0 elements "
+                    f"(occurrence_index={occurrence_index}, url={page.url[:80]})."
+                )
+
+            if occurrence_index < match_count:
+                await matches[occurrence_index].click(button=button)
                 return
 
-            # Selector not found in 3s — try coords fallback before raising
+            # Base selector still matched, but the recorded occurrence is no longer present.
             if coords:
                 logger.warning(
-                    f"[PLAY] selector '{pw_selector}' not found — "
+                    f"[PLAY] selector '{pw_selector}' matched {match_count} elements, "
+                    f"but occurrence_index={occurrence_index} is out of range — "
                     f"falling back to coords ({coords['x']},{coords['y']})"
                 )
                 await self._browser_service.perform_click(
@@ -258,8 +282,9 @@ class PlaybackService:
                 return
 
             raise Exception(
-                f"CLICK target '{pw_selector}' not found on page "
-                f"(url={page.url[:80]}). Page may be in an unexpected state."
+                f"CLICK target '{pw_selector}' matched {match_count} elements, "
+                f"but occurrence_index={occurrence_index} is out of range "
+                f"(url={page.url[:80]})."
             )
         elif coords:
             # No selector recorded — coords-only click (rare: canvas, dynamic elements).
@@ -311,14 +336,77 @@ class PlaybackService:
         if strategy == "id":
             return f"#{value}"
         if strategy == "css":
-            idx = recorded_selector.get("occurrence_index") or 0
-            if idx > 0:
-                # :nth-match(n) is 1-indexed — picks the nth element matching the selector
-                return f"{value}:nth-match({idx + 1})"
             return value
         if strategy == "xpath":
             return f"xpath={value}"
         return None
+
+    def _get_occurrence_index(self, recorded_selector: dict | None) -> int:
+        if not recorded_selector:
+            return 0
+        return int(recorded_selector.get("occurrence_index") or 0)
+
+    async def _can_fallback_on_zero_match(self, step: dict, page) -> bool:
+        coords = step.get("coords") or {}
+        target_meta = step.get("targetMeta") or {}
+        if not coords or not target_meta:
+            return False
+
+        x = coords.get("x")
+        y = coords.get("y")
+        if x is None or y is None:
+            return False
+
+        live_info = await build_selector(page, int(x), int(y))
+        if not live_info:
+            return False
+
+        live_meta = live_info.get("target_meta") or {}
+        return self._target_meta_matches(target_meta, live_meta)
+
+    def _target_meta_matches(self, recorded: dict[str, Any], live: dict[str, Any]) -> bool:
+        def _norm(value: Any) -> str:
+            if value is None:
+                return ""
+            return " ".join(str(value).strip().lower().split())
+
+        strong_keys = {
+            "id": 5,
+            "dataTestId": 5,
+            "dataId": 4,
+            "dataCy": 4,
+            "dataQa": 4,
+            "name": 4,
+            "ariaLabel": 4,
+        }
+        medium_keys = {
+            "role": 3,
+            "title": 3,
+            "normalizedText": 3,
+            "text": 2,
+            "tag": 1,
+        }
+
+        compared = 0
+        matched = 0
+
+        for key, weight in {**strong_keys, **medium_keys}.items():
+            rv = _norm(recorded.get(key))
+            lv = _norm(live.get(key))
+            if not rv or not lv:
+                continue
+
+            compared += weight
+            if rv == lv:
+                matched += weight
+            elif key in strong_keys:
+                return False
+
+        if compared == 0:
+            return False
+
+        # Require enough overlapping confidence to allow coordinate fallback.
+        return matched >= 4 and (matched / compared) >= 0.6
 
     # ─── Page settle — detect navigation only; CaptureManager owns all timing ──
     async def _settle_page(

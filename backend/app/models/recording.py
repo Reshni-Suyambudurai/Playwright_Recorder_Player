@@ -15,6 +15,24 @@ class SelectorInfo(BaseModel):
     occurrence_index: int = 0  # 0-based index among all elements matching this selector
 
 
+class TargetMeta(BaseModel):
+    tag: Optional[str] = None
+    role: Optional[str] = None
+    text: Optional[str] = None
+    normalized_text: Optional[str] = Field(None, alias="normalizedText")
+    aria_label: Optional[str] = Field(None, alias="ariaLabel")
+    title: Optional[str] = None
+    name: Optional[str] = None
+    element_id: Optional[str] = Field(None, alias="id")
+    data_test_id: Optional[str] = Field(None, alias="dataTestId")
+    data_id: Optional[str] = Field(None, alias="dataId")
+    data_cy: Optional[str] = Field(None, alias="dataCy")
+    data_qa: Optional[str] = Field(None, alias="dataQa")
+    class_hints: Optional[list[str]] = Field(None, alias="classHints")
+
+    model_config = {"populate_by_name": True}
+
+
 class Coords(BaseModel):
     x: int
     y: int
@@ -47,6 +65,7 @@ class RecordingStep(BaseModel):
     is_password: bool = Field(False, alias="isPassword")
     store_value: bool = Field(False, alias="storeValue")
     selector: Optional[SelectorInfo] = None
+    target_meta: Optional[TargetMeta] = Field(None, alias="targetMeta")
     is_trigger_new_tab: Optional[bool] = Field(None, alias="isTriggerNewTab")
     should_run: bool = Field(True, alias="shouldRun")
     pause: bool = False

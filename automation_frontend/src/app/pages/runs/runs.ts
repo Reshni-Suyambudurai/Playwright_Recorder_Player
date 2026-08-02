@@ -7,6 +7,7 @@ import { RecordingListItem, RecordingDetail, RecordingStep, InputDetectedData } 
 import { SvgIcon } from '../../components/svg-icon/svg-icon';
 import { StepList } from '../../components/step-list/step-list';
 import { InputOverlay } from '../../components/input-overlay/input-overlay';
+import { RunResultPopup } from '../../components/run-result-popup/run-result-popup';
 
 export interface TabGroup {
   tabId: string;
@@ -17,7 +18,7 @@ export interface TabGroup {
 @Component({
   selector: 'app-runs',
   standalone: true,
-  imports: [SvgIcon, FormsModule, StepList, InputOverlay],
+  imports: [SvgIcon, FormsModule, StepList, InputOverlay, RunResultPopup],
   templateUrl: './runs.html',
   styleUrl: './runs.css',
 })
@@ -43,6 +44,11 @@ export class Runs implements OnInit, OnDestroy {
   readonly saving = signal(false);
   readonly saveError = signal<string | null>(null);
   readonly saveSuccess = signal(false);
+  readonly runPopupVisible = signal(false);
+  readonly runPopupTitle = signal('');
+  readonly runPopupMessage = signal('');
+  readonly runPopupVariant = signal<'success' | 'error'>('success');
+  readonly runPopupAutoCloseMs = signal(2000);
 
   // Direct DOM reference — we set img.src directly to bypass Angular zone
   private _frameImgRef = viewChild<ElementRef<HTMLImageElement>>('frameImg');
@@ -54,6 +60,7 @@ export class Runs implements OnInit, OnDestroy {
 
   private _playWs: WebSocket | null = null;
   private _clientId = `client-${Math.random().toString(36).slice(2)}`;
+  private _successRefreshTimer: ReturnType<typeof setTimeout> | null = null;
 
   // rAF throttle — only write one frame per browser paint cycle
   private _latestFrameData: string | null = null;
@@ -137,6 +144,7 @@ export class Runs implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this._clearSuccessRefreshTimer();
     this._disconnectPlay();
   }
 
@@ -180,6 +188,8 @@ export class Runs implements OnInit, OnDestroy {
     const payload = this._buildPlayPayload();
     if (!payload) return;
 
+    this._clearSuccessRefreshTimer();
+    this.closeRunPopup();
     this.state.resetForNewRun();
     this._disconnectPlay();
 
@@ -216,12 +226,9 @@ export class Runs implements OnInit, OnDestroy {
   }
 
   onStopClick(): void {
-    if (this._playWs && this._playWs.readyState === WebSocket.OPEN) {
-      this._playWs.send(JSON.stringify({ event_type: 'PLAY_STOP', data: {} }));
-    }
-    this.state.playStatus.set('stopped');
-    this.state.hasLiveFrame.set(false);
-    this._disconnectPlay();
+    // UX decision: Stop acts as Pause for now.
+    // Keep the WS session alive so Resume can continue from current step.
+    this.state.playStatus.set('paused');
   }
 
   onFrameClick(event: MouseEvent): void {
@@ -332,6 +339,29 @@ export class Runs implements OnInit, OnDestroy {
   }
 
   private _onPlayEvent(evt: PlayEvent): void {
+    if (evt.event_type === 'PLAY_DONE') {
+      const data = evt.data as { stepCount: number; failedCount: number; failedSteps: { error?: string }[] };
+      if ((data.failedCount ?? 0) > 0) {
+        this._clearSuccessRefreshTimer();
+        const firstError = data.failedSteps?.[0]?.error;
+        this._showRunPopup(
+          'error',
+          'Playback Completed With Errors',
+          `${data.failedCount} step(s) failed.${firstError ? ` ${firstError}` : ''}`,
+          0,
+        );
+      } else {
+        this._showRunPopup('success', 'Playback Successful', `${data.stepCount} steps executed successfully. Refreshing in 10 seconds.`, 10000);
+        this._scheduleSuccessRefresh();
+      }
+    }
+
+    if (evt.event_type === 'PLAY_ERROR') {
+      this._clearSuccessRefreshTimer();
+      const data = evt.data as { error?: string };
+      this._showRunPopup('error', 'Playback Error', data.error ?? 'Playback failed.', 0);
+    }
+
     // Handle pause-type overlay events before the state machine
     if (evt.event_type === 'PAUSE_INPUT_DETECTED') {
       this._showPauseInputOverlay(evt.data as InputDetectedData);
@@ -357,6 +387,32 @@ export class Runs implements OnInit, OnDestroy {
           if (!this.state.hasLiveFrame()) this.state.hasLiveFrame.set(true);
         }
       });
+    }
+  }
+
+  closeRunPopup(): void {
+    this.runPopupVisible.set(false);
+  }
+
+  private _showRunPopup(variant: 'success' | 'error', title: string, message: string, autoCloseMs = 2000): void {
+    this.runPopupVariant.set(variant);
+    this.runPopupTitle.set(title);
+    this.runPopupMessage.set(message);
+    this.runPopupAutoCloseMs.set(autoCloseMs);
+    this.runPopupVisible.set(true);
+  }
+
+  private _scheduleSuccessRefresh(): void {
+    this._clearSuccessRefreshTimer();
+    this._successRefreshTimer = setTimeout(() => {
+      window.location.reload();
+    }, 10000);
+  }
+
+  private _clearSuccessRefreshTimer(): void {
+    if (this._successRefreshTimer) {
+      clearTimeout(this._successRefreshTimer);
+      this._successRefreshTimer = null;
     }
   }
 

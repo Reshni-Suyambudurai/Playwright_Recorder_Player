@@ -35,7 +35,7 @@ from app.services.recording_storage import RecordingStorage
 from app.services.dom_watcher import DomWatcher
 from app.services.capture_manager import CaptureManager, CaptureReason, SettleStrategy
 from app.services.database import DatabaseService
-from app.models.recording import Recording, RecordingMeta, RecordingStep, Coords, SelectorInfo
+from app.models.recording import Recording, RecordingMeta, RecordingStep, Coords, SelectorInfo, TargetMeta
 from app.utils.selector_builder import build_selector
 from app.utils import tab_manager
 
@@ -333,6 +333,7 @@ class WebSocketHandler:
                         waitAfterMs=300,
                         label=sel_info.get("label") if sel_info else None,
                         selector=SelectorInfo(**sel_info["selector"]) if sel_info and sel_info.get("selector") else None,
+                        targetMeta=TargetMeta(**sel_info["target_meta"]) if sel_info and sel_info.get("target_meta") else None,
                         tab_id=session.active_tab_id or "tab-1",
                     )
                     session.recording_steps.append(step)

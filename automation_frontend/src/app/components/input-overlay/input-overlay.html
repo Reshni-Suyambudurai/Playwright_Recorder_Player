@@ -13,7 +13,7 @@
       (input)="inputValue.set($any($event.target).value)"
       (keydown)="onKeydown($event)"
       autofocus
-      placeholder="Type value and press OK or Enter"
+      [placeholder]="inputPlaceholder()"
     />
     <button class="btn btn-secondary btn-sm" (click)="onCancel()">Cancel</button>
     <button class="btn btn-primary btn-sm" (click)="onOk()">OK</button>

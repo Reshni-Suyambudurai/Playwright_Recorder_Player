@@ -1,5 +1,4 @@
 <div class="runs-page">
-
   <!-- Header -->
   <div class="page-header">
     <div class="page-header-left">
@@ -78,7 +77,6 @@
               @if (state.playError()) {
                 <span class="player-overlay-step-err">⚠ {{ state.playError() }}</span>
               }
-              <button class="player-overlay-stop" (click)="onStopClick()">■ Stop</button>
             </div>
           }
           @if (state.playStatus() === 'paused') {
@@ -86,35 +84,15 @@
               <span class="player-overlay-pill player-overlay-pill--paused">⏸ Paused</span>
               <span class="player-overlay-progress">Step {{ state.currentStep() + 1 }} / {{ state.totalSteps() }}</span>
               <button class="player-overlay-resume" (click)="onResumeClick()">▶ Resume</button>
-              <button class="player-overlay-stop" (click)="onStopClick()">■ Stop</button>
             </div>
           }
-          @if (state.playStatus() === 'done') {
-            <div class="player-overlay player-overlay--done">
-              <span class="player-overlay-pill player-overlay-pill--done">✓ Done</span>
-              <span class="player-overlay-progress">{{ state.totalSteps() }} steps completed</span>
-            </div>
-          }
-          @if (state.playStatus() === 'done_with_errors') {
-            <div class="player-overlay player-overlay--done">
-              <span class="player-overlay-pill player-overlay-pill--error">⚠ Done</span>
-              <span class="player-overlay-progress">{{ state.totalSteps() }} steps — {{ state.failedCount() }} failed</span>
-              @if (state.failedSteps()[0]?.error) {
-                <span class="player-overlay-step-err">{{ state.failedSteps()[0].error }}</span>
-              }
-            </div>
-          }
-          @if (state.playStatus() === 'error') {
-            <div class="player-overlay player-overlay--error">
-              <span class="player-overlay-pill player-overlay-pill--error">✕ Error</span>
-              <span class="player-overlay-msg">{{ state.playError() }}</span>
-            </div>
-          }
-          @if (state.playStatus() === 'stopped') {
-            <div class="player-overlay player-overlay--done">
-              <span class="player-overlay-pill">■ Stopped</span>
-            </div>
-          }
+          <app-run-result-popup
+            [visible]="runPopupVisible()"
+            [variant]="runPopupVariant()"
+            [title]="runPopupTitle()"
+            [message]="runPopupMessage()"
+            [autoCloseMs]="runPopupAutoCloseMs()"
+            (closed)="closeRunPopup()" />
         </div>
       </div><!-- /runs-right -->
 

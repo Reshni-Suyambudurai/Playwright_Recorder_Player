@@ -26,7 +26,6 @@ export class Sidebar {
     { label: 'Browser', route: '/', icon: 'browser' },
     { label: 'Flows', route: '/flows', icon: 'flows' },
     { label: 'Runs', route: '/runs', icon: 'runs' },
-    { label: 'Settings', route: '/settings', icon: 'settings' },
   ];
 }
 
