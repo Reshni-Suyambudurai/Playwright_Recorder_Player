@@ -123,6 +123,13 @@ def create_app():
 
         except Exception as e:
             logger.error(f"[WS] Unexpected error in session {session_id}: {e}", exc_info=True)
+            # Apply the same cleanup as explicit disconnect to avoid leaked watchers/tasks.
+            session = session_manager.get_session(session_id)
+            if session:
+                await tab_manager.detach_all_watchers(session)
+                if session.dom_watcher:
+                    await session.dom_watcher.detach()
+                    session.dom_watcher = None
             await connection_manager.disconnect(websocket)
 
     @app.get("/health")
