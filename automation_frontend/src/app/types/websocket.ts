@@ -13,6 +13,7 @@ export type EventType =
   | 'CLICK_ACTION'
   | 'ACTION_DONE'
   | 'INPUT_DETECTED'
+  | 'VALIDATION_DISCOVERED'
   | 'TYPE_ACTION'
   | 'SCROLL_ACTION'
   | 'KEY_ACTION'
@@ -210,6 +211,11 @@ export interface ValidationDiscoveryData {
   matchedCatalogKeys: string[];
   elementSnapshot: ValidationElementSnapshot;
   availableGroups: ValidationGroup[];
+  
+  // NEW: Step context (optional for backward compatibility)
+  stepId?: number;
+  stepType?: "CLICK" | "NAVIGATE" | "TYPE" | "SCROLL" | "KEY";
+  stepLabel?: string;
 }
 
 /* Scroll */

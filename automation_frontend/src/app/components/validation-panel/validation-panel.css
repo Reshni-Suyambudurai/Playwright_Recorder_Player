@@ -175,3 +175,141 @@
   font-size: 0.7rem;
   color: var(--text-tertiary);
 }
+
+/* Validation History Accordion */
+.validation-history {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--border-color);
+  border-radius: var(--rounded-md);
+  background: var(--bg-secondary);
+  overflow: hidden;
+}
+
+.validation-history__list {
+  display: flex;
+  flex-direction: column;
+  max-height: 450px;
+  overflow-y: auto;
+  scroll-behavior: smooth;
+}
+
+.validation-history__accordion {
+  border: 1px solid var(--border-color);
+  border-radius: var(--rounded-md);
+  background: var(--bg-primary);
+  margin-bottom: 3px;
+  transition: background-color var(--transition-fast), border-color var(--transition-fast);
+}
+
+.validation-history__accordion:last-child {
+  margin-bottom: 0;
+}
+
+.validation-history__header {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.75rem 0.9rem;
+  cursor: pointer;
+  background: color-mix(in srgb, var(--bg-secondary) 60%, var(--bg-primary));
+  border-bottom: 1px solid var(--border-color);
+  list-style: none;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--text-primary);
+  transition: background-color var(--transition-fast), border-color var(--transition-fast);
+}
+
+.validation-history__header::-webkit-details-marker {
+  display: none;
+}
+
+.validation-history__header:hover {
+  background: color-mix(in srgb, var(--color-primary-500) 5%, var(--bg-secondary));
+  border-bottom-color: var(--color-primary-400);
+}
+
+.validation-history__accordion[open] > .validation-history__header {
+  background: color-mix(in srgb, var(--bg-secondary) 80%, var(--bg-primary));
+  border-bottom-color: var(--color-primary-400);
+}
+
+.validation-history__accordion--current > .validation-history__header {
+  background: color-mix(in srgb, #9ca3af 26%, var(--bg-primary));
+  border: 1px solid color-mix(in srgb, #9ca3af 60%, var(--border-color));
+  font-weight: 700;
+}
+
+.validation-history__accordion--current[open] > .validation-history__header {
+  background: color-mix(in srgb, #9ca3af 32%, var(--bg-primary));
+  border-color: color-mix(in srgb, #6b7280 55%, var(--border-color));
+}
+
+.validation-history__step-label {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 72px;
+  padding: 0.35rem 0.55rem;
+  background: var(--bg-secondary);
+  border-radius: var(--rounded-sm);
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: var(--text-primary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  flex-shrink: 0;
+}
+
+.validation-history__accordion--current > .validation-history__header .validation-history__step-label {
+  background: #6b7280;
+  color: white;
+}
+
+.validation-history__element-info {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex: 1;
+  min-width: 0;
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.validation-history__separator {
+  color: var(--text-tertiary);
+  opacity: 0.6;
+}
+
+.validation-history__body {
+  padding: 0.85rem;
+  background: var(--bg-primary);
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.validation-history__groups {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.validation-history__groups .validation-group {
+  margin: 0;
+}
+
+.validation-history__groups .validation-group__summary {
+  padding: 0.65rem 0.75rem;
+  font-size: 0.77rem;
+}
+
+.validation-history__groups .validation-option {
+  padding: 0.48rem 0.65rem;
+  font-size: 0.73rem;
+}

@@ -222,6 +222,9 @@ export class WebsocketApi {
         case 'INPUT_DETECTED':
           this.handleInputDetected(event.data as InputDetectedData);
           break;
+        case 'VALIDATION_DISCOVERED':
+          this.handleValidationDiscovered(event.data);
+          break;
         case 'RECORDING_STOPPED':
           this.validationState.clear();
           this.recordingStoppedSubject.next(event.data as RecordingStoppedData);
@@ -345,6 +348,11 @@ export class WebsocketApi {
       this.validationState.upsertContext(data.validation);
     }
     this.inputDetectedSubject.next(data);
+  }
+
+  private handleValidationDiscovered(data: any): void {
+    // NEW: Handle VALIDATION_DISCOVERED event from backend async validation discovery
+    this.validationState.upsertContext(data);
   }
 
   public sendSwitchTab(tabId: string): void {

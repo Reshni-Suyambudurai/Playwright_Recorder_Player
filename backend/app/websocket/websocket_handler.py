@@ -35,6 +35,7 @@ from app.services.recording_storage import RecordingStorage
 from app.services.dom_watcher import DomWatcher
 from app.services.capture_manager import CaptureManager, CaptureReason, SettleStrategy
 from app.services.database import DatabaseService
+from app.services.validation_service import ValidationService
 from app.models.recording import Recording, RecordingMeta, RecordingStep, Coords, SelectorInfo
 from app.utils.selector_builder import build_selector
 from app.utils import tab_manager
@@ -47,13 +48,14 @@ class WebSocketHandler:
     
     def __init__(self, connection_manager: ConnectionManager, session_manager: SessionManager,
                  browser_service: BrowserService, screenshot_service: ScreenshotService,
-                 db: DatabaseService | None = None):
+                 db: DatabaseService | None = None, validation_service: ValidationService | None = None):
         self.connection_manager = connection_manager
         self.session_manager = session_manager
         self.browser_service = browser_service
         self.screenshot_service = screenshot_service
         self.recording_storage = RecordingStorage()
         self.db = db
+        self.validation_service = validation_service or ValidationService()
     
     async def handle_hello(self, session_id: str, websocket, data: dict) -> dict:
         """Handle HELLO — validates session, registers client_id mapping, replies WELCOME."""
@@ -343,6 +345,10 @@ class WebSocketHandler:
             cap_mgr = session.capture_manager
             if cap_mgr:
                 asyncio.ensure_future(cap_mgr.request(page, CaptureReason.ACTION_CLICK))
+            
+            # NEW: Trigger validation discovery async (non-blocking)
+            asyncio.create_task(self._discover_and_emit_validation(session_id, client_id, page, int(x), int(y)))
+            
             logger.info(f"[✅ CLICK DONE] ACTION_DONE sent — {int((time.perf_counter()-t0)*1000)}ms after click (frame pending)")
 
             return {
@@ -705,6 +711,58 @@ class WebSocketHandler:
             }
         except Exception as e:
             return self._error_response("SWITCH_TAB_ERROR", str(e))
+
+    async def _discover_and_emit_validation(self, session_id: str, client_id: str, page, x: int, y: int) -> None:
+        """
+        Async validation discovery triggered after click. Runs independently and emits VALIDATION_DISCOVERED event.
+        Enriches response with step context (stepId, stepType, stepLabel).
+        Does not block the ACTION_DONE response.
+        """
+        try:
+            # Get current session to extract step context
+            session = self.session_manager.get_session(session_id)
+            
+            # Discover validation groups for clicked element
+            validation_discovery = await self.validation_service.discover_from_point(page, x, y)
+            
+            # Enrich validation data with step context
+            validation_data = validation_discovery.model_dump(by_alias=True)
+            if session and session.recording_steps:
+                last_step = session.recording_steps[-1]
+                validation_data["stepId"] = last_step.id
+                validation_data["stepType"] = last_step.type
+                validation_data["stepLabel"] = last_step.label or f"{last_step.type} on page"
+            
+            # Emit enriched VALIDATION_DISCOVERED event to frontend
+            await self.connection_manager.send_to_client(
+                session_id, client_id,
+                {
+                    "event_type": EventType.VALIDATION_DISCOVERED,
+                    "data": validation_data,
+                    "timestamp": datetime.now().isoformat()
+                }
+            )
+            logger.info(f"[✓ VALIDATION] Discovered {len(validation_discovery.availableGroups)} groups for ({x},{y}) - Step {validation_data.get('stepId', '?')}: {validation_data.get('stepType', '?')}")
+        except Exception as e:
+            logger.warning(f"[⚠ VALIDATION] discovery failed for ({x},{y}): {e}")
+            # Still emit empty validation state so frontend doesn't wait
+            try:
+                await self.connection_manager.send_to_client(
+                    session_id, client_id,
+                    {
+                        "event_type": EventType.VALIDATION_DISCOVERED,
+                        "data": {
+                            "isValidatable": False,
+                            "availableGroups": [],
+                            "elementSnapshot": {},
+                            "elementCategory": None,
+                            "matchedCatalogKeys": []
+                        },
+                        "timestamp": datetime.now().isoformat()
+                    }
+                )
+            except Exception as fallback_err:
+                logger.error(f"[✗ VALIDATION] fallback emit failed: {fallback_err}")
 
     async def handle_event(self, session_id: str, websocket, event_data: dict) -> None:
         """

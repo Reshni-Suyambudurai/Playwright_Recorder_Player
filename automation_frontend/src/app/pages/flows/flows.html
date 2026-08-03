@@ -136,7 +136,11 @@
                           }
 
                           @if (step.type === 'TYPE' && step.text) {
-                            <span class="step-val-text">{{ step.text }}</span>
+                            <span class="step-val-text" [class.step-val-text--placeholder]="isPlaceholderToken(step.text)">
+                              {{ displayTypeText(step) }}
+                            </span>
+                          } @else if (step.type === 'TYPE') {
+                            <span class="step-val-text step-val-text--placeholder">placeholder.display</span>
                           }
 
                           @if (step.type === 'KEY' && step.text) {

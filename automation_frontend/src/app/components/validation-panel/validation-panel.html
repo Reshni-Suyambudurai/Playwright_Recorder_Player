@@ -11,63 +11,77 @@
     }
   </div>
 
-  @if (!hasContext()) {
+  @if (displayedHistory().length === 0) {
     <div class="validation-panel__empty">
       <strong>No validation context yet.</strong>
       <p>Click a supported element while recording to load the filtered validation groups.</p>
     </div>
   } @else {
-    @let validation = context();
-    @if (validation) {
-      <div class="validation-panel__element">
-        <div class="validation-panel__element-head">
-          <span class="validation-panel__element-tag">{{ validation.elementSnapshot.tagName }}</span>
-          @if (validation.isValidatable) {
-            <span class="validation-panel__chip validation-panel__chip--success">Validatable</span>
-          } @else {
-            <span class="validation-panel__chip">Not supported</span>
+    @if (selectedLabels().length > 0) {
+      <div class="validation-panel__selected">
+        <div class="validation-panel__selected-label">Selected validations</div>
+        <div class="validation-panel__chip-row">
+          @for (label of selectedLabels(); track label) {
+            <span class="validation-panel__chip validation-panel__chip--selected">{{ label }}</span>
           }
         </div>
-        <div class="validation-panel__element-summary">{{ elementSummary() }}</div>
-        @if (validation.elementCategory) {
-          <div class="validation-panel__meta">Category: {{ validation.elementCategory }}</div>
-        }
       </div>
+    }
 
-      @if (selectedLabels().length > 0) {
-        <div class="validation-panel__selected">
-          <div class="validation-panel__selected-label">Selected validations</div>
-          <div class="validation-panel__chip-row">
-            @for (label of selectedLabels(); track label) {
-              <span class="validation-panel__chip validation-panel__chip--selected">{{ label }}</span>
-            }
-          </div>
-        </div>
-      }
-
-      <div class="validation-panel__groups">
-        @for (group of validation.availableGroups; track group.key) {
-          <details class="validation-group" [open]="$index === 0">
-            <summary class="validation-group__summary">
-              <span>{{ group.displayName }}</span>
-              <span class="validation-group__count">{{ group.options.length }}</span>
+    <!-- ACCORDION HISTORY -->
+    <div class="validation-history">
+      <div class="validation-history__list" #historyList>
+        @for (validation of displayedHistory(); track validation.stepId ?? $index) {
+          <details class="validation-history__accordion"
+                   [open]="validation.stepId === expandedStepId()"
+                   [class.validation-history__accordion--current]="validation.stepId === currentStepId()"
+                   (toggle)="onToggleAccordion(validation.stepId, $event)">
+            
+            <!-- Accordion Header -->
+            <summary class="validation-history__header">
+              <span class="validation-history__step-label">{{ getStepLabel(validation.stepId, validation.stepType) }}</span>
+              <span class="validation-history__element-info">
+                {{ validation.elementSnapshot.id ? '#' + validation.elementSnapshot.id : '' }}
+                @if (validation.elementSnapshot.id && validation.elementSnapshot.tagName) {
+                  <span class="validation-history__separator">|</span>
+                }
+                {{ validation.elementSnapshot.tagName }}
+                @if (validation.elementCategory) {
+                  <span class="validation-history__separator">|</span>
+                  {{ validation.elementCategory }}
+                }
+              </span>
             </summary>
-            <div class="validation-group__options">
-              @for (option of group.options; track option.key) {
-                <button type="button"
-                        class="validation-option"
-                        [class.validation-option--selected]="isSelected(group.key, option.key)"
-                        (click)="toggleOption(group.key, option.key)">
-                  <span class="validation-option__label">{{ option.displayName }}</span>
-                  @if (option.description) {
-                    <span class="validation-option__description">{{ option.description }}</span>
-                  }
-                </button>
-              }
+
+            <!-- Accordion Body -->
+            <div class="validation-history__body">
+              <!-- Validation Groups (Nested Accordions) -->
+              <div class="validation-history__groups">
+                @for (group of validation.availableGroups; track group.key) {
+                  <details class="validation-group">
+                    <summary class="validation-group__summary">
+                      <span class="validation-group__name">{{ group.displayName }} ({{ group.options.length }})</span>
+                    </summary>
+                    <div class="validation-group__options">
+                      @for (option of group.options; track option.key) {
+                        <button type="button"
+                                class="validation-option"
+                                [class.validation-option--selected]="isSelected(group.key, option.key)"
+                                (click)="toggleOption(group.key, option.key)">
+                          <span class="validation-option__label">{{ option.displayName }}</span>
+                          @if (option.description) {
+                            <span class="validation-option__description">{{ option.description }}</span>
+                          }
+                        </button>
+                      }
+                    </div>
+                  </details>
+                }
+              </div>
             </div>
           </details>
         }
       </div>
-    }
+    </div>
   }
 </section>

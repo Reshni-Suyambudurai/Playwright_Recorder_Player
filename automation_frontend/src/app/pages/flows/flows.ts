@@ -10,9 +10,6 @@ export interface TabGroup {
   steps: RecordingStep[];
 }
 
-/** Step types we consider "important" enough to show in the summary panel */
-const KEY_TYPES = new Set(['NAVIGATE', 'CLICK', 'TYPE', 'KEY']);
-
 @Component({
   selector: 'app-flows',
   standalone: true,
@@ -100,24 +97,14 @@ export class Flows implements OnInit {
     });
   }
 
-  /** Total steps across all tabs */
-  totalKeySteps(detail: RecordingDetail): number {
-    return this.tabGroups(detail).reduce((n, g) => n + g.steps.length, 0);
+  displayTypeText(step: RecordingStep): string {
+    const raw = step.text ?? '';
+    if (this.isPlaceholderToken(raw)) return 'placeholder.display';
+    return raw;
   }
 
-  stepIcon(type: string): string {
-    const map: Record<string, string> = {
-      NAVIGATE: '🌐', CLICK: '🖱️', TYPE: '⌨️', KEY: '↵', SCROLL: '↕️',
-    };
-    return map[type] ?? '•';
-  }
-
-  stepLabel(step: RecordingStep): string {
-    if (step.type === 'NAVIGATE') return step.url ?? step.pageUrl ?? '';
-    if (step.type === 'TYPE') return (step.label ?? 'input') + ': ' + (step.text ?? '');
-    if (step.type === 'CLICK') return step.label ?? 'element';
-    if (step.type === 'KEY') return 'Key: ' + (step.text ?? '');
-    return step.pageUrl ?? '';
+  isPlaceholderToken(raw: string | null | undefined): boolean {
+    return (raw ?? '').trim().toLowerCase() === 'placeholder.display';
   }
 
   formatDate(ms: number | null): string {
@@ -125,12 +112,5 @@ export class Flows implements OnInit {
     return new Date(ms).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
   }
 
-  formatDateTime(ms: number | null): string {
-    if (!ms) return '';
-    return new Date(ms).toLocaleString(undefined, {
-      month: 'short', day: 'numeric', year: 'numeric',
-      hour: '2-digit', minute: '2-digit',
-    });
-  }
 }
 

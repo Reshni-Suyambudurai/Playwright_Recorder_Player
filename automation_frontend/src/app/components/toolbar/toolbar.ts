@@ -76,8 +76,13 @@ export class Toolbar implements OnInit, OnDestroy {
         this.tokenStore.removeSessionId();
       }
       this.websocketApi.disconnect();
+      
+      // NEW: Refresh page after disconnect for clean slate
+      window.location.reload();
     } catch (error) {
       console.error('Failed to disconnect:', error);
+      // Still refresh even on error to ensure clean state
+      window.location.reload();
     }
   }
 

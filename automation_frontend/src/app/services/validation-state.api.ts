@@ -8,6 +8,13 @@ export class ValidationStateApi {
   readonly activeCacheKey = signal<string | null>(null);
   readonly selectedOptions = signal<Map<string, Set<string>>>(new Map());
 
+  // NEW: Validation history tracking
+  readonly validationHistory = signal<ValidationDiscoveryData[]>([]);
+
+  // NEW: Accordion management
+  readonly expandedStepId = signal<number | null>(null);  // Currently expanded accordion (one at a time)
+  readonly currentStepId = signal<number | null>(null);   // Currently highlighted/active validation
+
   readonly hasContext = computed(() => this.activeContext() !== null);
 
   upsertContext(context: ValidationDiscoveryData): string {
@@ -17,6 +24,8 @@ export class ValidationStateApi {
     if (cached) {
       this.activeContext.set(cached);
       this.activeCacheKey.set(key);
+      this._pushToHistory(cached);
+      this.updateCurrentValidation(cached);  // NEW: Update accordion state
       this._logCache('cache-hit', key);
       return key;
     }
@@ -26,6 +35,8 @@ export class ValidationStateApi {
     this.cache.set(nextCache);
     this.activeContext.set(context);
     this.activeCacheKey.set(key);
+    this._pushToHistory(context);
+    this.updateCurrentValidation(context);  // NEW: Update accordion state
     this._logCache('cache-upsert', key);
     return key;
   }
@@ -43,7 +54,24 @@ export class ValidationStateApi {
     this.activeCacheKey.set(null);
     this.cache.set(new Map());
     this.selectedOptions.set(new Map());
+    this.clearHistory();
     this._logCache('cache-clear');
+  }
+
+  // NEW: Clear validation history
+  clearHistory(): void {
+    this.validationHistory.set([]);
+    this._logCache('history-clear');
+  }
+
+  // NEW: Push context to history with cap at 100 items
+  private _pushToHistory(context: ValidationDiscoveryData): void {
+    const history = [...this.validationHistory()];
+    history.push(context);
+    if (history.length > 100) {
+      history.shift();
+    }
+    this.validationHistory.set(history);
   }
 
   isSelected(groupKey: string, optionKey: string): boolean {
@@ -90,6 +118,25 @@ export class ValidationStateApi {
       }
     }
     return labels;
+  }
+
+  // NEW: Get formatted step label (e.g., "1: CLICK")
+  getStepLabel(stepId?: number, stepType?: string): string {
+    if (stepId === undefined || !stepType) return '';
+    return `${stepId}: ${stepType}`;
+  }
+
+  // Set expanded accordion directly to avoid UI toggle races.
+  setExpandedStep(stepId: number | null): void {
+    this.expandedStepId.set(stepId);
+  }
+
+  // NEW: Auto-expand and highlight when validation discovered
+  updateCurrentValidation(context: ValidationDiscoveryData | null): void {
+    if (context?.stepId !== undefined) {
+      this.expandedStepId.set(context.stepId);  // Auto-expand accordion
+      this.currentStepId.set(context.stepId);   // Highlight in blue
+    }
   }
 
   private _buildCacheKey(context: ValidationDiscoveryData): string {
