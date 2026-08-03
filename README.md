@@ -1,41 +1,37 @@
 # Playwright Recorder & Player
 
-A browser automation tool with real-time screenshot streaming, action recording, multi-tab support, and flow playback — built with **FastAPI** (backend) and **Angular 21** (frontend).
+## Overview
+
+**Playwright Recorder & Player** is a no-code browser automation tool designed for non-technical users to record and replay end-to-end UI testing workflows and repetitive tasks.
+
+**Use Case**: Any non-technical person can now:
+- Record real browser interactions (clicks, typing, navigation) without writing code
+- Save recorded flows to a library
+- Replay flows anytime to automate repetitive testing tasks
+- View detailed step-by-step execution with visual validation
+
+**Built With**: FastAPI (backend) + Angular 21 (frontend) + Playwright (browser automation)
 
 ---
 
-## Features
+## Quick Setup
 
-- **Live browser view** — real-time JPEG screenshot stream over WebSocket
-- **Action recording** — captures navigate, click, type, scroll, and key actions
-- **Multi-tab support** — follows `target=_blank` links; tab bar in the UI
-- **Flow library** — recordings saved to SQLite; browsable in the Flows page
-- **Optimised scroll** — frontend debounces + accumulates scroll deltas (150 ms); sends one WS message per gesture instead of one per wheel tick
-- **Session lifecycle events** — backend sends `SESSION_CLOSED` when the session ends; UI shows green “Session Closed” state
-- **Dark / light mode** — persisted to localStorage
-
----
-
-## Prerequisites
-
+### Prerequisites
 - **Python 3.10+**
 - **Node.js 18+** and **npm**
-- **Angular CLI** — `npm install -g @angular/cli`
+- **Angular CLI** - `npm install -g @angular/cli`
+- **Visual Studio Code** (IDE used for development)
 
----
+### Installation
 
-## Installation
-
-### 1. Backend
-
+**1. Backend Setup**
 ```bash
 cd backend
 pip install -r ../requirements.txt
 playwright install chromium
 ```
 
-### 2. Frontend
-
+**2. Frontend Setup**
 ```bash
 cd automation_frontend
 npm install
@@ -43,39 +39,215 @@ npm install
 
 ---
 
-## Running the App
+## Running the Application
 
-### Start the Backend
-
+### Start Backend (Terminal 1)
 ```bash
 cd backend
 python run.py
+# Backend runs at: http://localhost:8000
 ```
 
-Backend runs at: `http://localhost:8000`
-
-### Start the Frontend
-
-Open a new terminal:
-
+### Start Frontend (Terminal 2)
 ```bash
 cd automation_frontend
 ng serve
+# Frontend runs at: http://localhost:4200
 ```
 
-Frontend runs at: `http://localhost:4200`
+Open `http://localhost:4200` in your browser to start.
 
 ---
 
-## Usage
+## Architecture
 
-1. Open `http://localhost:4200` in your browser
-2. Click **Connect** to start a browser session (launches headless Chromium)
-3. Enter a URL and click **Navigate**
-4. **Click**, **scroll**, or **type** directly on the live screenshot
-5. Click **Start Recording** to capture a flow; **Stop Recording** to save it
-6. Open the **Flows** tab to browse saved recordings and inspect every step grouped by URL
-7. Click **Disconnect** when done — the status panel shows **Session Closed** in green
+### High-Level Flow
+```
+User Interface (Browser)
+        |
+   Angular 21 (Frontend)
+        |
+   Realtime Communication
+        |
+   FastAPI Server (Backend)
+        |
+   Playwright Browser Automation
+        |
+   SQLite Database (Recording Storage)
+```
+
+### Key Components
+
+**Frontend (Angular 21):**
+- **Browser Tab**: Live screenshot streaming + interactive recording
+- **Flows Tab**: View, edit, and manage saved recordings
+- **Runs Tab**: Replay flows and monitor execution
+- Real-time visual feedback during recording and playback
+
+**Backend (FastAPI):**
+- **WebSocket Handler**: Bidirectional communication for real-time events
+- **Browser Service**: Playwright-based Chromium automation
+- **Session Manager**: Multi-session support
+- **Recording Storage**: SQLite database + JSON file backup
+- **Selector Builder**: Smart element detection (ID -> CSS -> XPath)
+- **Playback Service**: Replay recorded flows with validation
+
+---
+
+## Tools Used
+
+### Technology Stack
+
+| Component | Technology | Version |
+|-----------|-----------|---------|
+| **Frontend Framework** | Angular | 21 |
+| **Frontend Language** | TypeScript | Latest |
+| **Backend Framework** | FastAPI | Latest |
+| **Browser Automation** | Playwright | Latest (async) |
+| **Database** | SQLite | 3.x |
+| **Real-time Comm** | WebSocket | Native (FastAPI + Browser API) |
+| **Server** | Uvicorn (ASGI) | Latest |
+| **IDE** | Visual Studio Code | Latest |
+
+### Development Tools
+- **TypeScript** - Type-safe frontend code
+- **Pydantic v2** - Data validation (backend)
+- **aiosqlite** - Async database access
+- **pytest** - Unit and integration tests (71 tests passing)
+
+---
+
+## Data Sourcing
+
+### Where Data Comes From
+
+1. **Live Browser Interactions** (Recording)
+   - User clicks, types, scrolls, navigates in the browser
+   - Playwright captures these actions in real-time
+   - Backend extracts element metadata (selectors, DOM snapshot)
+
+2. **Element Detection** (Smart Selectors)
+   - Backend analyzes the DOM to find stable selectors
+   - Priority: ID -> data-testid -> aria-label -> name -> CSS -> XPath
+   - Fallback: Element fingerprinting (tag, role, text, aria-label)
+
+3. **Storage**
+   - **SQLite Database** - Persists recording metadata
+   - **JSON Files** - Stores detailed step data (selectors, coordinates, text input)
+   - Location: `backend/storage/recordings/`
+
+4. **Validation Data** (During Playback)
+   - Live DOM inspection during replay
+   - Element matching with recorded selectors
+   - Fingerprint comparison for safe fallbacks
+
+---
+
+## Demo Instructions
+
+### Part 1: Record a Flow
+
+1. **Start the Application**
+   - Open `http://localhost:4200`
+   - You should see the "Browser" tab with a live screenshot area
+
+2. **Connect to Browser**
+   - Click "Connect" button
+   - Wait for the connection status to show "Connected" (green indicator)
+
+3. **Navigate to a Website**
+   - Enter a URL in the address bar (e.g., `https://example.com`)
+   - Click "Navigate"
+   - Live screenshot appears showing the website
+
+4. **Start Recording**
+   - Click "Start Recording" button
+   - Give your flow a name (e.g., "Test Login Flow")
+
+5. **Perform Actions** (directly on the live screenshot)
+   - **Click** anywhere on the screenshot -> a popup appears asking to confirm
+   - **Type** in text fields -> enter text in the overlay that appears
+   - **Scroll** with mouse wheel on the screenshot
+   - **Navigate** to new URLs using the address bar
+
+6. **Stop Recording**
+   - Click "Stop Recording" when done
+   - All actions are saved to the database
+
+7. **View Recorded Flow**
+   - Click the "Flows" tab
+   - Click a flow card to see all recorded steps
+   - Each step shows: action type, selector, coordinates, input text
+
+### Part 2: Replay a Flow
+
+1. **Open Flows Tab**
+   - Go to "Flows" tab
+   - Select a recorded flow from the list
+
+2. **Inspect Steps** (optional)
+   - Expand each tab section to see steps
+   - Review selectors and element details
+
+3. **Replay Flow**
+   - Click the "Runs" tab
+   - Select the recording from dropdown
+   - Click "Run" button
+   - Watch playback execute each step with live screenshot updates
+
+4. **Monitor Execution**
+   - Step counter shows progress (e.g., "Step 3 / 15")
+   - Status overlay shows current action type
+   - If an error occurs, step details appear in red
+
+5. **Pause / Resume** (during playback)
+   - Click "Pause" to pause execution
+   - Click "Resume" to continue
+   - While paused, you can interact with the page (click elements, type, scroll)
+
+### Part 3: Manage Flows
+
+1. **View Flow Library**
+   - Flows tab shows all recordings as cards
+   - Each card displays: name, step count, created date, updated date
+
+2. **Delete a Flow**
+   - Hover over a flow card
+   - Click the trash icon
+   - Confirm deletion
+
+3. **Edit Flow Steps** (in Runs tab)
+   - Select a flow in the dropdown
+   - Modify text inputs (e.g., change password before replay)
+   - Toggle "Should Run" to skip/include specific steps
+   - Click "Save to DB" to persist changes
+
+---
+
+## Demo Workflow Summary (3-5 Minutes)
+
+```
+1. Connect -> 2. Navigate to https://example.com
+3. Start Recording -> 4. Click some elements, fill a form
+5. Stop Recording -> 6. Go to Flows tab, inspect steps
+7. Go to Runs tab -> 8. Replay the flow
+9. Watch playback execute each step with validation
+```
+
+---
+
+## Features
+
+- **Live browser view** - Real-time JPEG screenshot stream over WebSocket
+- **Action recording** - Captures navigate, click, type, scroll, and key actions
+- **Multi-tab support** - Follows `target=_blank` links; tab bar in UI
+- **Flow library** - Recordings saved to SQLite; browsable in Flows page
+- **Smart selectors** - Detects stable element IDs; falls back to semantic XPath
+- **Element fingerprinting** - Validates elements during playback (targetMeta)
+- **Validation history** - Shows validation results during recording and playback
+- **Dark / light mode** - Persisted to localStorage
+- **Session lifecycle** - Clear "Session Closed" feedback
+- **Optimised scroll** - frontend debounces + accumulates scroll deltas (150 ms); sends one WS message per gesture instead of one per wheel tick
 
 ---
 
@@ -118,7 +290,7 @@ Frontend runs at: `http://localhost:4200`
         │   └── status/         # Connection / session-closed / nav status
         ├── pages/
         │   ├── browser/        # / (home)
-        │   ├── flows/          # /flows — recorded flow cards + step detail
+        │   ├── flows/          # /flows - recorded flow cards + step detail
         │   ├── runs/
         │   └── settings/
         ├── services/
@@ -131,26 +303,3 @@ Frontend runs at: `http://localhost:4200`
 ```
 
 ---
-
-## WebSocket Event Reference
-
-| Direction | Event | Purpose |
-|-----------|-------|---------|
-| Client → Server | `HELLO` | Handshake |
-| Server → Client | `WELCOME` | Session confirmed |
-| Client → Server | `NAVIGATE` | Load URL |
-| Server → Client | `NAVIGATION_SUCCESS` / `NAVIGATION_ERROR` | Navigate result |
-| Server → Client | `FRAME` | Base64 JPEG screenshot |
-| Client → Server | `CLICK_ACTION` | Click at (x, y) |
-| Client → Server | `SCROLL_ACTION` | Scroll with accumulated delta |
-| Client → Server | `TYPE_ACTION` | Type text into element |
-| Client → Server | `KEY_ACTION` | Press named key |
-| Client → Server | `START_RECORDING` / `STOP_RECORDING` | Recording lifecycle |
-| Server → Client | `RECORDING_STARTED` / `RECORDING_STOPPED` | Recording lifecycle |
-| Server → Client | `INPUT_DETECTED` | Text input was clicked |
-| Client → Server | `SWITCH_TAB` | Activate a tab |
-| Server → Client | `TAB_OPENED` / `TAB_SWITCHED` | Tab events |
-| Server → Client | `SESSION_CLOSED` | Server closed the session |
-| Both | `PING` / `PONG` | Keep-alive |
-| Server → Client | `ERROR` | Error details |
-

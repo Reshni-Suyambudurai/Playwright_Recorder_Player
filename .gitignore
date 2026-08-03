@@ -87,3 +87,66 @@ htmlcov/
 *.tar.gz
 tempfile*
 
+
+# ============================================
+# PERSON 1: INITIAL SETUP FILES - Project configuration, models, database, services initialization
+# ============================================
+# 
+
+# backend/app/models/
+# backend/app/services/database.py
+# backend/app/services/session_manager.py
+# backend/app/main.py
+# backend/run.py
+# automation_frontend/src/app/types/
+# automation_frontend/src/main.ts
+# automation_frontend/angular.json
+# automation_frontend/tsconfig.json
+# database/
+
+# # ============================================
+# # PERSON 2: RECORDER -WebSocket communication, real-time recording, action capture
+# # ============================================
+
+
+# backend/app/websocket/
+# backend/app/api/recording.py
+# backend/app/services/recording_storage.py
+# backend/test/test_recording_model.py
+# automation_frontend/src/app/components/browser-view/
+# automation_frontend/src/app/components/toolbar/
+# automation_frontend/src/app/components/tab-bar/
+# automation_frontend/src/app/components/input-overlay/
+# automation_frontend/src/app/components/status/
+# automation_frontend/src/app/pages/browser/
+# automation_frontend/src/app/services/websocket.api.ts
+# automation_frontend/src/app/services/navigation.api.ts
+
+# # ============================================
+# # PERSON 3: PLAYBACK - Execute recorded flows, element detection, selector engine
+# # ============================================
+
+
+# backend/app/services/playback_service.py
+# backend/app/services/browser_service.py
+# backend/app/services/screenshot_service.py
+# backend/app/services/dom_watcher.py
+# backend/app/utils/selector_builder.py
+# backend/app/utils/
+
+# # ============================================
+# # PERSON 4: MANAGE-Flow library management, runs tracking, validation display and testing
+# # ============================================
+
+# automation_frontend/src/app/pages/flows/
+# automation_frontend/src/app/pages/runs/
+# automation_frontend/src/app/components/validation-panel/
+# automation_frontend/src/app/services/recordings.api.ts
+# automation_frontend/src/app/services/theme.api.ts
+# automation_frontend/src/app/components/navbar/
+# automation_frontend/src/app/components/sidebar/
+# automation_frontend/src/app/pages/settings/
+# backend/app/models/recording.py
+# backend/app/services/playback_service.py
+# automation_frontend/src/app/components/validation-panel/
+# backend/test
