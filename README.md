@@ -45,7 +45,7 @@ npm install
 ```bash
 cd backend
 python run.py
-# Backend runs at: http://localhost:8000
+# Backend runs at: http://localhost:8001
 ```
 
 ### Start Frontend (Terminal 2)
@@ -86,11 +86,13 @@ User Interface (Browser)
 
 **Backend (FastAPI):**
 - **WebSocket Handler**: Bidirectional communication for real-time events
+- **Playback Handler**: Dedicated WebSocket flow for run control (`/ws/play/{play_id}`)
 - **Browser Service**: Playwright-based Chromium automation
 - **Session Manager**: Multi-session support
 - **Recording Storage**: SQLite database + JSON file backup
 - **Selector Builder**: Smart element detection (ID -> CSS -> XPath)
-- **Playback Service**: Replay recorded flows with validation
+- **Playback Service**: Replay recorded flows with validation and safe fallbacks
+- **Playback API**: `POST /play/start` + in-memory play session lifecycle cleanup
 
 ---
 
@@ -260,20 +262,25 @@ User Interface (Browser)
 │   └── app/
 │       ├── main.py              # App factory: services, routes, WS endpoint
 │       ├── api/
-│       │   └── recording.py     # POST /recording/start|stop
+│       │   ├── recording.py     # POST /recording/start|stop
+│       │   └── play.py          # POST /play/start, DELETE /play/{play_id}
 │       ├── websocket/
 │       │   ├── connection_manager.py
-│       │   └── websocket_handler.py  # Routes WS events to handlers
+│       │   ├── websocket_handler.py  # Routes WS events to handlers
+│       │   └── playback_handler.py   # Routes playback WS events
 │       ├── services/
 │       │   ├── browser_service.py    # Playwright operations
 │       │   ├── screenshot_service.py # FRAME event sender
 │       │   ├── dom_watcher.py        # Debounced auto-screenshot on DOM change
 │       │   ├── session_manager.py
 │       │   ├── database.py           # SQLite via aiosqlite
-│       │   └── recording_storage.py  # JSON file backup
+│       │   ├── recording_storage.py  # JSON file backup
+│       │   └── playback_service.py   # Step-by-step playback execution
 │       └── models/
 │           ├── session.py
-│           └── recording.py
+│           ├── recording.py
+│           ├── playback.py           # Play session state model
+│           └── playback_contracts.py # Pydantic v2 playback request/event models
 │
 ├── database/
 │   └── recorder.db             # SQLite database (auto-created)
