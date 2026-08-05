@@ -21,6 +21,7 @@ page.evaluate() executes JavaScript inside the browser page and returns the resu
 | 11       | **Full XPath (last resort)**                  | `/html/body/div/form/button[1]`        |
 
 """
+import asyncio
 import logging
 from playwright.async_api import Page
 
@@ -318,11 +319,20 @@ async def build_selector(page: Page, x: int, y: int) -> dict | None:
     Inspect the DOM element at (x, y) and return selector + metadata.
     Returns None if no element found at that position.
     """
-    try:
-        result = await page.evaluate(_INSPECT_JS, {"x": x, "y": y})
-        if result:
-            logger.debug(f"Selector built at ({x},{y}): {result['selector']} is_input={result['is_input']}")
-        return result
-    except Exception as e:
-        logger.warning(f"selector_builder failed at ({x},{y}): {e}")
-        return None
+    attempts = 3
+    for attempt in range(attempts):
+        try:
+            result = await page.evaluate(_INSPECT_JS, {"x": x, "y": y})
+            if result:
+                tag = (result.get("tag") or "").lower()
+                if tag in {"body", "html"} and attempt < attempts - 1:
+                    await asyncio.sleep(0.15)
+                    continue
+                logger.debug(f"Selector built at ({x},{y}): {result['selector']} is_input={result['is_input']}")
+            return result
+        except Exception as e:
+            if attempt == attempts - 1:
+                logger.warning(f"selector_builder failed at ({x},{y}): {e}")
+                return None
+            await asyncio.sleep(0.15)
+    return None

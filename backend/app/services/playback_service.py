@@ -7,6 +7,7 @@ Reuses: BrowserService, ScreenshotService, DomWatcher from the recording stack.
 import asyncio
 import json
 import logging
+import re
 from typing import Any
 
 from app.models.playback import PlaySession, PlayStatus
@@ -18,6 +19,10 @@ from app.utils.selector_builder import build_selector
 from app.websocket.connection_manager import ConnectionManager
 
 logger = logging.getLogger("playwright_recorder.services.playback")
+
+CLICK_RETRY_ATTEMPTS = 3
+CLICK_RETRY_DELAY_SECONDS = 0.2
+FALLBACK_STABILIZE_DELAY_SECONDS = 0.35
 
 # ─── Event type constants for playback ─────────────────────────────────────
 PLAY_STEP_START   = "PLAY_STEP_START"
@@ -48,6 +53,7 @@ class PlaybackService:
             "SCROLL":   self._step_scroll,
             "KEY":      self._step_key,
         }
+        self._active_play_id: str | None = None
 
     # ─── Public entry point ────────────────────────────────────────────────
     async def run_playback(
@@ -60,6 +66,7 @@ class PlaybackService:
         Main playback coroutine. Launched as an asyncio task by PlaybackHandler.
         Streams PLAY_* and FRAME events back to the client over WebSocket.
         """
+        self._active_play_id = play_id
         session.status = PlayStatus.RUNNING
         recording = session.recording_json
         meta   = recording.get("meta", {})
@@ -107,7 +114,6 @@ class PlaybackService:
                 step_type = step.get("type", "UNKNOWN")
                 should_run = step.get("shouldRun", True)
                 pause      = step.get("pause", False)
-                wait_ms    = step.get("waitAfterMs") or 0
 
                 # Skip check
                 if not should_run:
@@ -178,6 +184,7 @@ class PlaybackService:
             # ── Done ────────────────────────────────────────────────────────
             failed_count = len(failed_steps)
             session.status = PlayStatus.DONE
+            session.mark_finished()
             logger.info(f"[PLAY:{play_id}] DONE — {total} steps, {failed_count} failed")
             await self._send(play_id, client_id, PLAY_DONE, {
                 "stepCount": total,
@@ -188,10 +195,12 @@ class PlaybackService:
 
         except asyncio.CancelledError:
             session.status = PlayStatus.STOPPED
+            session.mark_finished()
             logger.info(f"[PLAY:{play_id}] task cancelled (STOP received)")
 
         except Exception as e:
             session.status = PlayStatus.ERROR
+            session.mark_finished()
             logger.error(f"[PLAY:{play_id}] ERROR: {e}", exc_info=True)
             await self._send(play_id, client_id, PLAY_ERROR, {
                 "error": str(e),
@@ -214,6 +223,7 @@ class PlaybackService:
                     pass
                 session.browser = None
                 session.page    = None
+            self._active_play_id = None
 
     # ─── Step dispatcher ───────────────────────────────────────────────────
     # ─── Step dispatcher (dispatch table) ────────────────────────────────
@@ -239,18 +249,48 @@ class PlaybackService:
 
         if pw_selector:
             occurrence_index = self._get_occurrence_index(selector)
-            # Wait for the base selector to appear in the DOM.
-            # SPAs may take several seconds to render after a preceding click.
-            try:
-                await page.wait_for_selector(pw_selector, timeout=3000)
-            except Exception:
-                pass
+            click_error: Exception | None = None
+            wait_timed_out = False
+            wait_error = ""
+            matches: list[Any] = []
+            match_count = 0
 
-            matches = await page.query_selector_all(pw_selector)
-            match_count = len(matches)
+            # Retry lookup/click to allow SPA/React DOM settle before declaring mismatch.
+            for attempt in range(CLICK_RETRY_ATTEMPTS):
+                try:
+                    await self._wait_for_selector_visible(page, pw_selector, timeout_ms=3000)
+                except Exception as exc:
+                    wait_timed_out = True
+                    wait_error = str(exc)
+
+                matches = await page.query_selector_all(pw_selector)
+                match_count = len(matches)
+
+                if occurrence_index < match_count:
+                    try:
+                        await matches[occurrence_index].click(button=button)
+                        return
+                    except Exception as exc:
+                        click_error = exc
+
+                if attempt < CLICK_RETRY_ATTEMPTS - 1:
+                    await asyncio.sleep(CLICK_RETRY_DELAY_SECONDS)
 
             if match_count == 0:
-                if coords and await self._can_fallback_on_zero_match(step, page):
+                # Do not fallback immediately after timeout; let UI settle first.
+                await self._wait_for_ui_stabilization(page)
+
+                recovered = await self._try_dropdown_value_recovery(step, page)
+                if recovered:
+                    return
+
+                fallback_allowed = False
+                live_meta: dict[str, Any] | None = None
+                fallback_reason = ""
+                if coords:
+                    fallback_allowed, live_meta, fallback_reason = await self._can_fallback_on_zero_match(step, page)
+
+                if coords and fallback_allowed:
                     logger.warning(
                         f"[PLAY] selector '{pw_selector}' matched 0 elements, "
                         f"but targetMeta matched at coords ({coords['x']},{coords['y']}) — "
@@ -262,15 +302,13 @@ class PlaybackService:
                     return
                 raise Exception(
                     f"CLICK target '{pw_selector}' matched 0 elements "
-                    f"(occurrence_index={occurrence_index}, url={page.url[:80]})."
+                    f"(occurrence_index={occurrence_index}, url={page.url[:80]}, "
+                    f"wait_timed_out={wait_timed_out})."
                 )
-
-            if occurrence_index < match_count:
-                await matches[occurrence_index].click(button=button)
-                return
 
             # Base selector still matched, but the recorded occurrence is no longer present.
             if coords:
+                await self._wait_for_ui_stabilization(page)
                 logger.warning(
                     f"[PLAY] selector '{pw_selector}' matched {match_count} elements, "
                     f"but occurrence_index={occurrence_index} is out of range — "
@@ -280,6 +318,12 @@ class PlaybackService:
                     page, int(coords["x"]), int(coords["y"]), button
                 )
                 return
+
+            if click_error:
+                raise Exception(
+                    f"CLICK target '{pw_selector}' found but not actionable "
+                    f"(occurrence_index={occurrence_index}, error={click_error})."
+                )
 
             raise Exception(
                 f"CLICK target '{pw_selector}' matched {match_count} elements, "
@@ -300,8 +344,8 @@ class PlaybackService:
             if pw_selector:
                 # Wait up to 5s for the element before typing.
                 try:
-                    match = await page.wait_for_selector(pw_selector, timeout=5000)
-                except Exception:
+                    match = await self._wait_for_selector_visible(page, pw_selector, timeout_ms=5000)
+                except Exception as exc:
                     match = None
                 if match is None:
                     raise Exception(
@@ -346,23 +390,130 @@ class PlaybackService:
             return 0
         return int(recorded_selector.get("occurrence_index") or 0)
 
-    async def _can_fallback_on_zero_match(self, step: dict, page) -> bool:
+    async def _can_fallback_on_zero_match(self, step: dict, page) -> tuple[bool, dict[str, Any] | None, str]:
         coords = step.get("coords") or {}
         target_meta = step.get("targetMeta") or {}
         if not coords or not target_meta:
-            return False
+            return False, None, "missing_coords_or_target_meta"
 
         x = coords.get("x")
         y = coords.get("y")
         if x is None or y is None:
-            return False
+            return False, None, "missing_coordinate_values"
 
         live_info = await build_selector(page, int(x), int(y))
         if not live_info:
-            return False
+            return False, None, "no_live_selector_info"
 
         live_meta = live_info.get("target_meta") or {}
-        return self._target_meta_matches(target_meta, live_meta)
+        matched = self._target_meta_matches(target_meta, live_meta)
+        return matched, live_meta, "target_meta_match" if matched else "target_meta_mismatch"
+
+    async def _wait_for_selector_visible(self, page, pw_selector: str, timeout_ms: int):
+        try:
+            return await page.wait_for_selector(pw_selector, state="visible", timeout=timeout_ms)
+        except TypeError:
+            # Test doubles and older wrappers may not support the 'state' argument.
+            return await page.wait_for_selector(pw_selector, timeout=timeout_ms)
+
+    async def _wait_for_ui_stabilization(self, page) -> None:
+        await asyncio.sleep(FALLBACK_STABILIZE_DELAY_SECONDS)
+        try:
+            await page.evaluate(
+                """() => new Promise((resolve) => {
+                    requestAnimationFrame(() => requestAnimationFrame(() => resolve(true)));
+                })"""
+            )
+        except Exception:
+            pass
+
+    async def _try_dropdown_value_recovery(self, step: dict[str, Any], page) -> bool:
+        if not self._is_dropdown_value_step(step):
+            return False
+
+        target_meta = step.get("targetMeta") or {}
+        recorded_value = (
+            target_meta.get("normalizedText")
+            or target_meta.get("text")
+            or ""
+        )
+        recorded_value = str(recorded_value).strip()
+        if not recorded_value:
+            return False
+
+        recorded_norm = self._normalize_text(recorded_value)
+        xpath_literal = self._to_xpath_literal(recorded_value)
+
+        candidate_selectors = [
+            f"xpath=//*[@role='option' and normalize-space(.)={xpath_literal}]",
+            f"xpath=//*[contains(@class,'zdropdownlist__text') and normalize-space(.)={xpath_literal}]",
+            f"xpath=//span[normalize-space(.)={xpath_literal}]",
+            f"xpath=//li[normalize-space(.)={xpath_literal}]",
+            f"xpath=//div[normalize-space(.)={xpath_literal}]",
+        ]
+
+        for candidate_selector in candidate_selectors:
+            elements = await page.query_selector_all(candidate_selector)
+            if not elements:
+                continue
+
+            for element in elements:
+                text = await self._extract_element_text(element)
+                if self._normalize_text(text) != recorded_norm:
+                    continue
+                try:
+                    await element.click(button=step.get("button", "left") or "left")
+                    return True
+                except Exception:
+                    continue
+
+        return False
+
+    async def _extract_element_text(self, element) -> str:
+        for attr in ("inner_text", "text_content"):
+            fn = getattr(element, attr, None)
+            if callable(fn):
+                try:
+                    value = await fn()
+                    if value:
+                        return str(value)
+                except Exception:
+                    continue
+        return ""
+
+    def _is_dropdown_value_step(self, step: dict[str, Any]) -> bool:
+        target_meta = step.get("targetMeta") or {}
+        role = str(target_meta.get("role") or "").strip().lower()
+        class_hints = [str(c).lower() for c in (target_meta.get("classHints") or [])]
+        hint_blob = " ".join(class_hints)
+        has_value = bool((target_meta.get("text") or target_meta.get("normalizedText") or "").strip())
+
+        if not has_value:
+            return False
+
+        if role in {"listbox", "combobox", "option"}:
+            return True
+
+        return any(token in hint_blob for token in ("dropdown", "listbox", "select", "zdropdownlist__text"))
+
+    def _normalize_text(self, value: Any) -> str:
+        if value is None:
+            return ""
+        return re.sub(r"\s+", " ", str(value).strip().lower())
+
+    def _to_xpath_literal(self, value: str) -> str:
+        if "'" not in value:
+            return f"'{value}'"
+        if '"' not in value:
+            return f'"{value}"'
+        parts = value.split("'")
+        encoded_parts = []
+        for index, part in enumerate(parts):
+            if part:
+                encoded_parts.append(f"'{part}'")
+            if index < len(parts) - 1:
+                encoded_parts.append('"\'"')
+        return f"concat({', '.join(encoded_parts)})"
 
     def _target_meta_matches(self, recorded: dict[str, Any], live: dict[str, Any]) -> bool:
         def _norm(value: Any) -> str:

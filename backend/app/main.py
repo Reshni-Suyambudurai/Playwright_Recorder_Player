@@ -1,6 +1,7 @@
 """
 Main entry point for the Playwright Recorder backend application.
 """
+import asyncio
 import logging
 import os
 import sys
@@ -13,7 +14,7 @@ from app.services.browser_service import BrowserService
 from app.services.screenshot_service import ScreenshotService
 from app.services.database import DatabaseService
 from app.api.recording import create_recording_router
-from app.api.play import create_play_router, get_play_session
+from app.api.play import create_play_router, get_play_session, play_session_cleanup_worker
 from app.websocket.connection_manager import ConnectionManager
 from app.websocket.websocket_handler import WebSocketHandler
 from app.services.playback_service import PlaybackService
@@ -39,12 +40,22 @@ def create_app():
     logger.info("Creating FastAPI application")
 
     db = DatabaseService()
+    play_cleanup_stop_event = asyncio.Event()
+    play_cleanup_task: asyncio.Task | None = None
 
     @asynccontextmanager
     async def lifespan(app: FastAPI):
+        nonlocal play_cleanup_task
         logger.info("App startup: initialising database")
         await db.init_db()
+        play_cleanup_task = asyncio.create_task(play_session_cleanup_worker(play_cleanup_stop_event))
         yield
+        play_cleanup_stop_event.set()
+        if play_cleanup_task and not play_cleanup_task.done():
+            try:
+                await play_cleanup_task
+            except Exception:
+                pass
         logger.info("App shutdown")
 
     app = FastAPI(title="Playwright Recorder API", version="1.0.0", lifespan=lifespan)
@@ -77,7 +88,7 @@ def create_app():
     app.include_router(play_router, prefix="/play")
     logger.info("Play router registered at /play")
 
-    # WebSocket endpoint
+    # Recording WebSocket endpoint
     @app.websocket("/ws/{session_id}")
     async def websocket_endpoint(websocket: WebSocket, session_id: str):
         logger.info(f"WebSocket connection attempt for session: {session_id}")
@@ -123,23 +134,10 @@ def create_app():
 
         except Exception as e:
             logger.error(f"[WS] Unexpected error in session {session_id}: {e}", exc_info=True)
-            # Apply the same cleanup as explicit disconnect to avoid leaked watchers/tasks.
-            session = session_manager.get_session(session_id)
-            if session:
-                await tab_manager.detach_all_watchers(session)
-                if session.dom_watcher:
-                    await session.dom_watcher.detach()
-                    session.dom_watcher = None
-            await connection_manager.disconnect(websocket)
 
-    @app.get("/health")
-    async def health():
-        logger.debug("Health check called")
-        return {"status": "healthy"}
-
-    # ── Playback WebSocket endpoint ────────────────────────────────────────
+    # Playback WebSocket endpoint
     @app.websocket("/ws/play/{play_id}")
-    async def playback_ws_endpoint(websocket: WebSocket, play_id: str):
+    async def playback_websocket_endpoint(websocket: WebSocket, play_id: str):
         logger.info(f"[PLAY WS] connection attempt for play_id: {play_id}")
 
         session = get_play_session(play_id)

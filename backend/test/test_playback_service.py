@@ -5,16 +5,24 @@ from app.services.playback_service import PlaybackService
 
 
 class FakeElement:
-    def __init__(self):
+    def __init__(self, text=None):
         self.clicked = None
+        self.text = text
 
     async def click(self, button="left"):
         self.clicked = button
 
+    async def inner_text(self):
+        return self.text
+
+    async def text_content(self):
+        return self.text
+
 
 class FakePage:
-    def __init__(self, matches=None, url="https://example.com/page"):
+    def __init__(self, matches=None, url="https://example.com/page", selector_map=None):
         self._matches = matches or []
+        self._selector_map = selector_map or {}
         self.waited_for = None
         self.url = url
 
@@ -26,6 +34,8 @@ class FakePage:
 
     async def query_selector_all(self, selector):
         self.waited_for = (selector, self.waited_for[1] if self.waited_for else None)
+        if selector in self._selector_map:
+            return self._selector_map[selector]
         return self._matches
 
 
@@ -149,3 +159,54 @@ async def test_step_click_uses_coords_when_selector_is_absent():
     await service._step_click(step, page)
 
     assert browser_service.clicks == [(7, 9, "left")]
+
+
+@pytest.mark.asyncio
+async def test_step_click_zero_match_recovers_dropdown_by_recorded_value():
+    browser_service = FakeBrowserService()
+    service = PlaybackService(browser_service, None, None)
+    option = FakeElement(text="Meeting")
+    page = FakePage(
+        matches=[],
+        selector_map={
+            "xpath=//*[contains(@class,'zdropdownlist__text') and normalize-space(.)='meeting']": [option],
+        },
+    )
+    step = {
+        "type": "CLICK",
+        "button": "left",
+        "selector": {"strategy": "css", "value": ".missing", "occurrence_index": 0},
+        "coords": {"x": 508, "y": 399},
+        "targetMeta": {
+            "text": "Meeting",
+            "normalizedText": "meeting",
+            "classHints": ["zdropdownlist__text"],
+        },
+    }
+
+    await service._step_click(step, page)
+
+    assert option.clicked == "left"
+    assert browser_service.clicks == []
+
+
+@pytest.mark.asyncio
+async def test_step_click_zero_match_dropdown_recovery_miss_fails_strict():
+    browser_service = FakeBrowserService()
+    service = PlaybackService(browser_service, None, None)
+    page = FakePage(matches=[])
+    step = {
+        "type": "CLICK",
+        "selector": {"strategy": "css", "value": ".missing", "occurrence_index": 0},
+        "coords": {"x": 508, "y": 399},
+        "targetMeta": {
+            "text": "Meeting",
+            "normalizedText": "meeting",
+            "classHints": ["zdropdownlist__text"],
+        },
+    }
+
+    with pytest.raises(Exception, match="matched 0 elements"):
+        await service._step_click(step, page)
+
+    assert browser_service.clicks == []

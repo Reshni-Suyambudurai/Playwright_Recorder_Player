@@ -22,8 +22,16 @@ PlaybackHandler.handle_event()
 import asyncio
 import logging
 from datetime import datetime
+from pydantic import ValidationError
 
 from app.models.playback import PlaySession, PlayStatus
+from app.models.playback_contracts import (
+    PlaybackEventEnvelope,
+    PlaybackHelloData,
+    PlaybackPauseClickData,
+    PlaybackPauseScrollData,
+    PlaybackPauseTypeData,
+)
 from app.services.playback_service import PlaybackService
 from app.services.browser_service import BrowserService
 from app.services.capture_manager import CaptureReason
@@ -51,21 +59,62 @@ class PlaybackHandler:
         session: PlaySession,
         event: dict,
     ) -> None:
-        event_type = event.get("event_type", "")
-        data       = event.get("data", {})
+        try:
+            envelope = PlaybackEventEnvelope.model_validate(event)
+        except ValidationError as exc:
+            await websocket.send_json({
+                "event_type": "ERROR",
+                "data": {"error": f"Invalid payload: {exc.errors()}"},
+            })
+            return
+
+        event_type = envelope.event_type
+        data = envelope.data
 
         if event_type == "HELLO":
-            await self._handle_hello(play_id, websocket, session, data)
+            try:
+                hello_data = PlaybackHelloData.model_validate(data)
+            except ValidationError as exc:
+                await websocket.send_json({
+                    "event_type": "ERROR",
+                    "data": {"error": f"Invalid HELLO payload: {exc.errors()}"},
+                })
+                return
+            await self._handle_hello(play_id, websocket, session, hello_data)
         elif event_type == "PLAY_RESUME":
             self._handle_resume(session)
         elif event_type == "PLAY_STOP":
             await self._handle_stop(session)
         elif event_type == "PAUSE_CLICK":
-            await self._handle_pause_click(play_id, session, data)
+            try:
+                pause_click = PlaybackPauseClickData.model_validate(data)
+            except ValidationError as exc:
+                await websocket.send_json({
+                    "event_type": "ERROR",
+                    "data": {"error": f"Invalid PAUSE_CLICK payload: {exc.errors()}"},
+                })
+                return
+            await self._handle_pause_click(play_id, session, pause_click)
         elif event_type == "PAUSE_SCROLL":
-            await self._handle_pause_scroll(session, data)
+            try:
+                pause_scroll = PlaybackPauseScrollData.model_validate(data)
+            except ValidationError as exc:
+                await websocket.send_json({
+                    "event_type": "ERROR",
+                    "data": {"error": f"Invalid PAUSE_SCROLL payload: {exc.errors()}"},
+                })
+                return
+            await self._handle_pause_scroll(session, pause_scroll)
         elif event_type == "PAUSE_TYPE":
-            await self._handle_pause_type(session, data)
+            try:
+                pause_type = PlaybackPauseTypeData.model_validate(data)
+            except ValidationError as exc:
+                await websocket.send_json({
+                    "event_type": "ERROR",
+                    "data": {"error": f"Invalid PAUSE_TYPE payload: {exc.errors()}"},
+                })
+                return
+            await self._handle_pause_type(session, pause_type)
         elif event_type == "PING":
             await self._connection_manager.send_to_client(play_id, session.client_id, {
                 "event_type": "PONG",
@@ -80,9 +129,9 @@ class PlaybackHandler:
         play_id: str,
         websocket,
         session: PlaySession,
-        data: dict,
+        data: PlaybackHelloData,
     ) -> None:
-        client_id = data.get("client_id", "")
+        client_id = data.client_id
         if not client_id:
             await websocket.send_json({
                 "event_type": "ERROR",
@@ -101,6 +150,10 @@ class PlaybackHandler:
                 "timestamp": datetime.now().isoformat(),
             },
         })
+        if session.task and not session.task.done():
+            logger.info(f"[PLAY:{play_id}] HELLO from client {client_id} — playback task already running")
+            return
+
         logger.info(f"[PLAY:{play_id}] HELLO from client {client_id} — starting playback task")
 
         # Launch playback as background task
@@ -109,11 +162,11 @@ class PlaybackHandler:
         )
 
     # ── PAUSE_CLICK — click or detect input during pause ───────────────────
-    async def _handle_pause_click(self, play_id: str, session: PlaySession, data: dict) -> None:
+    async def _handle_pause_click(self, play_id: str, session: PlaySession, data: PlaybackPauseClickData) -> None:
         if session.status != PlayStatus.PAUSED or not session.page:
             return
-        x = data.get("x")
-        y = data.get("y")
+        x = data.x
+        y = data.y
         if x is None or y is None:
             return
 
@@ -154,12 +207,12 @@ class PlaybackHandler:
             )
 
     # ── PAUSE_SCROLL — perform a scroll during pause then capture ──────────
-    async def _handle_pause_scroll(self, session: PlaySession, data: dict) -> None:
+    async def _handle_pause_scroll(self, session: PlaySession, data: PlaybackPauseScrollData) -> None:
         if session.status != PlayStatus.PAUSED or not session.page:
             return
-        x = data.get("x", 0)
-        y = data.get("y", 0)
-        delta_y = data.get("delta_y", 0)
+        x = data.x
+        y = data.y
+        delta_y = data.delta_y
         try:
             await session.page.mouse.wheel(delta_x=0, delta_y=float(delta_y))
             logger.info(f"[PLAY:{session.play_id}] PAUSE_SCROLL ({x},{y}) deltaY={delta_y}")
@@ -171,11 +224,11 @@ class PlaybackHandler:
             )
 
     # ── PAUSE_TYPE — type into a field during pause then capture ───────────
-    async def _handle_pause_type(self, session: PlaySession, data: dict) -> None:
+    async def _handle_pause_type(self, session: PlaySession, data: PlaybackPauseTypeData) -> None:
         if session.status != PlayStatus.PAUSED or not session.page:
             return
-        selector = data.get("selector")
-        text     = data.get("text", "")
+        selector = data.selector
+        text     = data.text
         if not selector or text is None:
             return
         try:
@@ -203,4 +256,5 @@ class PlaybackHandler:
             except asyncio.CancelledError:
                 pass
         session.status = PlayStatus.STOPPED
+        session.mark_finished()
         logger.info(f"[PLAY:{session.play_id}] STOPPED by client")
