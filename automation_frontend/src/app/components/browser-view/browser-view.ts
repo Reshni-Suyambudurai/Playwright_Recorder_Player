@@ -16,6 +16,7 @@ const VIEWPORT_HEIGHT = 720;
   templateUrl: './browser-view.html',
   styleUrl: './browser-view.css',
 })
+
 export class BrowserView implements OnInit, OnDestroy {
   private wsApi = inject(WebsocketApi);
   private subs: Subscription[] = [];
