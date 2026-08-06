@@ -15,6 +15,7 @@ export class StepList {
   readonly groups        = input.required<TabGroup[]>();
   readonly currentStepId = input<number | null>(null);
   readonly editValues    = input.required<Map<number, string>>();
+  readonly validationErrors = input.required<Map<number, string>>();
   readonly shouldRunState = input.required<Map<number, boolean>>();
   readonly pauseState    = input.required<Map<number, boolean>>();
 
@@ -34,8 +35,7 @@ export class StepList {
 
   getEditValue(step: RecordingStep): string {
     const m = this.editValues();
-    const raw = m.has(step.id) ? (m.get(step.id) ?? '') : (step.text ?? '');
-    return /^\{\{.+\}\}$/.test(raw.trim()) ? '' : raw;
+    return m.has(step.id) ? (m.get(step.id) ?? '') : (step.text ?? '');
   }
 
   onToggleShouldRun(step: RecordingStep): void {
@@ -48,5 +48,14 @@ export class StepList {
 
   onEditInput(stepId: number, value: string): void {
     this.editValue.emit({ stepId, value });
+  }
+
+  getValidationDescription(step: RecordingStep): string | null {
+    const description = step.inputValidation?.description?.trim();
+    return description ? description : null;
+  }
+
+  getValidationError(step: RecordingStep): string | null {
+    return this.validationErrors().get(step.id) ?? null;
   }
 }

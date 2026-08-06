@@ -273,3 +273,22 @@
   border-color: var(--color-primary-400);
   box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-primary-500) 15%, transparent);
 }
+
+.runs-step-edit-input--error {
+  border-color: var(--color-danger);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-danger) 16%, transparent);
+}
+
+.runs-step-validation-error {
+  margin-top: 0.22rem;
+  font-size: 0.72rem;
+  color: var(--color-danger);
+  line-height: 1.25;
+}
+
+.runs-step-validation-description {
+  margin-top: 0.22rem;
+  font-size: 0.72rem;
+  color: var(--text-tertiary);
+  line-height: 1.25;
+}

@@ -46,6 +46,18 @@ class Viewport(BaseModel):
     model_config = {"populate_by_name": True}
 
 
+class InputValidation(BaseModel):
+    required: bool = False
+    description: Optional[str] = None
+    mode: Optional[str] = None
+    min_length: Optional[int] = Field(None, alias="minLength")
+    max_length: Optional[int] = Field(None, alias="maxLength")
+    custom_regex: Optional[str] = Field(None, alias="customRegex")
+    allow_negative_number: bool = Field(False, alias="allowNegativeNumber")
+
+    model_config = {"populate_by_name": True}
+
+
 class RecordingStep(BaseModel):
     id: int
     type: str
@@ -66,6 +78,7 @@ class RecordingStep(BaseModel):
     store_value: bool = Field(False, alias="storeValue")
     selector: Optional[SelectorInfo] = None
     target_meta: Optional[TargetMeta] = Field(None, alias="targetMeta")
+    input_validation: Optional[InputValidation] = Field(None, alias="inputValidation")
     is_trigger_new_tab: Optional[bool] = Field(None, alias="isTriggerNewTab")
     should_run: bool = Field(True, alias="shouldRun")
     pause: bool = False

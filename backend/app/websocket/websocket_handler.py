@@ -374,6 +374,7 @@ class WebSocketHandler:
             is_password = data.get("is_password", False)
             label = data.get("label")
             tag = data.get("tag", "input")
+            input_validation = data.get("inputValidation")
 
             session = self.session_manager.get_session(session_id)
             if not session or not session.page:
@@ -400,6 +401,7 @@ class WebSocketHandler:
                     label=label,
                     isPassword=is_password,
                     storeValue=True,
+                    inputValidation=input_validation,
                     selector=SelectorInfo(**selector) if selector else None,
                     tab_id=session.active_tab_id or "tab-1",
                 )

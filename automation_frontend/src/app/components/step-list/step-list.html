@@ -49,10 +49,16 @@
               }
               @if (step.type === 'TYPE' && step.storeValue) {
                 <input class="runs-step-edit-input"
+                       [class.runs-step-edit-input--error]="!!getValidationError(step)"
                        [type]="step.isPassword ? 'password' : 'text'"
                        [value]="getEditValue(step)"
                        (input)="onEditInput(step.id, $any($event.target).value)"
                        [placeholder]="step.isPassword ? ' Enter password...' : 'Enter value…'" />
+                @if (getValidationError(step)) {
+                  <div class="runs-step-validation-error">{{ getValidationError(step) }}</div>
+                } @else if (getValidationDescription(step)) {
+                  <div class="runs-step-validation-description">{{ getValidationDescription(step) }}</div>
+                }
               } @else if (step.type === 'TYPE' && step.text) {
                 <span class="step-val-text">{{ step.text }}</span>
               }

@@ -132,6 +132,7 @@
             [groups]="tabGroups()"
             [currentStepId]="state.currentStepId()"
             [editValues]="editValues()"
+            [validationErrors]="validationErrors()"
             [shouldRunState]="shouldRunState()"
             [pauseState]="pauseState()"
             (toggleShouldRun)="toggleShouldRun($event.stepId, $event.current)"

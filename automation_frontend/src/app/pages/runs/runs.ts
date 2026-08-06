@@ -41,6 +41,8 @@ export class Runs implements OnInit, OnDestroy {
   readonly shouldRunState = signal<Map<number, boolean>>(new Map());
   /** Locally toggled `pause` state keyed by step.id */
   readonly pauseState = signal<Map<number, boolean>>(new Map());
+  /** Live validation errors for TYPE steps keyed by step.id */
+  readonly validationErrors = signal<Map<number, string>>(new Map());
 
   readonly saving = signal(false);
   readonly saveError = signal<string | null>(null);
@@ -85,6 +87,7 @@ export class Runs implements OnInit, OnDestroy {
     this.editValues.set(new Map());
     this.shouldRunState.set(new Map());
     this.pauseState.set(new Map());
+    this.validationErrors.set(new Map());
     this.saveError.set(null);
     this.saveSuccess.set(false);
     if (!id) return;
@@ -92,8 +95,10 @@ export class Runs implements OnInit, OnDestroy {
     try {
       const d = await this.api.getRecording(id);
       this.detail.set(d);
+      this._recomputeValidationErrors();
     } catch {
       this.detail.set(null);
+      this.validationErrors.set(new Map());
     } finally {
       this.detailLoading.set(false);
     }
@@ -123,6 +128,7 @@ export class Runs implements OnInit, OnDestroy {
     const m = new Map(this.editValues());
     m.set(stepId, value);
     this.editValues.set(m);
+    this._recomputeValidationErrors();
     this.saveSuccess.set(false);
   }
 
@@ -130,6 +136,7 @@ export class Runs implements OnInit, OnDestroy {
     const m = new Map(this.shouldRunState());
     m.set(stepId, !current);
     this.shouldRunState.set(m);
+    this._recomputeValidationErrors();
   }
 
   togglePause(stepId: number, current: boolean): void {
@@ -186,9 +193,9 @@ export class Runs implements OnInit, OnDestroy {
   }
 
   async onRunClick(): Promise<void> {
-    const validationFailure = this._findValidationFailure();
+    const validationFailure = this._getFirstValidationFailure();
     if (validationFailure) {
-      this._showRunPopup('error', 'Validation Error', validationFailure, 0);
+      this._showRunPopup('error', 'Dynamic Input Validation Error', validationFailure, 0);
       return;
     }
 
@@ -424,8 +431,25 @@ export class Runs implements OnInit, OnDestroy {
   }
 
   private _findValidationFailure(): string | null {
+    return this._getFirstValidationFailure();
+  }
+
+  private _recomputeValidationErrors(): void {
+    const result = this._collectValidationState();
+    this.validationErrors.set(result.errors);
+  }
+
+  private _getFirstValidationFailure(): string | null {
+    const result = this._collectValidationState();
+    this.validationErrors.set(result.errors);
+    return result.firstPopupError;
+  }
+
+  private _collectValidationState(): { errors: Map<number, string>; firstPopupError: string | null } {
     const current = this.detail();
-    if (!current) return null;
+    const errors = new Map<number, string>();
+    let firstPopupError: string | null = null;
+    if (!current) return { errors, firstPopupError };
 
     const edits = this.editValues();
     const shouldRunMap = this.shouldRunState();
@@ -441,17 +465,26 @@ export class Runs implements OnInit, OnDestroy {
           const rules = step.inputValidation;
           if (!rules) continue;
 
-          const value = edits.has(step.id) ? edits.get(step.id) ?? '' : (step.text ?? '');
+          const value = this._resolveEditableStepValue(step, edits);
           const error = this._validateValueAgainstRules(value, rules);
           if (error) {
-            const label = step.label?.trim() || `TYPE step ${step.id}`;
-            return `${label}: ${error}`;
+            const label = step.label?.trim() || 'TYPE';
+            const inlineError = `${label}: ${error}`;
+            errors.set(step.id, inlineError);
+            if (!firstPopupError) {
+              firstPopupError = `Step ID ${step.id}: ${inlineError}`;
+            }
           }
         }
       }
     }
 
-    return null;
+    return { errors, firstPopupError };
+  }
+
+  private _resolveEditableStepValue(step: RecordingStep, edits: Map<number, string>): string {
+    const raw = edits.has(step.id) ? (edits.get(step.id) ?? '') : (step.text ?? '');
+    return /^\{\{.+\}\}$/.test(raw.trim()) ? '' : raw;
   }
 
   private _validateValueAgainstRules(value: string, rules: InputValidation): string | null {
@@ -525,6 +558,12 @@ export class Runs implements OnInit, OnDestroy {
     const id = this.selectedId();
     if (!current || !id || !this.hasEdits()) return;
 
+    const validationFailure = this._getFirstValidationFailure();
+    if (validationFailure) {
+      this._showRunPopup('error', 'Dynamic Input Validation Error', validationFailure, 0);
+      return;
+    }
+
     this.saving.set(true);
     this.saveError.set(null);
     this.saveSuccess.set(false);
@@ -565,6 +604,7 @@ export class Runs implements OnInit, OnDestroy {
       this.editValues.set(new Map());
       this.shouldRunState.set(new Map());
       this.pauseState.set(new Map());
+      this._recomputeValidationErrors();
       this.saveSuccess.set(true);
     } catch (e: any) {
       this.saveError.set(e?.message ?? 'Save failed');
