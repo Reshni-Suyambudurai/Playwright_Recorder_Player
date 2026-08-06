@@ -1,4 +1,17 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none">
-  <circle cx="12" cy="12" r="10" stroke="#ffffff" stroke-width="1.5"/>
-  <polygon points="9,8 17,12 9,16" fill="#ffffff"/>
+  <defs>
+    <linearGradient id="bgGradient" x1="4" y1="4" x2="20" y2="20" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="0.45" stop-color="#d8ecff"/>
+      <stop offset="1" stop-color="#1e6fff"/>
+    </linearGradient>
+    <linearGradient id="ringGradient" x1="3" y1="12" x2="21" y2="12" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.95"/>
+      <stop offset="1" stop-color="#7fb5ff" stop-opacity="0.95"/>
+    </linearGradient>
+  </defs>
+
+  <circle cx="12" cy="12" r="10" fill="url(#bgGradient)"/>
+  <circle cx="12" cy="12" r="9.25" stroke="url(#ringGradient)" stroke-width="1.5"/>
+  <polygon points="9,7.8 17,12 9,16.2" fill="#ffffff"/>
 </svg>
