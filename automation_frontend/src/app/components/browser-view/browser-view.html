@@ -33,6 +33,7 @@
             [style.left.px]="overlayX()"
             [style.top.px]="overlayY()"
             [inputData]="overlayData()!"
+            [enableValidation]="true"
             (confirm)="onOverlayConfirm($event)"
             (cancel)="onOverlayCancel()"
           />

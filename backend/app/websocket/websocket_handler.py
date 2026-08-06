@@ -188,10 +188,12 @@ class WebSocketHandler:
         take first screenshot and return RECORDING_STARTED.
         """
         try:
+            t0 = time.perf_counter()
             url = data.get("url")
             recording_name = data.get("recording_name", "Untitled")
             description = data.get("description", "")
             intent = data.get("intent", "")
+            logger.info("[WS START_RECORDING] start session=%s client=%s url=%s", session_id, client_id, url)
 
             if not url:
                 return self._error_response("INVALID_URL", "url is required in START_RECORDING")
@@ -205,15 +207,19 @@ class WebSocketHandler:
                 await session.dom_watcher.detach()
 
             # Navigate
+            t_nav = time.perf_counter()
             result = await self.browser_service.navigate_to_url(session.page, url)
             session.current_url = result["url"]
+            logger.info("[WS START_RECORDING] navigation done in %dms", int((time.perf_counter() - t_nav) * 1000))
 
             # Create per-session CaptureManager then attach DomWatcher to it
             cap_mgr = CaptureManager(self.screenshot_service, session_id, client_id)
             session.capture_manager = cap_mgr
             watcher = DomWatcher(cap_mgr)
+            t_attach = time.perf_counter()
             await watcher.attach(session.page, session_id, client_id)
             session.dom_watcher = watcher
+            logger.info("[WS START_RECORDING] dom watcher attached in %dms", int((time.perf_counter() - t_attach) * 1000))
 
             # Initialise recording state
             session.recording_id = str(uuid.uuid4())
@@ -251,7 +257,11 @@ class WebSocketHandler:
             session.recording_steps.append(nav_step)
 
             # Push the first frame immediately
+            t_frame = time.perf_counter()
             await cap_mgr.request(session.page, CaptureReason.MANUAL)
+            logger.info("[WS START_RECORDING] first frame requested in %dms", int((time.perf_counter() - t_frame) * 1000))
+
+            logger.info("[WS START_RECORDING] completed session=%s total=%dms", session_id, int((time.perf_counter() - t0) * 1000))
 
             return {
                 "event_type": EventType.RECORDING_STARTED,
@@ -263,6 +273,7 @@ class WebSocketHandler:
                 },
             }
         except Exception as e:
+            logger.error("[WS START_RECORDING] failed session=%s: %s", session_id, e, exc_info=True)
             return self._error_response("START_RECORDING_ERROR", str(e))
 
     async def handle_click_action(self, session_id: str, client_id: str, data: dict) -> dict:

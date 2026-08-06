@@ -8,6 +8,7 @@ import {
   FrameData,
   HelloData,
   InputDetectedData,
+  InputValidation,
   KeyActionData,
   NavigateData,
   NavigationErrorData,
@@ -297,8 +298,17 @@ export class WebsocketApi {
     this.send('CLICK_ACTION', data);
   }
 
-  public sendTypeAction(text: string, x: number, y: number, selector: SelectorInfo | null, isPassword: boolean, label?: string | null, tag?: string): void {
-    const data: TypeActionData = { text, x, y, selector, is_password: isPassword, label, tag };
+  public sendTypeAction(
+    text: string,
+    x: number,
+    y: number,
+    selector: SelectorInfo | null,
+    isPassword: boolean,
+    label?: string | null,
+    tag?: string,
+    inputValidation?: InputValidation | null,
+  ): void {
+    const data: TypeActionData = { text, x, y, selector, is_password: isPassword, label, tag, inputValidation };
     this.navigatingSubject.next();
     this.send('TYPE_ACTION', data);
   }

@@ -3,6 +3,7 @@ BrowserService for managing Playwright browser operations.
 """
 import base64
 import logging
+import time
 from typing import Optional, Tuple, Dict, Any
 from playwright.async_api import async_playwright, Browser, BrowserContext, Page
 
@@ -20,22 +21,45 @@ class BrowserService:
 
     async def launch_browser(self, viewport_width: int = VIEWPORT_WIDTH, viewport_height: int = VIEWPORT_HEIGHT, headless: bool = True) -> Tuple[Browser, BrowserContext, Page]:
         """Launch a Playwright browser at the given viewport size."""
-        logger.info("Launching Playwright browser")
+        t0 = time.perf_counter()
+        logger.info(
+            "[BROWSER START] launching Playwright browser headless=%s viewport=%sx%s",
+            headless,
+            viewport_width,
+            viewport_height,
+        )
         try:
+            t_pw = time.perf_counter()
             self._playwright = await async_playwright().start()
-            browser = await self._playwright.chromium.launch(headless=headless)
-            logger.info("Chromium browser launched")
+            logger.info("[BROWSER START] async_playwright started in %dms", int((time.perf_counter() - t_pw) * 1000))
 
+            t_launch = time.perf_counter()
+            browser = await self._playwright.chromium.launch(headless=headless)
+            logger.info("[BROWSER START] chromium launched in %dms", int((time.perf_counter() - t_launch) * 1000))
+
+            t_context = time.perf_counter()
             browser_context = await browser.new_context(
                 viewport={"width": viewport_width, "height": viewport_height}
             )
+            logger.info("[BROWSER START] browser context created in %dms", int((time.perf_counter() - t_context) * 1000))
+
+            t_page = time.perf_counter()
             page = await browser_context.new_page()
-            logger.info(f"Browser context created with viewport {viewport_width}×{viewport_height}")
+            logger.info(
+                "[BROWSER START] first page created in %dms (total %dms)",
+                int((time.perf_counter() - t_page) * 1000),
+                int((time.perf_counter() - t0) * 1000),
+            )
 
             return browser, browser_context, page
 
         except Exception as e:
-            logger.error(f"Failed to launch browser: {e}", exc_info=True)
+            logger.error(
+                "[BROWSER START] failed after %dms: %s",
+                int((time.perf_counter() - t0) * 1000),
+                e,
+                exc_info=True,
+            )
             if self._playwright:
                 try:
                     await self._playwright.stop()

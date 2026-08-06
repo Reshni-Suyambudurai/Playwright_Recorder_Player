@@ -3,10 +3,11 @@ import { FormsModule } from '@angular/forms';
 import { RecordingsApi } from '../../services/recordings.api';
 import { PlaybackApi, PlayEvent } from '../../services/playback.api';
 import { PlaybackStateApi } from '../../services/playback-state.api';
-import { RecordingListItem, RecordingDetail, RecordingStep, InputDetectedData } from '../../types/websocket';
+import { RecordingListItem, RecordingDetail, RecordingStep, InputDetectedData, InputValidation } from '../../types/websocket';
 import { SvgIcon } from '../../components/svg-icon/svg-icon';
 import { StepList } from '../../components/step-list/step-list';
 import { InputOverlay } from '../../components/input-overlay/input-overlay';
+import { InputOverlayConfirmPayload } from '../../components/input-overlay/input-overlay';
 import { RunResultPopup } from '../../components/run-result-popup/run-result-popup';
 
 export interface TabGroup {
@@ -185,6 +186,12 @@ export class Runs implements OnInit, OnDestroy {
   }
 
   async onRunClick(): Promise<void> {
+    const validationFailure = this._findValidationFailure();
+    if (validationFailure) {
+      this._showRunPopup('error', 'Validation Error', validationFailure, 0);
+      return;
+    }
+
     const payload = this._buildPlayPayload();
     if (!payload) return;
 
@@ -287,13 +294,13 @@ export class Runs implements OnInit, OnDestroy {
     this.pauseInputData.set(data);
   }
 
-  onPauseTypeConfirm(text: string): void {
+  onPauseTypeConfirm(payload: InputOverlayConfirmPayload): void {
     const data = this.pauseInputData();
     this.pauseInputData.set(null);
     if (!data?.selector || !this._playWs || this._playWs.readyState !== WebSocket.OPEN) return;
     this._playWs.send(JSON.stringify({
       event_type: 'PAUSE_TYPE',
-      data: { selector: data.selector, text },
+      data: { selector: data.selector, text: payload.text },
     }));
   }
 
@@ -414,6 +421,103 @@ export class Runs implements OnInit, OnDestroy {
       clearTimeout(this._successRefreshTimer);
       this._successRefreshTimer = null;
     }
+  }
+
+  private _findValidationFailure(): string | null {
+    const current = this.detail();
+    if (!current) return null;
+
+    const edits = this.editValues();
+    const shouldRunMap = this.shouldRunState();
+
+    for (const groups of Object.values(current.steps)) {
+      for (const group of groups as RecordingStep[][]) {
+        for (const step of group) {
+          if (step.type !== 'TYPE') continue;
+
+          const shouldRun = shouldRunMap.has(step.id) ? shouldRunMap.get(step.id)! : (step.shouldRun ?? true);
+          if (!shouldRun) continue;
+
+          const rules = step.inputValidation;
+          if (!rules) continue;
+
+          const value = edits.has(step.id) ? edits.get(step.id) ?? '' : (step.text ?? '');
+          const error = this._validateValueAgainstRules(value, rules);
+          if (error) {
+            const label = step.label?.trim() || `TYPE step ${step.id}`;
+            return `${label}: ${error}`;
+          }
+        }
+      }
+    }
+
+    return null;
+  }
+
+  private _validateValueAgainstRules(value: string, rules: InputValidation): string | null {
+    const raw = value ?? '';
+
+    if (rules.required && raw.trim().length === 0) {
+      return 'Value is required.';
+    }
+
+    if (raw.length === 0) {
+      return null;
+    }
+
+    if (typeof rules.minLength === 'number' && raw.length < rules.minLength) {
+      return `Minimum length is ${rules.minLength}.`;
+    }
+
+    if (typeof rules.maxLength === 'number' && raw.length > rules.maxLength) {
+      return `Maximum length is ${rules.maxLength}.`;
+    }
+
+    switch (rules.mode) {
+      case 'alphabet':
+        if (!/^[A-Za-z]+$/.test(raw)) return 'Only alphabetic characters are allowed.';
+        break;
+      case 'numeric': {
+        const numberRegex = rules.allowNegativeNumber ? /^-?\d+(\.\d+)?$/ : /^\d+(\.\d+)?$/;
+        if (!numberRegex.test(raw)) {
+          return rules.allowNegativeNumber
+            ? 'Enter a valid number.'
+            : 'Only non-negative numbers are allowed.';
+        }
+        break;
+      }
+      case 'alphanumeric':
+        if (!/^[A-Za-z0-9]+$/.test(raw)) return 'Only alphanumeric characters are allowed.';
+        break;
+      case 'date':
+        if (Number.isNaN(Date.parse(raw))) return 'Enter a valid date.';
+        break;
+      case 'email':
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(raw)) return 'Enter a valid email address.';
+        break;
+      case 'mobile':
+        if (!/^\+?[0-9]{10,15}$/.test(raw)) return 'Enter a valid mobile number.';
+        break;
+      case 'strongPassword':
+        if (!/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/.test(raw)) {
+          return 'Password must be at least 8 characters and include upper, lower, number, and symbol.';
+        }
+        break;
+      case 'custom':
+        if (rules.customRegex) {
+          try {
+            const regex = new RegExp(rules.customRegex);
+            if (!regex.test(raw)) return 'Value does not match custom regex.';
+          } catch {
+            return 'Custom regex is invalid.';
+          }
+        }
+        break;
+      default:
+        break;
+    }
+
+    return null;
   }
 
   async saveEdits(): Promise<void> {

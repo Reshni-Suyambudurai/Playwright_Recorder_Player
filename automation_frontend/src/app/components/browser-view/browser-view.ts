@@ -2,7 +2,7 @@ import { Component, ElementRef, inject, OnDestroy, OnInit, signal, viewChild, Wr
 import { Subscription } from 'rxjs';
 import { WebsocketApi } from '../../services/websocket.api';
 import { InputDetectedData, TabInfo } from '../../types/websocket';
-import { InputOverlay } from '../input-overlay/input-overlay';
+import { InputOverlay, InputOverlayConfirmPayload } from '../input-overlay/input-overlay';
 import { TabBar } from '../tab-bar/tab-bar';
 import { Spinner } from '../spinner/spinner';
 
@@ -119,11 +119,20 @@ export class BrowserView implements OnInit, OnDestroy {
     }, this.SCROLL_DEBOUNCE_MS);
   }
 
-  onOverlayConfirm(text: string): void {
+  onOverlayConfirm(payload: InputOverlayConfirmPayload): void {
     const data = this.overlayData();
     if (!data) return;
     this.overlayData.set(null);
-    this.wsApi.sendTypeAction(text, data.x, data.y, data.selector, data.is_password, data.label, data.tag);
+    this.wsApi.sendTypeAction(
+      payload.text,
+      data.x,
+      data.y,
+      data.selector,
+      data.is_password,
+      data.label,
+      data.tag,
+      payload.inputValidation,
+    );
   }
 
   onOverlayCancel(): void {

@@ -10,6 +10,7 @@ Controller               -->    recording.py
 
 """
 import logging
+import time
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from app.services.session_manager import SessionManager
@@ -35,20 +36,30 @@ class RecordingAPI:
 
     async def start_recording(self) -> dict:
         """Start a new recording session."""
-        logger.info("POST /recording/start called")
+        t0 = time.perf_counter()
+        logger.info("[RECORDING START] POST /recording/start called")
         try:
             session = self.session_manager.create_session()
-            logger.info(f"Session created: {session.session_id}")
+            logger.info("[RECORDING START] session created: %s", session.session_id)
 
-            logger.info(f"Launching browser for session: {session.session_id}")
+            logger.info("[RECORDING START] launching browser for session: %s", session.session_id)
+            t_launch = time.perf_counter()
             browser, browser_context, page = await self.browser_service.launch_browser()
-            logger.info(f"Browser launched for session: {session.session_id}")
+            logger.info(
+                "[RECORDING START] browser launch completed for session: %s in %dms",
+                session.session_id,
+                int((time.perf_counter() - t_launch) * 1000),
+            )
 
             session.browser = browser
             session.browser_context = browser_context
             session.page = page
 
-            logger.info(f"Recording started successfully: {session.session_id}")
+            logger.info(
+                "[RECORDING START] success session=%s total=%dms",
+                session.session_id,
+                int((time.perf_counter() - t0) * 1000),
+            )
             return {
                 "success": True,
                 "session_id": session.session_id,
@@ -56,7 +67,12 @@ class RecordingAPI:
             }
 
         except Exception as e:
-            logger.error(f"Failed to start recording: {e}", exc_info=True)
+            logger.error(
+                "[RECORDING START] failed after %dms: %s",
+                int((time.perf_counter() - t0) * 1000),
+                e,
+                exc_info=True,
+            )
             raise HTTPException(
                 status_code=500,
                 detail={"success": False, "error": str(e), "status": "Failed to start recording"}

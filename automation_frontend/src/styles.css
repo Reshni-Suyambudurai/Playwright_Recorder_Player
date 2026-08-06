@@ -278,6 +278,27 @@ html.dark .btn-secondary:hover:not(:disabled) {
   color: var(--text-primary);
 }
 
+/* ==================== Shared Overlay Utilities ==================== */
+
+.ui-backdrop-blur {
+  backdrop-filter: blur(2px);
+}
+
+.ui-modal-pop {
+  animation: uiModalPop 180ms ease-out;
+}
+
+@keyframes uiModalPop {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
 .btn-success {
   background-color: var(--color-success);
   color: #fff;

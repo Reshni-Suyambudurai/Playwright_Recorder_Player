@@ -138,6 +138,27 @@ export interface TypeActionData {
   is_password: boolean;
   label?: string | null;
   tag?: string;
+  inputValidation?: InputValidation | null;
+}
+
+export type InputValidationMode =
+  | 'alphabet'
+  | 'numeric'
+  | 'alphanumeric'
+  | 'date'
+  | 'email'
+  | 'mobile'
+  | 'strongPassword'
+  | 'custom';
+
+export interface InputValidation {
+  required?: boolean;
+  description?: string | null;
+  mode?: InputValidationMode | null;
+  minLength?: number | null;
+  maxLength?: number | null;
+  customRegex?: string | null;
+  allowNegativeNumber?: boolean;
 }
 
 /* Scroll */
@@ -227,6 +248,7 @@ export interface RecordingStep {
   shouldRun?: boolean;
   pause?: boolean;
   storeValue?: boolean;
+  inputValidation?: InputValidation | null;
 }
 
 export interface RecordingDetail {

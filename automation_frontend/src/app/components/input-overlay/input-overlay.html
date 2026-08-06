@@ -1,9 +1,21 @@
-<div class="input-overlay-panel">
+<div class="input-overlay-panel" (click)="$event.stopPropagation()">
   <div class="overlay-info">
+        @if (enableValidation()) {
+      <button
+        type="button"
+        class="validation-trigger"
+        [appTooltip]="'Click to apply validation rules'"
+        tooltipPosition="top"
+        (click)="openValidationModal($event)">
+        <span class="validation-trigger-icon" aria-hidden="true">V</span>
+      </button>
+    }
     <span class="overlay-label">{{ displayLabel() }}</span>
+   
     @if (inputData().tag) {
       <span class="badge badge-neutral">{{ inputData().tag }}</span>
     }
+ 
   </div>
   <div class="overlay-row">
     <input
@@ -18,4 +30,85 @@
     <button class="btn btn-secondary btn-sm" (click)="onCancel()">Cancel</button>
     <button class="btn btn-primary btn-sm" (click)="onOk()">OK</button>
   </div>
+
+  @if (validationError()) {
+    <div class="overlay-error">{{ validationError() }}</div>
+  }
+
+  @if (enableValidation() && showValidationModal()) {
+    <div class="validation-modal-backdrop ui-backdrop-blur" (click)="closeValidationModal($event)">
+      <div class="validation-modal ui-modal-pop" (click)="$event.stopPropagation()">
+        <div class="validation-modal-head">
+          <div class="validation-modal-title-group">
+            <h3 class="validation-modal-title">Validation Rules</h3>
+            <br />
+            <input
+              class="validation-title-description-input"
+              type="text"
+              [value]="validationDescription()"
+              (input)="validationDescription.set($any($event.target).value)"
+              placeholder="Description for the input field (optional)"
+            />
+          </div>
+          <button type="button" class="validation-close" (click)="closeValidationModal($event)">X</button>
+        </div>
+
+        <div class="validation-accordion">
+          <details open>
+            <summary>Basic Rules</summary>
+            <label class="validation-row">
+              <input type="checkbox" [checked]="required()" (change)="required.set($any($event.target).checked)" />
+              <span>Required</span>
+            </label>
+            <div class="validation-row validation-row--split">
+              <label>
+            
+                <input type="number" placeholder="Min Length" min="0" [value]="minLength() ?? ''" (input)="minLength.set($any($event.target).value === '' ? null : +$any($event.target).value)" />
+              </label>
+              <label>
+               
+                <input type="number" placeholder="Max Length" min="0" [value]="maxLength() ?? ''" (input)="maxLength.set($any($event.target).value === '' ? null : +$any($event.target).value)" />
+              </label>
+            </div>
+          </details>
+
+          <details>
+            <summary>Character Type</summary>
+            <div class="validation-grid">
+              <button type="button" class="mode-btn" [class.mode-btn--active]="selectedMode() === 'alphabet'" (click)="setMode('alphabet')">Alphabet</button>
+              <button type="button" class="mode-btn" [class.mode-btn--active]="selectedMode() === 'numeric'" (click)="setMode('numeric')">Numeric</button>
+              <button type="button" class="mode-btn" [class.mode-btn--active]="selectedMode() === 'alphanumeric'" (click)="setMode('alphanumeric')">Alphanumeric</button>
+              <button type="button" class="mode-btn" [class.mode-btn--active]="selectedMode() === 'date'" (click)="setMode('date')">Date</button>
+            </div>
+            @if (selectedMode() === 'numeric') {
+              <label class="validation-row">
+                <input type="checkbox" [checked]="allowNegativeNumber()" (change)="allowNegativeNumber.set($any($event.target).checked)" />
+                <span>Allow negative numbers</span>
+              </label>
+            }
+          </details>
+
+          <details>
+            <summary>Regex Validation</summary>
+            <div class="validation-grid">
+              <button type="button" class="mode-btn" [class.mode-btn--active]="selectedMode() === 'email'" (click)="setMode('email')">Email</button>
+              <button type="button" class="mode-btn" [class.mode-btn--active]="selectedMode() === 'mobile'" (click)="setMode('mobile')">Mobile</button>
+              <button type="button" class="mode-btn" [class.mode-btn--active]="selectedMode() === 'strongPassword'" (click)="setMode('strongPassword')">Strong Password</button>
+              <button type="button" class="mode-btn" [class.mode-btn--active]="selectedMode() === 'custom'" (click)="setMode('custom')">Custom</button>
+            </div>
+            @if (selectedMode() === 'custom') {
+              <label class="validation-row">
+                <span>Custom Regex</span>
+                <input class="overlay-input" type="text" [value]="customRegex()" (input)="customRegex.set($any($event.target).value)" placeholder="e.g. ^[A-Z]{3}[0-9]{4}$" />
+              </label>
+            }
+          </details>
+        </div>
+
+        <div class="validation-modal-foot">
+          <button type="button" class="btn btn-primary btn-sm" (click)="closeValidationModal($event)">Done</button>
+        </div>
+      </div>
+    </div>
+  }
 </div>
