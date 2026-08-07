@@ -1,5 +1,3 @@
-
-
 ## RECORDING FLOW
 
 ### Recording Session Bootstrap
