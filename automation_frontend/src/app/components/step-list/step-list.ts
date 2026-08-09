@@ -35,7 +35,12 @@ export class StepList {
 
   getEditValue(step: RecordingStep): string {
     const m = this.editValues();
-    return m.has(step.id) ? (m.get(step.id) ?? '') : (step.text ?? '');
+    if (m.has(step.id)) {
+      return m.get(step.id) ?? '';
+    }
+
+    const savedText = step.text ?? '';
+    return savedText.trim() === '{{password}}' ? '' : savedText;
   }
 
   onToggleShouldRun(step: RecordingStep): void {

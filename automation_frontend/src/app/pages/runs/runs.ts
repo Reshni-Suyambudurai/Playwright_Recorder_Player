@@ -1,5 +1,7 @@
 import { Component, ElementRef, inject, signal, computed, OnInit, OnDestroy, viewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import dayjs from 'dayjs';
+import customParseFormat from 'dayjs/plugin/customParseFormat';
 import { RecordingsApi } from '../../services/recordings.api';
 import { PlaybackApi, PlayEvent } from '../../services/playback.api';
 import { PlaybackStateApi } from '../../services/playback-state.api';
@@ -9,6 +11,26 @@ import { StepList } from '../../components/step-list/step-list';
 import { InputOverlay } from '../../components/input-overlay/input-overlay';
 import { InputOverlayConfirmPayload } from '../../components/input-overlay/input-overlay';
 import { RunResultPopup } from '../../components/run-result-popup/run-result-popup';
+
+dayjs.extend(customParseFormat);
+
+const ACCEPTED_DATE_FORMATS = [
+  'YYYY-MM-DD',
+  'DD-MM-YYYY',
+  'MM-DD-YYYY',
+  'YYYY/MM/DD',
+  'DD/MM/YYYY',
+  'MM/DD/YYYY',
+  'YYYY.MM.DD',
+  'DD.MM.YYYY',
+  'MM.DD.YYYY',
+  'D MMM YYYY',
+  'DD MMM YYYY',
+  'MMM D, YYYY',
+  'MMMM D, YYYY',
+  'D MMMM YYYY',
+  'YYYYMMDD',
+];
 
 export interface TabGroup {
   tabId: string;
@@ -487,6 +509,18 @@ export class Runs implements OnInit, OnDestroy {
     return /^\{\{.+\}\}$/.test(raw.trim()) ? '' : raw;
   }
 
+  private _isValidDate(value: string): boolean {
+    const trimmed = value.trim();
+    if (!trimmed) return false;
+
+    if (dayjs(trimmed, ACCEPTED_DATE_FORMATS, true).isValid()) {
+      return true;
+    }
+
+    // Fallback for common browser-parseable formats (e.g. ISO datetime strings).
+    return dayjs(trimmed).isValid();
+  }
+
   private _validateValueAgainstRules(value: string, rules: InputValidation): string | null {
     const raw = value ?? '';
 
@@ -523,7 +557,7 @@ export class Runs implements OnInit, OnDestroy {
         if (!/^[A-Za-z0-9]+$/.test(raw)) return 'Only alphanumeric characters are allowed.';
         break;
       case 'date':
-        if (Number.isNaN(Date.parse(raw))) return 'Enter a valid date.';
+        if (!this._isValidDate(raw)) return 'Enter a valid date.';
         break;
       case 'email':
         if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(raw)) return 'Enter a valid email address.';
