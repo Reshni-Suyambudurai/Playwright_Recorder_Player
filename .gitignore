@@ -56,7 +56,8 @@ app/screenshots/
 .cache/
 
 # Database
-database/recorder.db
+*.db
+backend/database/*.db
 
 
 # Recorded sessions
