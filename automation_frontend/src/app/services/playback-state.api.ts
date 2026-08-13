@@ -51,8 +51,9 @@ export class PlaybackStateApi {
         break;
       }
       case 'PLAY_PAUSED': {
-        const d = evt.data as { stepId: number; index: number };
+        const d = evt.data as { stepId: number; index: number; error?: string };
         this.currentStep.set(d.index);
+        if (d.error) this.playError.set(d.error);
         this.playStatus.set('paused');
         break;
       }

@@ -9,12 +9,26 @@ export interface FailedStep {
   error: string;
 }
 
+export interface RuntimeStepPatch {
+  stepId: number;
+  shouldRun?: boolean;
+  pause?: boolean;
+}
+
+export interface RuntimePatchAck {
+  receivedCount: number;
+  appliedCount: number;
+  unresolvedStepIds: number[];
+  message?: string;
+}
+
 export type PlayEvent =
   | { event_type: 'WELCOME';           data: { play_session_id: string; message: string } }
   | { event_type: 'PLAY_STEP_START';   data: { stepId: number; index: number; total: number; type: string } }
   | { event_type: 'PLAY_STEP_SKIPPED'; data: { stepId: number; index: number; total: number } }
   | { event_type: 'PLAY_STEP_ERROR';   data: { stepId: number; index: number; type: string; error: string } }
-  | { event_type: 'PLAY_PAUSED';       data: { stepId: number; index: number } }
+  | { event_type: 'PLAY_PAUSED';       data: { stepId: number; index: number; reason?: string; error?: string } }
+  | { event_type: 'PLAY_PATCH_STEPS_ACK'; data: RuntimePatchAck }
   | { event_type: 'PLAY_DONE';         data: { stepCount: number; failedCount: number; failedSteps: FailedStep[]; message: string } }
   | { event_type: 'PLAY_ERROR';        data: { error: string } }
   | { event_type: 'PLAY_STOPPED';      data: Record<string, never> }
@@ -79,5 +93,15 @@ export class PlaybackApi {
       this._ws.close();
     }
     this._ws = null;
+  }
+
+  /** Send runtime-only step patches for the current playback session. */
+  sendPatchSteps(patches: RuntimeStepPatch[]): boolean {
+    if (!this._ws || this._ws.readyState !== WebSocket.OPEN) return false;
+    this._ws.send(JSON.stringify({
+      event_type: 'PLAY_PATCH_STEPS',
+      data: { patches },
+    }));
+    return true;
   }
 }

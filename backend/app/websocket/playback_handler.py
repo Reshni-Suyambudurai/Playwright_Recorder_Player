@@ -28,10 +28,12 @@ from app.models.playback import PlaySession, PlayStatus
 from app.models.playback_contracts import (
     PlaybackEventEnvelope,
     PlaybackHelloData,
+    PlaybackPatchStepsData,
     PlaybackPauseClickData,
     PlaybackPauseScrollData,
     PlaybackPauseTypeData,
 )
+
 from app.services.playback_service import PlaybackService
 from app.services.browser_service import BrowserService
 from app.services.capture_manager import CaptureReason
@@ -115,6 +117,16 @@ class PlaybackHandler:
                 })
                 return
             await self._handle_pause_type(session, pause_type)
+        elif event_type == "PLAY_PATCH_STEPS":
+            try:
+                patch_data = PlaybackPatchStepsData.model_validate(data)
+            except ValidationError as exc:
+                await websocket.send_json({
+                    "event_type": "ERROR",
+                    "data": {"error": f"Invalid PLAY_PATCH_STEPS payload: {exc.errors()}"},
+                })
+                return
+            await self._handle_patch_steps(play_id, session, patch_data)
         elif event_type == "PING":
             await self._connection_manager.send_to_client(play_id, session.client_id, {
                 "event_type": "PONG",
@@ -240,6 +252,25 @@ class PlaybackHandler:
             asyncio.ensure_future(
                 session.capture_manager.request(session.page, CaptureReason.PAUSE_TYPE)
             )
+
+    async def _handle_patch_steps(self, play_id: str, session: PlaySession, data: PlaybackPatchStepsData) -> None:
+        patches = [patch.model_dump(exclude_none=True) for patch in data.patches]
+
+        if session.status not in (PlayStatus.PENDING, PlayStatus.RUNNING, PlayStatus.PAUSED):
+            ack = {
+                "receivedCount": len(patches),
+                "appliedCount": 0,
+                "unresolvedStepIds": [p.get("stepId") for p in patches if isinstance(p.get("stepId"), int)],
+                "message": f"Playback is {session.status.value}; runtime changes can no longer be applied.",
+            }
+        else:
+            ack = self._playback_service.apply_runtime_step_patches(session, patches)
+
+        if session.client_id:
+            await self._connection_manager.send_to_client(play_id, session.client_id, {
+                "event_type": "PLAY_PATCH_STEPS_ACK",
+                "data": ack,
+            })
 
     # ── PLAY_RESUME — unblock a paused step ────────────────────────────────
     def _handle_resume(self, session: PlaySession) -> None:

@@ -83,6 +83,9 @@
             <div class="player-overlay player-overlay--paused">
               <span class="player-overlay-pill player-overlay-pill--paused">⏸ Paused</span>
               <span class="player-overlay-progress">Step {{ state.currentStep() + 1 }} / {{ state.totalSteps() }}</span>
+              @if (state.playError()) {
+                <span class="player-overlay-step-err">⚠ {{ state.playError() }}</span>
+              }
               <button class="player-overlay-resume" (click)="onResumeClick()">▶ Resume</button>
             </div>
           }
@@ -142,22 +145,24 @@
 
           <!-- Save bar -->
           <div class="runs-save-bar">
-            <button class="runs-save-btn"
-                    (click)="saveEdits()"
-                    [disabled]="saving() || !hasEdits()">
-              @if (saving()) { Saving… } @else { Save to DB }
-            </button>
+            <div class="runs-save-actions">
+              <button class="runs-run-btn"
+                      (click)="onRunClick()"
+                      [disabled]="!detail() || state.playStatus() === 'running' || state.playStatus() === 'paused'">
+                ▶
+              </button>
+              <button class="runs-save-btn"
+                      (click)="saveEdits()"
+                      [disabled]="saving() || !hasEdits()">
+                @if (saving()) { Saving… } @else { Save to DB }
+              </button>
+            </div>
             @if (saveSuccess()) {
               <span class="runs-save-ok">✓ Saved</span>
             }
             @if (saveError()) {
               <span class="runs-save-err">{{ saveError() }}</span>
             }
-            <button class="runs-run-btn"
-                    (click)="onRunClick()"
-                    [disabled]="!detail() || state.playStatus() === 'running' || state.playStatus() === 'paused'">
-              ▶ 
-            </button>
           </div>
         }
 

@@ -55,6 +55,57 @@ class PlaybackService:
         }
         self._active_play_id: str | None = None
 
+    def apply_runtime_step_patches(self, session: PlaySession, patches: list[dict[str, Any]]) -> dict[str, Any]:
+        received_count = len(patches)
+        applied_count = 0
+        unresolved_step_ids: list[int] = []
+
+        steps_by_id: dict[int, dict[str, Any]] = {}
+        steps_root = session.recording_json.get("steps", {})
+        for groups in steps_root.values():
+            for group in groups:
+                for step in group:
+                    step_id = step.get("id")
+                    if isinstance(step_id, int):
+                        steps_by_id[step_id] = step
+
+        for patch in patches:
+            step_id = patch.get("stepId")
+            if not isinstance(step_id, int):
+                continue
+
+            step = steps_by_id.get(step_id)
+            if not step:
+                unresolved_step_ids.append(step_id)
+                continue
+
+            changed = False
+            if "shouldRun" in patch and patch.get("shouldRun") is not None:
+                next_should_run = bool(patch["shouldRun"])
+                if step.get("shouldRun", True) != next_should_run:
+                    step["shouldRun"] = next_should_run
+                    changed = True
+
+            if "pause" in patch and patch.get("pause") is not None:
+                next_pause = bool(patch["pause"])
+                if step.get("pause", False) != next_pause:
+                    step["pause"] = next_pause
+                    changed = True
+
+            if changed:
+                applied_count += 1
+
+        message = "Runtime step changes applied"
+        if unresolved_step_ids:
+            message = "Runtime step changes applied partially"
+
+        return {
+            "receivedCount": received_count,
+            "appliedCount": applied_count,
+            "unresolvedStepIds": unresolved_step_ids,
+            "message": message,
+        }
+
     # ─── Public entry point ────────────────────────────────────────────────
     async def run_playback(
         self,
@@ -149,7 +200,19 @@ class PlaybackService:
                         await cap_mgr.request(page, CaptureReason.ERROR)
                     except Exception:
                         pass
-                    break  # stop — do not proceed to remaining steps
+
+                    # Reuse normal pause flow for manual intervention on failures.
+                    session.status = PlayStatus.PAUSED
+                    session.pause_event.clear()
+                    await self._send(play_id, client_id, PLAY_PAUSED, {
+                        "stepId": step_id,
+                        "index": idx,
+                        "reason": "error",
+                        "error": err_msg,
+                    })
+                    await session.pause_event.wait()
+                    session.status = PlayStatus.RUNNING
+                    continue
 
                 if not step_failed:
                     await self._settle_page(

@@ -463,6 +463,14 @@
   flex-wrap: wrap;
 }
 
+.runs-save-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  flex-shrink: 0;
+}
+
 .runs-save-btn {
   padding: 0.4rem 1rem;
   font-size: var(--text-sm);
@@ -479,7 +487,6 @@
 .runs-save-btn:disabled { opacity: 0.45; cursor: not-allowed; }
 
 .runs-run-btn {
-  margin-left: auto;
   padding: 0.4rem 1rem;
   font-size: var(--text-sm);
   font-weight: 600;

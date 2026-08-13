@@ -3,7 +3,7 @@ import { FormsModule } from '@angular/forms';
 import dayjs from 'dayjs';
 import customParseFormat from 'dayjs/plugin/customParseFormat';
 import { RecordingsApi } from '../../services/recordings.api';
-import { PlaybackApi, PlayEvent } from '../../services/playback.api';
+import { PlaybackApi, PlayEvent, RuntimePatchAck, RuntimeStepPatch } from '../../services/playback.api';
 import { PlaybackStateApi } from '../../services/playback-state.api';
 import { RecordingListItem, RecordingDetail, RecordingStep, InputDetectedData, InputValidation } from '../../types/websocket';
 import { SvgIcon } from '../../components/svg-icon/svg-icon';
@@ -69,6 +69,11 @@ export class Runs implements OnInit, OnDestroy {
   readonly saving = signal(false);
   readonly saveError = signal<string | null>(null);
   readonly saveSuccess = signal(false);
+  readonly runtimeTrackingActive = signal(false);
+  readonly runtimeAppliedShouldRunBaseline = signal<Map<number, boolean>>(new Map());
+  readonly runtimeAppliedPauseBaseline = signal<Map<number, boolean>>(new Map());
+  readonly runtimeRunStartShouldRunBaseline = signal<Map<number, boolean>>(new Map());
+  readonly runtimeRunStartPauseBaseline = signal<Map<number, boolean>>(new Map());
   readonly runPopupVisible = signal(false);
   readonly runPopupTitle = signal('');
   readonly runPopupMessage = signal('');
@@ -86,10 +91,81 @@ export class Runs implements OnInit, OnDestroy {
   private _playWs: WebSocket | null = null;
   private _clientId = `client-${Math.random().toString(36).slice(2)}`;
   private _successRefreshTimer: ReturnType<typeof setTimeout> | null = null;
+  private _runtimePatchAckResolver: ((ack: RuntimePatchAck) => void) | null = null;
+  private _lastErrorPopupKey = '';
+  private _runtimeAutoPatchTimer: ReturnType<typeof setTimeout> | null = null;
+  private _runtimePatchInFlight = false;
+  private _runtimeAutoPatchQueued = false;
 
   // rAF throttle — only write one frame per browser paint cycle
   private _latestFrameData: string | null = null;
   private _frameRafPending = false;
+
+  readonly isPlaybackActive = computed(() => {
+    const status = this.state.playStatus();
+    return status === 'running' || status === 'paused';
+  });
+
+  readonly shouldTrackRuntimeChanges = computed(
+    () => this.runtimeTrackingActive() && this.isPlaybackActive()
+  );
+
+  private _showErrorPopupOnce(key: string, title: string, message: string): void {
+    const normalized = message?.trim();
+    if (!normalized) return;
+    if (this._lastErrorPopupKey === key) return;
+    this._lastErrorPopupKey = key;
+    this._showRunPopup('error', title, normalized, 0);
+  }
+
+  private _captureRuntimeRunStartBaselines(): void {
+    const current = this.detail();
+    if (!current) {
+      this.runtimeRunStartShouldRunBaseline.set(new Map());
+      this.runtimeRunStartPauseBaseline.set(new Map());
+      return;
+    }
+
+    const shouldRunBaseline = new Map<number, boolean>();
+    const pauseBaseline = new Map<number, boolean>();
+
+    for (const groups of Object.values(current.steps)) {
+      for (const group of groups as RecordingStep[][]) {
+        for (const step of group) {
+          const effectiveShouldRun = this.shouldRunState().has(step.id)
+            ? (this.shouldRunState().get(step.id) ?? (step.shouldRun ?? true))
+            : (step.shouldRun ?? true);
+          const effectivePause = this.pauseState().has(step.id)
+            ? (this.pauseState().get(step.id) ?? (step.pause ?? false))
+            : (step.pause ?? false);
+
+          shouldRunBaseline.set(step.id, effectiveShouldRun);
+          pauseBaseline.set(step.id, effectivePause);
+        }
+      }
+    }
+
+    this.runtimeRunStartShouldRunBaseline.set(shouldRunBaseline);
+    this.runtimeRunStartPauseBaseline.set(pauseBaseline);
+  }
+
+  private _resetRuntimeTrackingState(): void {
+    this.runtimeTrackingActive.set(false);
+    this.runtimeAppliedShouldRunBaseline.set(new Map());
+    this.runtimeAppliedPauseBaseline.set(new Map());
+    this.runtimeRunStartShouldRunBaseline.set(new Map());
+    this.runtimeRunStartPauseBaseline.set(new Map());
+  }
+
+  private _resetRuntimeState(): void {
+    this._resetRuntimeTrackingState();
+    this._runtimePatchInFlight = false;
+    this._runtimeAutoPatchQueued = false;
+    if (this._runtimeAutoPatchTimer) {
+      clearTimeout(this._runtimeAutoPatchTimer);
+      this._runtimeAutoPatchTimer = null;
+    }
+  }
 
   async ngOnInit(): Promise<void> {
     try {
@@ -112,6 +188,7 @@ export class Runs implements OnInit, OnDestroy {
     this.validationErrors.set(new Map());
     this.saveError.set(null);
     this.saveSuccess.set(false);
+    this._resetRuntimeState();
     if (!id) return;
     this.detailLoading.set(true);
     try {
@@ -159,12 +236,14 @@ export class Runs implements OnInit, OnDestroy {
     m.set(stepId, !current);
     this.shouldRunState.set(m);
     this._recomputeValidationErrors();
+    this._scheduleRuntimeAutoPatch();
   }
 
   togglePause(stepId: number, current: boolean): void {
     const m = new Map(this.pauseState());
     m.set(stepId, !current);
     this.pauseState.set(m);
+    this._scheduleRuntimeAutoPatch();
   }
 
   hasEdits(): boolean {
@@ -184,6 +263,147 @@ export class Runs implements OnInit, OnDestroy {
       this._playWs.close();
     }
     this._playWs = null;
+    this._runtimePatchAckResolver = null;
+    this._resetRuntimeTrackingState();
+    if (this._runtimeAutoPatchTimer) {
+      clearTimeout(this._runtimeAutoPatchTimer);
+      this._runtimeAutoPatchTimer = null;
+    }
+    this._runtimePatchInFlight = false;
+    this._runtimeAutoPatchQueued = false;
+  }
+
+  private _scheduleRuntimeAutoPatch(): void {
+    if (!this.shouldTrackRuntimeChanges()) return;
+    if (!this._playWs || this._playWs.readyState !== WebSocket.OPEN) return;
+
+    if (this._runtimeAutoPatchTimer) {
+      clearTimeout(this._runtimeAutoPatchTimer);
+    }
+
+    this._runtimeAutoPatchTimer = setTimeout(() => {
+      this._runtimeAutoPatchTimer = null;
+      void this._flushRuntimeAutoPatch();
+    }, 150);
+  }
+
+  private async _flushRuntimeAutoPatch(): Promise<void> {
+    if (!this.shouldTrackRuntimeChanges()) return;
+
+    if (this._runtimePatchInFlight) {
+      this._runtimeAutoPatchQueued = true;
+      return;
+    }
+
+    const patches = this._buildRuntimeStepPatches();
+    if (patches.length === 0) return;
+
+    this._runtimePatchInFlight = true;
+    try {
+      const sent = this.playbackApi.sendPatchSteps(patches);
+      if (!sent) {
+        this._showErrorPopupOnce('runtime-apply-connection', 'Runtime Sync Failed', 'Playback connection is not available.');
+        return;
+      }
+
+      const ack = await this._waitForRuntimePatchAck();
+      if (!ack) {
+        this._showErrorPopupOnce('runtime-apply-timeout', 'Runtime Sync Failed', 'Runtime update timed out. Try again.');
+        return;
+      }
+
+      if (ack.unresolvedStepIds?.length) {
+        const message = `Applied ${ack.appliedCount}/${ack.receivedCount}. Missing step IDs: ${ack.unresolvedStepIds.join(', ')}`;
+        this._showErrorPopupOnce(`runtime-apply-unresolved-${ack.unresolvedStepIds.join('-')}`, 'Runtime Sync Failed', message);
+      }
+
+      const unresolved = new Set<number>(ack.unresolvedStepIds ?? []);
+      const shouldRunBaseline = new Map(this.runtimeAppliedShouldRunBaseline());
+      const pauseBaseline = new Map(this.runtimeAppliedPauseBaseline());
+      for (const patch of patches) {
+        if (unresolved.has(patch.stepId)) continue;
+        if (typeof patch.shouldRun === 'boolean') {
+          shouldRunBaseline.set(patch.stepId, patch.shouldRun);
+        }
+        if (typeof patch.pause === 'boolean') {
+          pauseBaseline.set(patch.stepId, patch.pause);
+        }
+      }
+      this.runtimeAppliedShouldRunBaseline.set(shouldRunBaseline);
+      this.runtimeAppliedPauseBaseline.set(pauseBaseline);
+    } finally {
+      this._runtimePatchInFlight = false;
+      if (this._runtimeAutoPatchQueued) {
+        this._runtimeAutoPatchQueued = false;
+        void this._flushRuntimeAutoPatch();
+      }
+    }
+  }
+
+  private _buildRuntimeStepPatches(): RuntimeStepPatch[] {
+    const current = this.detail();
+    if (!current) return [];
+    if (!this.shouldTrackRuntimeChanges()) return [];
+
+    const runStartShouldRunBaseline = this.runtimeRunStartShouldRunBaseline();
+    const runStartPauseBaseline = this.runtimeRunStartPauseBaseline();
+    const runtimeShouldRunBaseline = this.runtimeAppliedShouldRunBaseline();
+    const runtimePauseBaseline = this.runtimeAppliedPauseBaseline();
+    const baseFlags = new Map<number, { shouldRun: boolean; pause: boolean }>();
+    for (const groups of Object.values(current.steps)) {
+      for (const group of groups as RecordingStep[][]) {
+        for (const step of group) {
+          const runStartShouldRun = runStartShouldRunBaseline.has(step.id)
+            ? (runStartShouldRunBaseline.get(step.id) ?? (step.shouldRun ?? true))
+            : (step.shouldRun ?? true);
+          const runStartPause = runStartPauseBaseline.has(step.id)
+            ? (runStartPauseBaseline.get(step.id) ?? (step.pause ?? false))
+            : (step.pause ?? false);
+          const baseShouldRun = runtimeShouldRunBaseline.has(step.id)
+            ? (runtimeShouldRunBaseline.get(step.id) ?? runStartShouldRun)
+            : runStartShouldRun;
+          const basePause = runtimePauseBaseline.has(step.id)
+            ? (runtimePauseBaseline.get(step.id) ?? runStartPause)
+            : runStartPause;
+          baseFlags.set(step.id, {
+            shouldRun: baseShouldRun,
+            pause: basePause,
+          });
+        }
+      }
+    }
+
+    const merged = new Map<number, RuntimeStepPatch>();
+    for (const [stepId, shouldRun] of this.shouldRunState().entries()) {
+      const base = baseFlags.get(stepId);
+      if (!base || base.shouldRun === shouldRun) continue;
+      merged.set(stepId, { ...(merged.get(stepId) ?? { stepId }), shouldRun });
+    }
+
+    for (const [stepId, pause] of this.pauseState().entries()) {
+      const base = baseFlags.get(stepId);
+      if (!base || base.pause === pause) continue;
+      merged.set(stepId, { ...(merged.get(stepId) ?? { stepId }), pause });
+    }
+
+    return Array.from(merged.values());
+  }
+
+  private _waitForRuntimePatchAck(timeoutMs = 5000): Promise<RuntimePatchAck | null> {
+    return new Promise((resolve) => {
+      const timeout = setTimeout(() => {
+        if (this._runtimePatchAckResolver) {
+          this._runtimePatchAckResolver = null;
+        }
+        resolve(null);
+      }, timeoutMs);
+
+      this._runtimePatchAckResolver = (ack: RuntimePatchAck) => {
+        clearTimeout(timeout);
+        this._runtimePatchAckResolver = null;
+        resolve(ack);
+      };
+    });
   }
 
   /** Build step payload: merges shouldRun, pause, and typed values (including passwords for runtime). */
@@ -228,6 +448,8 @@ export class Runs implements OnInit, OnDestroy {
     this.closeRunPopup();
     this.state.resetForNewRun();
     this._disconnectPlay();
+    this._lastErrorPopupKey = '';
+    this._resetRuntimeState();
 
     try {
       const { play_session_id } = await this.playbackApi.startPlay(payload);
@@ -239,6 +461,7 @@ export class Runs implements OnInit, OnDestroy {
         },
         onClose: () => {
           console.warn('[PLAY WS] connection closed, status was:', this.state.playStatus());
+          this._resetRuntimeTrackingState();
           if (this.state.playStatus() === 'running' || this.state.playStatus() === 'paused') {
             this.state.playStatus.set('done');
           }
@@ -246,11 +469,17 @@ export class Runs implements OnInit, OnDestroy {
         onError: (e) => {
           console.error('[PLAY WS] error:', e);
           this.state.playStatus.set('error');
+          this._showErrorPopupOnce('play-ws-error', 'Playback Error', 'Playback WebSocket connection error.');
         },
       });
+
+      this._captureRuntimeRunStartBaselines();
+      this.runtimeTrackingActive.set(true);
     } catch (e: any) {
       this.state.playStatus.set('error');
-      this.state.playError.set(e?.message ?? 'Failed to start playback');
+      const message = e?.message ?? 'Failed to start playback';
+      this.state.playError.set(message);
+      this._showErrorPopupOnce(`play-start-error-${message}`, 'Playback Error', message);
     }
   }
 
@@ -375,27 +604,41 @@ export class Runs implements OnInit, OnDestroy {
   }
 
   private _onPlayEvent(evt: PlayEvent): void {
-    if (evt.event_type === 'PLAY_DONE') {
-      const data = evt.data as { stepCount: number; failedCount: number; failedSteps: { error?: string }[] };
-      if ((data.failedCount ?? 0) > 0) {
-        this._clearSuccessRefreshTimer();
-        const firstError = data.failedSteps?.[0]?.error;
-        this._showRunPopup(
-          'error',
-          'Playback Completed With Errors',
-          `${data.failedCount} step(s) failed.${firstError ? ` ${firstError}` : ''}`,
-          0,
-        );
-      } else {
-        this._showRunPopup('success', 'Playback Successful', `${data.stepCount} steps executed successfully. Refreshing in 10 seconds.`, 10000);
-        this._scheduleSuccessRefresh();
+    if (evt.event_type === 'PLAY_STEP_ERROR') {
+      const data = evt.data as { stepId?: number; error?: string };
+      const stepId = data.stepId ?? 0;
+      const message = data.error ?? 'Step failed';
+      this._showErrorPopupOnce(`play-step-error-${stepId}-${message}`, 'Playback Step Error', `Step ID ${stepId}: ${message}`);
+    }
+
+    if (evt.event_type === 'PLAY_PAUSED') {
+      const data = evt.data as { stepId?: number; reason?: string; error?: string };
+      if (data.reason === 'error' && data.error) {
+        const stepId = data.stepId ?? 0;
+        this._showErrorPopupOnce(`play-paused-error-${stepId}-${data.error}`, 'Playback Paused On Error', `Step ID ${stepId}: ${data.error}`);
       }
+    }
+
+    if (evt.event_type === 'PLAY_PATCH_STEPS_ACK') {
+      const ack = evt.data as RuntimePatchAck;
+      if (this._runtimePatchAckResolver) {
+        this._runtimePatchAckResolver(ack);
+      }
+      return;
+    }
+
+    if (evt.event_type === 'PLAY_DONE') {
+      const data = evt.data as { stepCount: number };
+      this._resetRuntimeTrackingState();
+      this._showRunPopup('success', 'Playback Successful', `${data.stepCount} steps executed successfully. Refreshing in 10 seconds.`, 10000);
+      this._scheduleSuccessRefresh();
     }
 
     if (evt.event_type === 'PLAY_ERROR') {
       this._clearSuccessRefreshTimer();
       const data = evt.data as { error?: string };
-      this._showRunPopup('error', 'Playback Error', data.error ?? 'Playback failed.', 0);
+      this._resetRuntimeTrackingState();
+      this._showErrorPopupOnce(`play-error-${data.error ?? 'Playback failed.'}`, 'Playback Error', data.error ?? 'Playback failed.');
     }
 
     // Handle pause-type overlay events before the state machine
@@ -638,10 +881,13 @@ export class Runs implements OnInit, OnDestroy {
       this.editValues.set(new Map());
       this.shouldRunState.set(new Map());
       this.pauseState.set(new Map());
+      this._resetRuntimeState();
       this._recomputeValidationErrors();
       this.saveSuccess.set(true);
     } catch (e: any) {
-      this.saveError.set(e?.message ?? 'Save failed');
+      const message = e?.message ?? 'Save failed';
+      this.saveError.set(message);
+      this._showErrorPopupOnce(`save-error-${message}`, 'Save Error', message);
     } finally {
       this.saving.set(false);
     }

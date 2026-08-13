@@ -45,3 +45,13 @@ class PlaybackPauseScrollData(BaseModel):
 class PlaybackPauseTypeData(BaseModel):
     selector: dict[str, Any]
     text: str = ""
+
+
+class PlaybackStepPatch(BaseModel):
+    stepId: int
+    shouldRun: bool | None = None
+    pause: bool | None = None
+
+
+class PlaybackPatchStepsData(BaseModel):
+    patches: list[PlaybackStepPatch] = Field(default_factory=list)
