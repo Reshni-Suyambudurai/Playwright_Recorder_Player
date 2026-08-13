@@ -1,0 +1,83 @@
+<section class="validation-panel">
+  <div class="validation-panel__header">
+    <div>
+      <p class="validation-panel__eyebrow">Validation</p>
+      <h3 class="validation-panel__title">Discovery panel</h3>
+    </div>
+    @if (hasContext()) {
+      <span class="validation-panel__status validation-panel__status--live">Live</span>
+    } @else {
+      <span class="validation-panel__status">Idle</span>
+    }
+  </div>
+
+  @if (!currentValidation()) {
+    <div class="validation-panel__empty">
+      <strong>No validation context yet.</strong>
+      <p>Click a supported element while recording to load the filtered validation groups.</p>
+    </div>
+  } @else {
+    @if (currentValidation(); as validation) {
+      <div class="validation-history">
+        <details class="validation-history__accordion validation-history__accordion--current" [open]="true">
+          <summary class="validation-history__header">
+            <span class="validation-history__step-label">{{ getStepLabel(validation.stepId, validation.stepType) }}</span>
+            <span class="validation-history__element-info">
+              <span>{{ getActionType(validation) }}</span>
+              <span class="validation-history__separator">|</span>
+              <span>{{ getValidationType(validation) }}</span>
+            </span>
+          </summary>
+
+          <div class="validation-history__body">
+            <div class="validation-history__groups">
+              @for (group of validation.availableGroups; track group.key) {
+                <details class="validation-group"
+                         [open]="isGroupOpen(group.key)"
+                         (toggle)="onGroupToggle(group.key, $event)">
+                  <summary class="validation-group__summary">
+                    <span class="validation-group__name">{{ group.displayName }} ({{ group.options.length }})</span>
+                  </summary>
+                  <div class="validation-group__options">
+                    @for (option of group.options; track option.key) {
+                      @if (shouldRenderOption(validation, group, option)) {
+                        <button type="button"
+                                class="validation-option"
+                                [class.validation-option--selected]="isSelected(group.key, option.key)"
+                                (click)="toggleOption(group.key, option.key)">
+                          <span class="validation-option__label">{{ option.displayName }}</span>
+                          @if (optionValueText(validation, group, option); as valueText) {
+                            <span class="validation-option__value">{{ valueText }}</span>
+                          }
+                        </button>
+                      }
+                    }
+                  </div>
+                </details>
+              }
+
+              @if (isDropdownValidation(validation)) {
+                <details class="validation-group validation-group--options-list"
+                         [open]="isGroupOpen('dropdown-options')"
+                         (toggle)="onGroupToggle('dropdown-options', $event)">
+                  <summary class="validation-group__summary">
+                    <span class="validation-group__name">Options ({{ getDropdownOptionCount(validation) }})</span>
+                  </summary>
+                  <div class="validation-options-list">
+                    @if (getDropdownOptions(validation).length === 0) {
+                      <div class="validation-options-list__empty">No options detected</div>
+                    } @else {
+                      @for (optionText of getDropdownOptions(validation); track optionText + $index) {
+                        <div class="validation-options-list__item">{{ optionText }}</div>
+                      }
+                    }
+                  </div>
+                </details>
+              }
+            </div>
+          </div>
+        </details>
+      </div>
+    }
+  }
+</section>

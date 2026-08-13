@@ -35,6 +35,7 @@ from app.services.recording_storage import RecordingStorage
 from app.services.dom_watcher import DomWatcher
 from app.services.capture_manager import CaptureManager, CaptureReason, SettleStrategy
 from app.services.database import DatabaseService
+from app.services.validation_service import ValidationService
 from app.models.recording import Recording, RecordingMeta, RecordingStep, Coords, SelectorInfo, TargetMeta
 from app.utils.selector_builder import build_selector
 from app.utils import tab_manager
@@ -47,13 +48,14 @@ class WebSocketHandler:
     
     def __init__(self, connection_manager: ConnectionManager, session_manager: SessionManager,
                  browser_service: BrowserService, screenshot_service: ScreenshotService,
-                 db: DatabaseService | None = None):
+                 db: DatabaseService | None = None, validation_service: ValidationService | None = None):
         self.connection_manager = connection_manager
         self.session_manager = session_manager
         self.browser_service = browser_service
         self.screenshot_service = screenshot_service
         self.recording_storage = RecordingStorage()
         self.db = db
+        self.validation_service = validation_service or ValidationService()
     
     async def handle_hello(self, session_id: str, websocket, data: dict) -> dict:
         """Handle HELLO — validates session, registers client_id mapping, replies WELCOME."""
@@ -297,6 +299,7 @@ class WebSocketHandler:
             # Inspect element before clicking
             page = tab_manager.get_active_page(session) or session.page
             sel_info = await build_selector(page, int(x), int(y))
+            asyncio.create_task(self._discover_and_emit_validation(session_id, client_id, page, int(x), int(y)))
 
             # Capture page state BEFORE the click — navigation after click
             # can make page.title() throw, causing the step to be skipped.
@@ -363,6 +366,185 @@ class WebSocketHandler:
             }
         except Exception as e:
             return self._error_response("CLICK_ACTION_ERROR", str(e))
+
+    async def _discover_and_emit_validation(self, session_id: str, client_id: str, page, x: int, y: int) -> None:
+        if not self.validation_service:
+            return
+
+        try:
+            initial_discovery = await self.validation_service.discover_from_point(
+                page,
+                x,
+                y,
+                wait_for_enrichment=False,
+            )
+            validation_data = initial_discovery.model_dump(by_alias=True)
+
+            session = self.session_manager.get_session(session_id)
+            if session and session.recording_steps:
+                last_step = session.recording_steps[-1]
+                validation_data["stepId"] = last_step.id
+                validation_data["stepType"] = last_step.type
+                validation_data["stepLabel"] = last_step.label or f"{last_step.type} on page"
+
+            validation_data["validationId"] = self._build_validation_id(validation_data)
+            validation_data["isLateUpdate"] = False
+
+            validation_data = self._minimize_validation_payload(validation_data)
+
+            await self.connection_manager.send_to_client(
+                session_id,
+                client_id,
+                {
+                    "event_type": EventType.VALIDATION_DISCOVERED,
+                    "data": validation_data,
+                    "timestamp": datetime.now().isoformat(),
+                },
+            )
+
+            initial_options = (validation_data.get("elementSnapshot") or {}).get("dropdownOptions") or []
+            is_dropdown = "dropdown" in (validation_data.get("matchedCatalogKeys") or [])
+            if not is_dropdown or initial_options:
+                return
+
+            late_discovery = await self.validation_service.discover_from_point(
+                page,
+                x,
+                y,
+                wait_for_enrichment=True,
+            )
+            late_data = late_discovery.model_dump(by_alias=True)
+            if session and session.recording_steps:
+                last_step = session.recording_steps[-1]
+                late_data["stepId"] = last_step.id
+                late_data["stepType"] = last_step.type
+                late_data["stepLabel"] = last_step.label or f"{last_step.type} on page"
+
+            late_data["validationId"] = validation_data["validationId"]
+            late_data["isLateUpdate"] = True
+
+            late_data = self._minimize_validation_payload(late_data)
+
+            late_options = (late_data.get("elementSnapshot") or {}).get("dropdownOptions") or []
+            if late_options:
+                await self.connection_manager.send_to_client(
+                    session_id,
+                    client_id,
+                    {
+                        "event_type": EventType.VALIDATION_DISCOVERED,
+                        "data": late_data,
+                        "timestamp": datetime.now().isoformat(),
+                    },
+                )
+        except Exception as err:
+            logger.warning("[VALIDATION] discovery failed for (%s,%s): %s", x, y, err)
+            try:
+                await self.connection_manager.send_to_client(
+                    session_id,
+                    client_id,
+                    {
+                        "event_type": EventType.VALIDATION_DISCOVERED,
+                        "data": {
+                            "isValidatable": False,
+                            "availableGroups": [],
+                            "elementSnapshot": {},
+                            "elementCategory": None,
+                            "matchedCatalogKeys": [],
+                            "isLateUpdate": False,
+                        },
+                        "timestamp": datetime.now().isoformat(),
+                    },
+                )
+            except Exception as fallback_err:
+                logger.error("[VALIDATION] fallback emit failed: %s", fallback_err)
+
+    def _build_validation_id(self, validation_data: dict) -> str:
+        snapshot = validation_data.get("elementSnapshot") or {}
+        selector = snapshot.get("selector") or {}
+
+        step_id = validation_data.get("stepId", "")
+        strategy = selector.get("strategy", "")
+        value = selector.get("value", "")
+        occurrence = selector.get("occurrence_index", 0)
+        element_id = snapshot.get("id", "")
+        role = snapshot.get("ariaRole") or snapshot.get("role") or ""
+
+        return f"{step_id}|{strategy}|{value}|{occurrence}|{element_id}|{role}"
+
+    def _minimize_validation_payload(self, validation_data: dict[str, Any]) -> dict[str, Any]:
+        snapshot = validation_data.get("elementSnapshot") or {}
+        matched_keys = validation_data.get("matchedCatalogKeys") or []
+        is_dropdown = "dropdown" in matched_keys
+
+        minimized_snapshot: dict[str, Any] = {
+            "tagName": snapshot.get("tagName"),
+            "type": snapshot.get("type"),
+            "inputType": snapshot.get("inputType"),
+            "role": snapshot.get("role"),
+            "ariaRole": snapshot.get("ariaRole"),
+            "id": snapshot.get("id"),
+            "name": snapshot.get("name"),
+            "placeholder": snapshot.get("placeholder"),
+            "value": snapshot.get("value"),
+            "optionCount": snapshot.get("optionCount"),
+            "dropdownOptions": snapshot.get("dropdownOptions") or [],
+            "disabled": snapshot.get("disabled"),
+            "readonly": snapshot.get("readonly"),
+            "checked": snapshot.get("checked"),
+            "required": snapshot.get("required"),
+            "multiple": snapshot.get("multiple"),
+            "hidden": snapshot.get("hidden"),
+            "visible": snapshot.get("visible"),
+            "className": snapshot.get("className"),
+            "boundingRect": snapshot.get("boundingRect"),
+            "computedStyle": snapshot.get("computedStyle"),
+            "selector": snapshot.get("selector"),
+        }
+
+        # Avoid sending giant concatenated listbox text in dropdown snapshots.
+        if not is_dropdown:
+            minimized_snapshot["selectedOption"] = snapshot.get("selectedOption")
+            minimized_snapshot["currentValue"] = snapshot.get("currentValue")
+            minimized_snapshot["textContent"] = snapshot.get("textContent")
+
+        available_groups = []
+        for group in validation_data.get("availableGroups") or []:
+            group_key = group.get("key")
+            options = group.get("options") or []
+
+            if is_dropdown and group_key == "selection":
+                options = [option for option in options if option.get("key") == "option_count"]
+
+            minimal_options = [
+                {
+                    "key": option.get("key"),
+                    "displayName": option.get("displayName"),
+                    "description": option.get("description"),
+                }
+                for option in options
+            ]
+
+            if minimal_options:
+                available_groups.append(
+                    {
+                        "key": group_key,
+                        "displayName": group.get("displayName"),
+                        "options": minimal_options,
+                    }
+                )
+
+        return {
+            "isValidatable": validation_data.get("isValidatable", False),
+            "elementCategory": validation_data.get("elementCategory"),
+            "matchedCatalogKeys": matched_keys,
+            "elementSnapshot": minimized_snapshot,
+            "availableGroups": available_groups,
+            "validationId": validation_data.get("validationId"),
+            "isLateUpdate": validation_data.get("isLateUpdate", False),
+            "stepId": validation_data.get("stepId"),
+            "stepType": validation_data.get("stepType"),
+            "stepLabel": validation_data.get("stepLabel"),
+        }
 
     async def handle_type_action(self, session_id: str, client_id: str, data: dict) -> dict:
         """Handle TYPE_ACTION — fill input field with text from the overlay."""

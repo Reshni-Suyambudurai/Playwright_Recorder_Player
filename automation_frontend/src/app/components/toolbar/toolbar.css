@@ -6,7 +6,7 @@
   padding: 1rem;
   background-color: var(--bg-secondary);
   border-bottom: 2px solid var(--border-color);
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
 }
 
 .toolbar-left {
@@ -29,6 +29,60 @@
   gap: 0.5rem;
   flex: 1;
   align-items: center;
+  min-width: 0;
+  flex-wrap: nowrap;
+}
+
+.toolbar-assertion-row {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  margin-right: 0.35rem;
+}
+
+.toolbar-assertion-icon {
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  background: var(--bg-primary);
+  color: var(--text-secondary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  cursor: default;
+  flex-shrink: 0;
+}
+
+.toolbar-assertion-glyph {
+  font-size: 0.52rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.toolbar-nav-group {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.toolbar-assertion-icon--visibility {
+  color: #0284c7;
+  border-color: color-mix(in srgb, #0284c7 45%, var(--border-color));
+}
+
+.toolbar-assertion-icon--text {
+  color: #b45309;
+  border-color: color-mix(in srgb, #b45309 45%, var(--border-color));
+}
+
+.toolbar-assertion-icon--screenshot {
+  color: #047857;
+  border-color: color-mix(in srgb, #047857 45%, var(--border-color));
 }
 
 .btn-icon {
@@ -65,13 +119,15 @@
 }
 
 .url-input {
-  flex: 1;
+  width: min(56vw, 620px);
+  min-width: 160px;
   padding: 0.625rem 0.875rem;
   border: 2px solid var(--border-color);
   border-radius: var(--rounded-md);
   font-size: var(--text-sm);
   font-family: var(--font-mono);
   background-color: var(--bg-primary);
+  height:40px;
   color: var(--text-primary);
   transition: border-color var(--transition-fast);
 }
@@ -116,19 +172,33 @@
   white-space: nowrap;
 }
 
+@media (max-width: 1100px) {
+  .url-input {
+    width: min(48vw, 500px);
+    min-width: 140px;
+  }
+}
+
 @media (max-width: 768px) {
   .toolbar {
-    flex-direction: column;
-    gap: 1rem;
+    gap: 0.6rem;
   }
 
-  .toolbar-left,
-  .toolbar-center,
-  .toolbar-right {
-    width: 100%;
+  .toolbar-left {
+    gap: 0.35rem;
   }
 
   .toolbar-center {
-    min-width: auto;
+    gap: 0.35rem;
+  }
+
+  .toolbar-assertion-row {
+    gap: 0.35rem;
+    margin-right: 0;
+  }
+
+  .url-input {
+    width: 100%;
+    min-width: 0;
   }
 }

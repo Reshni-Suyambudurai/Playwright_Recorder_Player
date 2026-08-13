@@ -48,21 +48,52 @@
     >
       &#8635;
     </button>
-    <input
-      type="text"
-      class="url-input"
-      [(ngModel)]="urlInput"
-      (keyup)="onKeyPress($event)"
-      placeholder="Enter URL (e.g., https://example.com)"
-      [disabled]="!connState.isConnected || navState.isLoading"
-    />
-    <button
-      class="btn btn-success"
-      (click)="onNavigate()"
-      [disabled]="!connState.isConnected || navState.isLoading"
-    >
-      Navigate
-    </button>
+    <div class="toolbar-assertion-row" aria-label="Assertion quick actions">
+      <button
+        type="button"
+        class="toolbar-assertion-icon toolbar-assertion-icon--visibility"
+        [appTooltip]="'Visibility assertion'"
+        tooltipPosition="bottom"
+        aria-label="Visibility assertion"
+      >
+        <app-svg-icon name="eye" cssClass="svg-icon--tiny"></app-svg-icon>
+      </button>
+      <button
+        type="button"
+        class="toolbar-assertion-icon toolbar-assertion-icon--text"
+        [appTooltip]="'Text assertion'"
+        tooltipPosition="bottom"
+        aria-label="Text assertion"
+      >
+        <span class="toolbar-assertion-glyph" aria-hidden="true">T</span>
+      </button>
+      <button
+        type="button"
+        class="toolbar-assertion-icon toolbar-assertion-icon--screenshot"
+        [appTooltip]="'Screenshot assertion'"
+        tooltipPosition="bottom"
+        aria-label="Screenshot assertion"
+      >
+        <app-svg-icon name="camera" cssClass="svg-icon--tiny"></app-svg-icon>
+      </button>
+    </div>
+    <div class="toolbar-nav-group">
+      <input
+        type="text"
+        class="url-input"
+        [(ngModel)]="urlInput"
+        (keyup)="onKeyPress($event)"
+        placeholder="Enter URL (e.g., https://example.com)"
+        [disabled]="!connState.isConnected || navState.isLoading"
+      />
+      <button
+        class="btn btn-success"
+        (click)="onNavigate()"
+        [disabled]="!connState.isConnected || navState.isLoading"
+      >
+        Navigate
+      </button>
+    </div>
   </div>
 
  

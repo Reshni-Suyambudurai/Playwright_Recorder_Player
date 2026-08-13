@@ -8,11 +8,12 @@ import { environment } from '../../../environments/environment';
 import { Subscription } from 'rxjs';
 import { Spinner } from '../spinner/spinner';
 import { TooltipDirective } from '../../directives/tooltip/tooltip.directive';
+import { SvgIcon } from '../svg-icon/svg-icon';
 
 @Component({
   selector: 'app-toolbar',
   standalone: true,
-  imports: [FormsModule, Spinner, TooltipDirective],
+  imports: [FormsModule, Spinner, TooltipDirective, SvgIcon],
   templateUrl: './toolbar.html',
   styleUrl: './toolbar.css',
 })

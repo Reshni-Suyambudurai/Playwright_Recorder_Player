@@ -1,6 +1,5 @@
 <div class="status-panel">
   @let connState = connectionState();
-  @let navState = navigationState();
 
   <div class="status-section">
     <h3>Connection Status</h3>
@@ -35,57 +34,7 @@
       </div>
     }
 
-    @if (connState.error) {
-      <div class="status-item error">
-        <label>Status:</label>
-        <div class="status-value text-danger">{{ connState.error }}</div>
-      </div>
-    }
-  </div>
-
-  <div class="status-section">
-    <h3>Navigation Status</h3>
-    <div class="status-item">
-      <label>Loading:</label>
-      <div class="status-value" [ngClass]="{'loading': navState.isLoading}">
-        <span class="status-indicator" [ngClass]="{'status-loading': navState.isLoading, 'status-disconnected': !navState.isLoading}"></span>
-        {{ navState.isLoading ? 'Loading...' : 'Idle' }}
-      </div>
-    </div>
-
-    @if (navState.currentUrl) {
-      <div class="status-item">
-        <label>Current URL:</label>
-        <div class="status-value monospace url-display">{{ navState.currentUrl }}</div>
-      </div>
-    }
-
-    @if (navState.lastNavigation) {
-      <div class="status-item">
-        <label>Last Navigation:</label>
-        <div class="status-value">
-          <div class="navigation-info monospace">{{ navState.lastNavigation.url }}</div>
-          <div class="navigation-time text-secondary">{{ formatTime(navState.lastNavigation.timestamp) }}</div>
-          @if (navState.lastNavigation.title) {
-            <div class="navigation-meta text-tertiary">
-              Title: {{ navState.lastNavigation.title }}
-            </div>
-          }
-          @if (navState.lastNavigation.statusCode) {
-            <div class="navigation-meta text-tertiary">
-              Status: {{ navState.lastNavigation.statusCode }}
-            </div>
-          }
-        </div>
-      </div>
-    }
-
-    @if (navState.error) {
-      <div class="status-item error">
-        <label>Status:</label>
-        <div class="status-value text-danger">{{ navState.error }}</div>
-      </div>
-    }
+   
   </div>
 
   @if (recordedSteps().length > 0) {

@@ -13,6 +13,7 @@ export type EventType =
   | 'CLICK_ACTION'
   | 'ACTION_DONE'
   | 'INPUT_DETECTED'
+  | 'VALIDATION_DISCOVERED'
   | 'TYPE_ACTION'
   | 'SCROLL_ACTION'
   | 'KEY_ACTION'
@@ -107,6 +108,7 @@ export interface ActionDoneData {
   x?: number;
   y?: number;
   success: boolean;
+  validation?: ValidationDiscoveryData;
 }
 
 /* Selector info from backend */
@@ -128,6 +130,71 @@ export interface InputDetectedData {
   current_value: string;
   is_password: boolean;
   selector: SelectorInfo | null;
+  validation?: ValidationDiscoveryData;
+}
+
+export interface ValidationCatalogOption {
+  key: string;
+  displayName: string;
+  description?: string | null;
+}
+
+export interface ValidationGroup {
+  key: string;
+  displayName: string;
+  options: ValidationCatalogOption[];
+}
+
+export interface ValidationElementSnapshot {
+  tagName: string;
+  type?: string | null;
+  inputType?: string | null;
+  role?: string | null;
+  ariaRole?: string | null;
+  ariaLabel?: string | null;
+  ariaHasPopup?: boolean | null;
+  ariaModal?: boolean | null;
+  ariaLive?: string | null;
+  title?: string | null;
+  id?: string | null;
+  name?: string | null;
+  placeholder?: string | null;
+  value?: string | null;
+  currentValue?: string | null;
+  selectedOption?: string | null;
+  optionCount?: number | null;
+  dropdownOptions?: string[];
+  textContent?: string | null;
+  disabled?: boolean;
+  readonly?: boolean;
+  checked?: boolean;
+  required?: boolean;
+  multiple?: boolean;
+  hidden?: boolean;
+  visible?: boolean;
+  contentEditable?: boolean;
+  href?: string | null;
+  target?: string | null;
+  download?: boolean;
+  hasIcon?: boolean;
+  isPassword?: boolean;
+  className?: string | null;
+  boundingRect?: { x: number; y: number; width: number; height: number };
+  computedStyle?: { color?: string | null; backgroundColor?: string | null; borderColor?: string | null; fontFamily?: string | null };
+  selector?: SelectorInfo | null;
+}
+
+export interface ValidationDiscoveryData {
+  isValidatable: boolean;
+  elementCategory?: string | null;
+  matchedCatalogKeys: string[];
+  elementSnapshot: ValidationElementSnapshot;
+  availableGroups: ValidationGroup[];
+  validationId?: string;
+  isLateUpdate?: boolean;
+  stepId?: number;
+  stepType?: string;
+  stepLabel?: string;
 }
 
 export interface TypeActionData {

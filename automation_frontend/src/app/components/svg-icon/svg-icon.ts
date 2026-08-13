@@ -9,7 +9,9 @@ export type IconName =
   | 'hamburger'
   | 'sun'
   | 'moon'
-  | 'trash';
+  | 'trash'
+  | 'eye'
+  | 'camera';
 
 @Component({
   selector: 'app-svg-icon',

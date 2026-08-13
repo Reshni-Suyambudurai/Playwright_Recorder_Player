@@ -95,6 +95,16 @@ _INSPECT_JS = r"""
     }
 
     function findInteractive(node) {
+        // Prefer semantic dropdown containers before generic input targets.
+        const dropdownOwner = node.closest('[role="combobox"], [role="listbox"], select, [aria-haspopup="listbox"]');
+        if (dropdownOwner) return dropdownOwner;
+
+        // Some UI libs keep combobox role on a descendant input; support that path too.
+        if (node && node.querySelector) {
+            const dropdownChild = node.querySelector('[role="combobox"], [role="listbox"], select, [aria-haspopup="listbox"]');
+            if (dropdownChild) return dropdownChild;
+        }
+
         let cur = node;
         for (let i = 0; i < 6 && cur && cur !== document.body; i++) {
             if (isInteractiveCandidate(cur)) return cur;
@@ -246,7 +256,11 @@ _INSPECT_JS = r"""
 
     const tag = target.tagName.toLowerCase();
     const inputType = target.getAttribute('type') || '';
-    const isTextInput = (
+    const semanticRole = (target.getAttribute('role') || '').toLowerCase();
+    const hasPopupListbox = (target.getAttribute('aria-haspopup') || '').toLowerCase() === 'listbox';
+    const isSemanticDropdown = semanticRole === 'combobox' || semanticRole === 'listbox' || tag === 'select' || hasPopupListbox;
+
+    const isTextInput = !isSemanticDropdown && (
         (tag === 'input' && !['submit','button','checkbox','radio','file','image','range','color'].includes(inputType))
         || tag === 'textarea'
         || target.getAttribute('contenteditable') === 'true'

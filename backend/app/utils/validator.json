@@ -1,0 +1,390 @@
+{
+  "catalogVersion": "1.0.0",
+  "generatedAt": "2026-07-29",
+  "elementTypes": [
+    {
+      "key": "input",
+      "displayName": "Input",
+      "match": {
+        "tagNames": ["input", "textarea"],
+        "inputTypes": ["text", "password", "email", "number", "search", "tel", "url", "date", "datetime-local", "time"],
+        "ariaRoles": ["textbox", "searchbox"],
+        "attributeHints": {
+          "contenteditable": [false]
+        }
+      },
+      "validationGroups": [
+        {
+          "key": "state",
+          "displayName": "State",
+          "options": [
+            { "key": "visible", "displayName": "Visible", "appliesWhen": { "allOf": [{ "field": "hidden", "op": "eq", "value": false }] } },
+            { "key": "hidden", "displayName": "Hidden", "appliesWhen": { "allOf": [{ "field": "hidden", "op": "eq", "value": true }] } },
+            { "key": "enabled", "displayName": "Enabled", "appliesWhen": { "allOf": [{ "field": "disabled", "op": "eq", "value": false }] } },
+            { "key": "disabled", "displayName": "Disabled", "appliesWhen": { "allOf": [{ "field": "disabled", "op": "eq", "value": true }] } },
+            { "key": "editable", "displayName": "Editable", "appliesWhen": { "allOf": [{ "field": "disabled", "op": "eq", "value": false }, { "field": "readonly", "op": "eq", "value": false }] } },
+            { "key": "readonly", "displayName": "Readonly", "appliesWhen": { "allOf": [{ "field": "readonly", "op": "eq", "value": true }] } },
+            { "key": "focused", "displayName": "Focused", "appliesWhen": { "allOf": [{ "field": "tagName", "op": "in", "value": ["input", "textarea"] }] } }
+          ]
+        },
+        {
+          "key": "content",
+          "displayName": "Content",
+          "options": [
+            { "key": "empty", "displayName": "Empty", "appliesWhen": { "anyOf": [{ "field": "tagName", "op": "in", "value": ["input", "textarea"] }] } },
+            { "key": "equals_value", "displayName": "Equals Value", "appliesWhen": { "anyOf": [{ "field": "tagName", "op": "in", "value": ["input", "textarea"] }] } },
+            { "key": "contains_value", "displayName": "Contains Value", "appliesWhen": { "anyOf": [{ "field": "tagName", "op": "in", "value": ["input", "textarea"] }] } },
+            { "key": "starts_with", "displayName": "Starts With", "appliesWhen": { "anyOf": [{ "field": "tagName", "op": "in", "value": ["input", "textarea"] }] } },
+            { "key": "ends_with", "displayName": "Ends With", "appliesWhen": { "anyOf": [{ "field": "tagName", "op": "in", "value": ["input", "textarea"] }] } },
+            { "key": "matches_regex", "displayName": "Matches Regex", "appliesWhen": { "anyOf": [{ "field": "tagName", "op": "in", "value": ["input", "textarea"] }] } }
+          ]
+        },
+        {
+          "key": "validation",
+          "displayName": "Validation",
+          "options": [
+            { "key": "required", "displayName": "Required", "appliesWhen": { "allOf": [{ "field": "tagName", "op": "in", "value": ["input", "textarea"] }] } },
+            { "key": "email_format", "displayName": "Email Format", "appliesWhen": { "allOf": [{ "field": "type", "op": "eq", "value": "email" }] } },
+            { "key": "number_only", "displayName": "Number Only", "appliesWhen": { "allOf": [{ "field": "type", "op": "eq", "value": "number" }] } },
+            { "key": "min_length", "displayName": "Min Length", "appliesWhen": { "anyOf": [{ "field": "tagName", "op": "in", "value": ["input", "textarea"] }] } },
+            { "key": "max_length", "displayName": "Max Length", "appliesWhen": { "anyOf": [{ "field": "tagName", "op": "in", "value": ["input", "textarea"] }] } },
+            { "key": "pattern", "displayName": "Pattern", "appliesWhen": { "anyOf": [{ "field": "tagName", "op": "in", "value": ["input", "textarea"] }] } }
+          ]
+        },
+        {
+          "key": "appearance",
+          "displayName": "Appearance",
+          "options": [
+            { "key": "placeholder", "displayName": "Placeholder", "appliesWhen": { "anyOf": [{ "field": "tagName", "op": "in", "value": ["input", "textarea"] }] } },
+            { "key": "css_class", "displayName": "CSS Class", "appliesWhen": { "anyOf": [{ "field": "className", "op": "exists", "value": true }] } },
+            { "key": "border_color", "displayName": "Border Color", "appliesWhen": { "anyOf": [{ "field": "computedStyle.borderColor", "op": "exists", "value": true }] } },
+            { "key": "background_color", "displayName": "Background Color", "appliesWhen": { "anyOf": [{ "field": "computedStyle.backgroundColor", "op": "exists", "value": true }] } }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "button",
+      "displayName": "Button",
+      "match": {
+        "tagNames": ["button"],
+        "inputTypes": ["button", "submit", "reset"],
+        "ariaRoles": ["button"]
+      },
+      "validationGroups": [
+        {
+          "key": "state",
+          "displayName": "State",
+          "options": [
+            { "key": "visible", "displayName": "Visible", "appliesWhen": { "allOf": [{ "field": "hidden", "op": "eq", "value": false }] } },
+            { "key": "enabled", "displayName": "Enabled", "appliesWhen": { "allOf": [{ "field": "disabled", "op": "eq", "value": false }] } },
+            { "key": "disabled", "displayName": "Disabled", "appliesWhen": { "allOf": [{ "field": "disabled", "op": "eq", "value": true }] } },
+            { "key": "clickable", "displayName": "Clickable", "appliesWhen": { "allOf": [{ "field": "disabled", "op": "eq", "value": false }, { "field": "hidden", "op": "eq", "value": false }] } }
+          ]
+        },
+        {
+          "key": "content",
+          "displayName": "Content",
+          "options": [
+            { "key": "text", "displayName": "Text", "appliesWhen": { "anyOf": [{ "field": "tagName", "op": "eq", "value": "button" }] } },
+            { "key": "icon_exists", "displayName": "Icon Exists", "appliesWhen": { "anyOf": [{ "field": "hasIcon", "op": "eq", "value": true }] } }
+          ]
+        },
+        {
+          "key": "behavior",
+          "displayName": "Behavior",
+          "options": [
+            { "key": "navigates", "displayName": "Navigates", "appliesWhen": { "anyOf": [{ "field": "href", "op": "exists", "value": true }] } },
+            { "key": "opens_popup", "displayName": "Opens Popup", "appliesWhen": { "anyOf": [{ "field": "ariaHasPopup", "op": "eq", "value": true }] } },
+            { "key": "opens_new_tab", "displayName": "Opens New Tab", "appliesWhen": { "anyOf": [{ "field": "target", "op": "eq", "value": "_blank" }] } },
+            { "key": "downloads_file", "displayName": "Downloads File", "appliesWhen": { "anyOf": [{ "field": "download", "op": "eq", "value": true }] } }
+          ]
+        },
+        {
+          "key": "appearance",
+          "displayName": "Appearance",
+          "options": [
+            { "key": "color", "displayName": "Color", "appliesWhen": { "anyOf": [{ "field": "computedStyle.color", "op": "exists", "value": true }] } },
+            { "key": "width", "displayName": "Width", "appliesWhen": { "anyOf": [{ "field": "boundingRect.width", "op": "gt", "value": 0 }] } },
+            { "key": "height", "displayName": "Height", "appliesWhen": { "anyOf": [{ "field": "boundingRect.height", "op": "gt", "value": 0 }] } },
+            { "key": "css_class", "displayName": "CSS Class", "appliesWhen": { "anyOf": [{ "field": "className", "op": "exists", "value": true }] } }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "checkbox",
+      "displayName": "Checkbox",
+      "match": {
+        "tagNames": ["input"],
+        "inputTypes": ["checkbox"],
+        "ariaRoles": ["checkbox"]
+      },
+      "validationGroups": [
+        {
+          "key": "state",
+          "displayName": "State",
+          "options": [
+            { "key": "checked", "displayName": "Checked", "appliesWhen": { "allOf": [{ "field": "checked", "op": "eq", "value": true }] } },
+            { "key": "unchecked", "displayName": "Unchecked", "appliesWhen": { "allOf": [{ "field": "checked", "op": "eq", "value": false }] } },
+            { "key": "enabled", "displayName": "Enabled", "appliesWhen": { "allOf": [{ "field": "disabled", "op": "eq", "value": false }] } },
+            { "key": "disabled", "displayName": "Disabled", "appliesWhen": { "allOf": [{ "field": "disabled", "op": "eq", "value": true }] } },
+            { "key": "required", "displayName": "Required", "appliesWhen": { "allOf": [{ "field": "required", "op": "eq", "value": true }] } },
+            { "key": "visible", "displayName": "Visible", "appliesWhen": { "allOf": [{ "field": "hidden", "op": "eq", "value": false }] } }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "radio_button",
+      "displayName": "Radio Button",
+      "match": {
+        "tagNames": ["input"],
+        "inputTypes": ["radio"],
+        "ariaRoles": ["radio"]
+      },
+      "validationGroups": [
+        {
+          "key": "state",
+          "displayName": "State",
+          "options": [
+            { "key": "selected", "displayName": "Selected", "appliesWhen": { "allOf": [{ "field": "checked", "op": "eq", "value": true }] } },
+            { "key": "not_selected", "displayName": "Not Selected", "appliesWhen": { "allOf": [{ "field": "checked", "op": "eq", "value": false }] } },
+            { "key": "enabled", "displayName": "Enabled", "appliesWhen": { "allOf": [{ "field": "disabled", "op": "eq", "value": false }] } },
+            { "key": "disabled", "displayName": "Disabled", "appliesWhen": { "allOf": [{ "field": "disabled", "op": "eq", "value": true }] } }
+          ]
+        },
+        {
+          "key": "validation",
+          "displayName": "Validation",
+          "options": [
+            { "key": "group_value", "displayName": "Group Value", "appliesWhen": { "anyOf": [{ "field": "name", "op": "exists", "value": true }] } }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "dropdown",
+      "displayName": "Dropdown",
+      "match": {
+        "tagNames": ["select"],
+        "ariaRoles": ["combobox", "listbox"],
+        "attributeHints": {
+          "ariaHasPopup": [true]
+        },
+        "priority": 100
+      },
+      "extraction": {
+        "extractorProfile": "dropdown-generic",
+        "refresh": {
+          "enabled": true,
+          "maxAttempts": 6,
+          "intervalMs": 150
+        }
+      },
+      "validationGroups": [
+        {
+          "key": "selection",
+          "displayName": "Selection",
+          "options": [
+            { "key": "selected_option", "displayName": "Selected Option", "appliesWhen": { "anyOf": [{ "field": "tagName", "op": "eq", "value": "select" }, { "field": "ariaRole", "op": "in", "value": ["combobox", "listbox"] }] } },
+            { "key": "option_exists", "displayName": "Option Exists", "appliesWhen": { "anyOf": [{ "field": "tagName", "op": "eq", "value": "select" }, { "field": "ariaRole", "op": "in", "value": ["combobox", "listbox"] }] } },
+            { "key": "option_count", "displayName": "Option Count", "appliesWhen": { "anyOf": [{ "field": "tagName", "op": "eq", "value": "select" }, { "field": "ariaRole", "op": "in", "value": ["combobox", "listbox"] }] } },
+            { "key": "empty", "displayName": "Empty", "appliesWhen": { "anyOf": [{ "field": "tagName", "op": "eq", "value": "select" }, { "field": "ariaRole", "op": "in", "value": ["combobox", "listbox"] }] } }
+          ]
+        },
+        {
+          "key": "state",
+          "displayName": "State",
+          "options": [
+            { "key": "enabled", "displayName": "Enabled", "appliesWhen": { "allOf": [{ "field": "disabled", "op": "eq", "value": false }] } },
+            { "key": "disabled", "displayName": "Disabled", "appliesWhen": { "allOf": [{ "field": "disabled", "op": "eq", "value": true }] } },
+            { "key": "multi_select", "displayName": "Multi Select", "appliesWhen": { "allOf": [{ "field": "multiple", "op": "eq", "value": true }] } }
+          ]
+        },
+        {
+          "key": "validation",
+          "displayName": "Validation",
+          "options": [
+            { "key": "sorted", "displayName": "Sorted", "appliesWhen": { "anyOf": [{ "field": "tagName", "op": "eq", "value": "select" }] } }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "table",
+      "displayName": "Table",
+      "match": {
+        "tagNames": ["table"]
+      },
+      "validationGroups": [
+        {
+          "key": "structure",
+          "displayName": "Structure",
+          "options": [
+            { "key": "row_count", "displayName": "Row Count", "appliesWhen": { "anyOf": [{ "field": "tagName", "op": "eq", "value": "table" }] } },
+            { "key": "column_count", "displayName": "Column Count", "appliesWhen": { "anyOf": [{ "field": "tagName", "op": "eq", "value": "table" }] } },
+            { "key": "header_exists", "displayName": "Header Exists", "appliesWhen": { "anyOf": [{ "field": "tagName", "op": "eq", "value": "table" }] } },
+            { "key": "pagination", "displayName": "Pagination", "appliesWhen": { "anyOf": [{ "field": "tagName", "op": "eq", "value": "table" }] } }
+          ]
+        },
+        {
+          "key": "data",
+          "displayName": "Data",
+          "options": [
+            { "key": "cell_equals", "displayName": "Cell Equals", "appliesWhen": { "anyOf": [{ "field": "tagName", "op": "eq", "value": "table" }] } },
+            { "key": "cell_contains", "displayName": "Cell Contains", "appliesWhen": { "anyOf": [{ "field": "tagName", "op": "eq", "value": "table" }] } },
+            { "key": "row_exists", "displayName": "Row Exists", "appliesWhen": { "anyOf": [{ "field": "tagName", "op": "eq", "value": "table" }] } },
+            { "key": "row_sorted", "displayName": "Row Sorted", "appliesWhen": { "anyOf": [{ "field": "tagName", "op": "eq", "value": "table" }] } }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "image",
+      "displayName": "Image",
+      "match": {
+        "tagNames": ["img"]
+      },
+      "validationGroups": [
+        {
+          "key": "state",
+          "displayName": "State",
+          "options": [
+            { "key": "visible", "displayName": "Visible", "appliesWhen": { "allOf": [{ "field": "hidden", "op": "eq", "value": false }] } },
+            { "key": "loaded", "displayName": "Loaded", "appliesWhen": { "anyOf": [{ "field": "complete", "op": "eq", "value": true }] } }
+          ]
+        },
+        {
+          "key": "properties",
+          "displayName": "Properties",
+          "options": [
+            { "key": "source", "displayName": "Source (src)", "appliesWhen": { "anyOf": [{ "field": "src", "op": "exists", "value": true }] } },
+            { "key": "alt_text", "displayName": "Alt Text", "appliesWhen": { "anyOf": [{ "field": "alt", "op": "exists", "value": true }] } },
+            { "key": "width", "displayName": "Width", "appliesWhen": { "anyOf": [{ "field": "boundingRect.width", "op": "gt", "value": 0 }] } },
+            { "key": "height", "displayName": "Height", "appliesWhen": { "anyOf": [{ "field": "boundingRect.height", "op": "gt", "value": 0 }] } }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "link",
+      "displayName": "Link",
+      "match": {
+        "tagNames": ["a"],
+        "ariaRoles": ["link"]
+      },
+      "validationGroups": [
+        {
+          "key": "state",
+          "displayName": "State",
+          "options": [
+            { "key": "visible", "displayName": "Visible", "appliesWhen": { "allOf": [{ "field": "hidden", "op": "eq", "value": false }] } },
+            { "key": "enabled", "displayName": "Enabled", "appliesWhen": { "allOf": [{ "field": "disabled", "op": "eq", "value": false }] } }
+          ]
+        },
+        {
+          "key": "content",
+          "displayName": "Content",
+          "options": [
+            { "key": "text", "displayName": "Text", "appliesWhen": { "anyOf": [{ "field": "tagName", "op": "eq", "value": "a" }] } }
+          ]
+        },
+        {
+          "key": "behavior",
+          "displayName": "Behavior",
+          "options": [
+            { "key": "href", "displayName": "Href", "appliesWhen": { "anyOf": [{ "field": "href", "op": "exists", "value": true }] } },
+            { "key": "opens_url", "displayName": "Opens URL", "appliesWhen": { "anyOf": [{ "field": "href", "op": "exists", "value": true }] } },
+            { "key": "opens_new_tab", "displayName": "Opens New Tab", "appliesWhen": { "anyOf": [{ "field": "target", "op": "eq", "value": "_blank" }] } }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "label",
+      "displayName": "Label",
+      "match": {
+        "tagNames": ["label"],
+        "ariaRoles": ["label"]
+      },
+      "validationGroups": [
+        {
+          "key": "content",
+          "displayName": "Content",
+          "options": [
+            { "key": "text", "displayName": "Text", "appliesWhen": { "anyOf": [{ "field": "tagName", "op": "eq", "value": "label" }] } }
+          ]
+        },
+        {
+          "key": "appearance",
+          "displayName": "Appearance",
+          "options": [
+            { "key": "font", "displayName": "Font", "appliesWhen": { "anyOf": [{ "field": "computedStyle.fontFamily", "op": "exists", "value": true }] } },
+            { "key": "color", "displayName": "Color", "appliesWhen": { "anyOf": [{ "field": "computedStyle.color", "op": "exists", "value": true }] } },
+            { "key": "visible", "displayName": "Visible", "appliesWhen": { "allOf": [{ "field": "hidden", "op": "eq", "value": false }] } }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "toast",
+      "displayName": "Toast",
+      "match": {
+        "ariaRoles": ["status", "alert"]
+      },
+      "validationGroups": [
+        {
+          "key": "state",
+          "displayName": "State",
+          "options": [
+            { "key": "appears", "displayName": "Appears", "appliesWhen": { "anyOf": [{ "field": "visible", "op": "eq", "value": true }] } },
+            { "key": "disappears", "displayName": "Disappears", "appliesWhen": { "anyOf": [{ "field": "hidden", "op": "eq", "value": true }] } }
+          ]
+        },
+        {
+          "key": "content",
+          "displayName": "Content",
+          "options": [
+            { "key": "message", "displayName": "Message", "appliesWhen": { "anyOf": [{ "field": "textContent", "op": "exists", "value": true }] } }
+          ]
+        },
+        {
+          "key": "type",
+          "displayName": "Type",
+          "options": [
+            { "key": "success", "displayName": "Success", "appliesWhen": { "anyOf": [{ "field": "ariaLive", "op": "eq", "value": "polite" }] } },
+            { "key": "error", "displayName": "Error", "appliesWhen": { "anyOf": [{ "field": "ariaRole", "op": "eq", "value": "alert" }] } },
+            { "key": "warning", "displayName": "Warning", "appliesWhen": { "anyOf": [{ "field": "ariaLive", "op": "eq", "value": "assertive" }] } }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "dialog",
+      "displayName": "Dialog",
+      "match": {
+        "ariaRoles": ["dialog", "alertdialog"]
+      },
+      "validationGroups": [
+        {
+          "key": "state",
+          "displayName": "State",
+          "options": [
+            { "key": "visible", "displayName": "Visible", "appliesWhen": { "allOf": [{ "field": "hidden", "op": "eq", "value": false }] } },
+            { "key": "hidden", "displayName": "Hidden", "appliesWhen": { "allOf": [{ "field": "hidden", "op": "eq", "value": true }] } },
+            { "key": "modal", "displayName": "Modal", "appliesWhen": { "anyOf": [{ "field": "ariaModal", "op": "eq", "value": true }] } }
+          ]
+        },
+        {
+          "key": "content",
+          "displayName": "Content",
+          "options": [
+            { "key": "title", "displayName": "Title", "appliesWhen": { "anyOf": [{ "field": "textContent", "op": "exists", "value": true }] } },
+            { "key": "close_button", "displayName": "Close Button", "appliesWhen": { "anyOf": [{ "field": "hasCloseButton", "op": "eq", "value": true }] } }
+          ]
+        }
+      ]
+    }
+  ]
+}
