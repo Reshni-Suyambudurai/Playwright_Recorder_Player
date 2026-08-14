@@ -44,7 +44,12 @@ export class BrowserView implements OnInit, OnDestroy {
         this.frameUrl.set(frame.image);
       }),
       this.wsApi.navigating$.subscribe(() => this.isNavigating.set(true)),
-      this.wsApi.inputDetected$.subscribe(data => this._showOverlay(data)),
+      this.wsApi.inputDetected$.subscribe(data => {
+        // INPUT_DETECTED does not trigger a frame refresh; stop navigation spinner
+        // so the overlay can be interacted with immediately.
+        this.isNavigating.set(false);
+        this._showOverlay(data);
+      }),
       this.wsApi.tabOpened$.subscribe(data => this.tabs.set(data.tabs ?? [])),
       this.wsApi.tabSwitched$.subscribe(data => {
         const updated = this.tabs().map(t => ({ ...t, active: t.tab_id === data.tab_id }));

@@ -17,7 +17,7 @@
           draggable="false"
         />
         <!-- Loading overlay shown while waiting for next frame after navigation -->
-        @if (isNavigating()) {
+        @if (isNavigating() && !overlayData()) {
           <app-spinner [overlay]="true" size="lg" color="white" />
         }
         <!-- Yellow dot marks where the input will be filled -->
