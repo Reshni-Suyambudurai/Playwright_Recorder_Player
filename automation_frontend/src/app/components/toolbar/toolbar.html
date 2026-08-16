@@ -49,33 +49,63 @@
       &#8635;
     </button>
     <div class="toolbar-assertion-row" aria-label="Assertion quick actions">
-      <button
-        type="button"
-        class="toolbar-assertion-icon toolbar-assertion-icon--visibility"
-        [appTooltip]="'Visibility assertion'"
-        tooltipPosition="bottom"
-        aria-label="Visibility assertion"
-      >
-        <app-svg-icon name="eye" cssClass="svg-icon--tiny"></app-svg-icon>
-      </button>
-      <button
-        type="button"
-        class="toolbar-assertion-icon toolbar-assertion-icon--text"
-        [appTooltip]="'Text assertion'"
-        tooltipPosition="bottom"
-        aria-label="Text assertion"
-      >
-        <span class="toolbar-assertion-glyph" aria-hidden="true">T</span>
-      </button>
-      <button
-        type="button"
-        class="toolbar-assertion-icon toolbar-assertion-icon--screenshot"
-        [appTooltip]="'Clipped snapshot validation'"
-        tooltipPosition="bottom"
-        aria-label="Clipped snapshot validation"
-      >
-        <app-svg-icon name="camera" cssClass="svg-icon--tiny"></app-svg-icon>
-      </button>
+      @if (isRecording()) {
+        <button
+          type="button"
+          class="toolbar-assertion-icon toolbar-assertion-icon--visibility"
+          [class.active]="activeAssertionMode() === 'visibility'"
+          (click)="toggleAssertionMode('visibility')"
+          [appTooltip]="activeAssertionMode() === 'visibility' ? 'Deactivate visibility assertion' : 'Visibility assertion'"
+          tooltipPosition="bottom"
+          aria-label="Visibility assertion"
+        >
+          @if (activeAssertionMode() === 'visibility') {
+            <span class="toolbar-assertion-x" aria-hidden="true">✕</span>
+          } @else {
+            <app-svg-icon name="eye" cssClass="svg-icon--tiny"></app-svg-icon>
+          }
+        </button>
+        <button
+          type="button"
+          class="toolbar-assertion-icon toolbar-assertion-icon--text"
+          [class.active]="activeAssertionMode() === 'text'"
+          (click)="toggleAssertionMode('text')"
+          [appTooltip]="activeAssertionMode() === 'text' ? 'Deactivate text assertion' : 'Text assertion'"
+          tooltipPosition="bottom"
+          aria-label="Text assertion"
+        >
+          @if (activeAssertionMode() === 'text') {
+            <span class="toolbar-assertion-x" aria-hidden="true">✕</span>
+          } @else {
+            <span class="toolbar-assertion-glyph" aria-hidden="true">T</span>
+          }
+        </button>
+        <button
+          type="button"
+          class="toolbar-assertion-icon toolbar-assertion-icon--value"
+          [class.active]="activeAssertionMode() === 'value'"
+          (click)="toggleAssertionMode('value')"
+          [appTooltip]="activeAssertionMode() === 'value' ? 'Deactivate value assertion' : 'Value assertion'"
+          tooltipPosition="bottom"
+          aria-label="Value assertion"
+        >
+          @if (activeAssertionMode() === 'value') {
+            <span class="toolbar-assertion-x" aria-hidden="true">✕</span>
+          } @else {
+            <span class="toolbar-assertion-glyph" aria-hidden="true">V</span>
+          }
+        </button>
+        <button
+          type="button"
+          class="toolbar-assertion-icon toolbar-assertion-icon--snapshot"
+          [appTooltip]="'Snapshot assertion'"
+          tooltipPosition="bottom"
+          aria-label="Snapshot assertion"
+          disabled
+        >
+          <app-svg-icon name="camera" cssClass="svg-icon--tiny"></app-svg-icon>
+        </button>
+      }
     </div>
     <div class="toolbar-nav-group">
       <input

@@ -14,10 +14,11 @@
           alt="Live browser view"
           (click)="onImageClick($event)"
           (wheel)="onImageWheel($event)"
+          (mousemove)="onImageHover($event)"
           draggable="false"
         />
         <!-- Loading overlay shown while waiting for next frame after navigation -->
-        @if (isNavigating() && !overlayData()) {
+        @if (isNavigating()) {
           <app-spinner [overlay]="true" size="lg" color="white" />
         }
         <!-- Yellow dot marks where the input will be filled -->
@@ -36,6 +37,16 @@
             [enableValidation]="true"
             (confirm)="onOverlayConfirm($event)"
             (cancel)="onOverlayCancel()"
+          />
+        }
+        <!-- Assertion overlay shown when hovering with assertion mode active -->
+        @if (assertionMode() && assertionData()) {
+          <app-assertion-overlay
+            class="browser-assertion-overlay"
+            [style.left.px]="assertionOverlayX()"
+            [style.top.px]="assertionOverlayY()"
+            [mode]="assertionMode()"
+            [data]="assertionData()"
           />
         }
       </div>

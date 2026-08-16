@@ -1,0 +1,25 @@
+@if (mode() && data()) {
+  <div class="assertion-overlay" [attr.data-mode]="mode()" role="tooltip">
+    <div class="assertion-overlay-content">
+      @for (field of getVisibleFields(); track field) {
+        <div class="assertion-field-line">
+          <span class="assertion-field-key">{{ getFieldLabel(field) }}:</span>
+          <span class="assertion-field-val">
+            @if (field === 'dropdownOptions' && isArray(data()[field])) {
+              [{{ (data()[field] || []).length }}]
+            } @else {
+              {{ formatValue(data()[field]) }}
+            }
+          </span>
+        </div>
+      }
+
+      @if (data()['selector']) {
+        <div class="assertion-field-line assertion-selector-line">
+          <span class="assertion-field-key">Selector:</span>
+          <span class="assertion-field-val">{{ data()['selector']?.value || '—' }}</span>
+        </div>
+      }
+    </div>
+  </div>
+}

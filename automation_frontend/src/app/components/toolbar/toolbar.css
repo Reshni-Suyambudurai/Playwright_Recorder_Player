@@ -53,6 +53,24 @@
   padding: 0;
   cursor: default;
   flex-shrink: 0;
+  transition: all 0.2s ease-in-out;
+}
+
+.toolbar-assertion-icon:hover {
+  cursor: pointer;
+  background-color: var(--bg-tertiary);
+}
+
+.toolbar-assertion-icon.active {
+  background-color: var(--bg-tertiary);
+  border-width: 2px;
+  font-weight: 600;
+}
+
+.toolbar-assertion-x {
+  font-size: 0.9rem;
+  font-weight: 700;
+  line-height: 1;
 }
 
 .toolbar-assertion-glyph {
@@ -65,19 +83,25 @@
   margin-left: auto;
   display: flex;
   align-items: center;
+  justify-content: flex-end;
   gap: 0.5rem;
   flex: 1 1 auto;
   min-width: 0;
 }
 
 .toolbar-assertion-icon--visibility {
-  color: #0284c7;
-  border-color: color-mix(in srgb, #0284c7 45%, var(--border-color));
+  color: var(--color-success);
+  border-color: color-mix(in srgb, var(--color-success) 45%, var(--border-color));
 }
 
 .toolbar-assertion-icon--text {
   color: #b45309;
   border-color: color-mix(in srgb, #b45309 45%, var(--border-color));
+}
+
+.toolbar-assertion-icon--snapshot {
+  color: var(--color-warning);
+  border-color: color-mix(in srgb, var(--color-warning) 45%, var(--border-color));
 }
 
 .toolbar-assertion-icon--screenshot {

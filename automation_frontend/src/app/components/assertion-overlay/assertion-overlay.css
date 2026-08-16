@@ -1,0 +1,52 @@
+.assertion-overlay {
+  position: absolute;
+  background-color: rgba(0, 0, 0, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  padding: 0.6rem 0.8rem;
+  width: auto;
+  min-width: 16rem;
+  max-width: 32rem;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+  z-index: 1000;
+  pointer-events: none;
+  font-size: 0.75rem;
+  line-height: 1.5;
+  animation: fadeIn 0.2s ease-out;
+  transition: all 0.15s ease-out;
+  color: #e0e0e0;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.assertion-field-line {
+  display: flex;
+  gap: 0.5rem;
+  word-break: break-word;
+}
+
+.assertion-field-key {
+  font-weight: 500;
+  color: #b0b0b0;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.assertion-field-val {
+  color: #e0e0e0;
+  flex: 1;
+  word-break: break-word;
+}
+
+.assertion-selector-line {
+  margin-top: 0.3rem;
+  padding-top: 0.3rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}

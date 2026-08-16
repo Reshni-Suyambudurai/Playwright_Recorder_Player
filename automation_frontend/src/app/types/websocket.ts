@@ -25,7 +25,11 @@ export type EventType =
   | 'SWITCH_TAB'
   | 'TAB_SWITCHED'
   | 'SESSION_CLOSED'
-  | 'ERROR';
+  | 'ERROR'
+  | 'ASSERTION_MODE_TOGGLED'
+  | 'ASSERTION_HOVER'
+  | 'ASSERTION_DISCOVERED'
+  | 'ASSERTION_STEP_RECORDED';
 
 /* WebSocket Event Structure */
 export interface WebSocketEvent<T = any> {

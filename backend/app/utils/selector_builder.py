@@ -94,15 +94,36 @@ _INSPECT_JS = r"""
         return node;
     }
 
-    function findInteractive(node) {
-        // Prefer semantic dropdown containers before generic input targets.
-        const dropdownOwner = node.closest('[role="combobox"], [role="listbox"], select, [aria-haspopup="listbox"]');
-        if (dropdownOwner) return dropdownOwner;
+    function isEditableControl(node) {
+        if (!node || node.nodeType !== Node.ELEMENT_NODE) return false;
+        const tag = node.tagName.toLowerCase();
+        const itype = (node.getAttribute('type') || '').toLowerCase();
+        const role = (node.getAttribute('role') || '').toLowerCase();
+        if (tag === 'textarea') return true;
+        if (node.getAttribute('contenteditable') === 'true') return true;
+        if (role === 'textbox' || role === 'searchbox') return true;
+        if (tag === 'input') {
+            return !['submit', 'button', 'checkbox', 'radio', 'file', 'image', 'range', 'color'].includes(itype);
+        }
+        return false;
+    }
 
-        // Some UI libs keep combobox role on a descendant input; support that path too.
+    function findInteractive(node) {
+        // If click lands on editable text-entry controls, keep them as target even
+        // when wrapped by semantic combobox/listbox widgets.
+        const editableSelfOrAncestor = node.closest('input, textarea, [contenteditable="true"], [role="textbox"], [role="searchbox"]');
+        if (editableSelfOrAncestor && isEditableControl(editableSelfOrAncestor)) return editableSelfOrAncestor;
+
+        // Otherwise prefer semantic dropdown containers before generic targets.
+        const dropdownOwner = node.closest('[role="combobox"], [role="listbox"], select, [aria-haspopup="listbox"]');
+        if (dropdownOwner && !isEditableControl(dropdownOwner)) return dropdownOwner;
+
+        // Some UI libs keep combobox role on a descendant input; prioritize editable descendant.
         if (node && node.querySelector) {
+            const editableDesc = node.querySelector('input, textarea, [contenteditable="true"], [role="textbox"], [role="searchbox"]');
+            if (editableDesc && isEditableControl(editableDesc)) return editableDesc;
             const dropdownChild = node.querySelector('[role="combobox"], [role="listbox"], select, [aria-haspopup="listbox"]');
-            if (dropdownChild) return dropdownChild;
+            if (dropdownChild && !isEditableControl(dropdownChild)) return dropdownChild;
         }
 
         let cur = node;
@@ -255,16 +276,12 @@ _INSPECT_JS = r"""
     }
 
     const tag = target.tagName.toLowerCase();
-    const inputType = target.getAttribute('type') || '';
+    const inputType = (target.getAttribute('type') || '').toLowerCase();
     const semanticRole = (target.getAttribute('role') || '').toLowerCase();
     const hasPopupListbox = (target.getAttribute('aria-haspopup') || '').toLowerCase() === 'listbox';
-    const isSemanticDropdown = semanticRole === 'combobox' || semanticRole === 'listbox' || tag === 'select' || hasPopupListbox;
+    const isDropdownContainer = tag === 'select' || semanticRole === 'listbox' || (semanticRole === 'combobox' && !isEditableControl(target)) || (hasPopupListbox && !isEditableControl(target));
 
-    const isTextInput = !isSemanticDropdown && (
-        (tag === 'input' && !['submit','button','checkbox','radio','file','image','range','color'].includes(inputType))
-        || tag === 'textarea'
-        || target.getAttribute('contenteditable') === 'true'
-    );
+    const isTextInput = !isDropdownContainer && isEditableControl(target);
 
     // Label: aria-label > associated <label> > placeholder > title
     let label = target.getAttribute('aria-label') || target.getAttribute('placeholder') || target.getAttribute('title') || null;
@@ -350,3 +367,161 @@ async def build_selector(page: Page, x: int, y: int) -> dict | None:
                 return None
             await asyncio.sleep(0.15)
     return None
+
+
+# JS for assertion discovery — captures all data (visibility, text, value)
+_INSPECT_FOR_ASSERTION_JS = r"""
+(args) => {
+    const { x, y } = args;
+    const el = document.elementFromPoint(x, y);
+    if (!el) return null;
+
+    // Helper to build selector (reuse same logic as _INSPECT_JS)
+    function isStableId(value) {
+        if (!value) return false;
+        if (value.startsWith(':') || value.includes(':')) return false;
+        if (value.endsWith('-')) return false;
+        if (/^__next$/i.test(value) || /^__nuxt$/i.test(value) || /^root$/i.test(value) || /^app$/i.test(value)) return false;
+        if (/^(mui|headlessui|radix)-/i.test(value)) return false;
+        return true;
+    }
+
+    function isUniqueCss(selector, expected = null) {
+        try {
+            const all = Array.from(document.querySelectorAll(selector));
+            if (all.length !== 1) return false;
+            if (expected && all[0] !== expected) return false;
+            return true;
+        } catch(_) {
+            return false;
+        }
+    }
+
+    function buildSelector(e) {
+        const tag = e.tagName.toLowerCase();
+        const itype = e.getAttribute('type') || '';
+
+        if (e.id && isStableId(e.id) && isUniqueCss(`#${CSS.escape(e.id)}`, e)) {
+            return { strategy: 'id', value: e.id };
+        }
+
+        for (const attr of ['data-testid', 'data-id', 'data-cy', 'data-qa']) {
+            const v = e.getAttribute(attr);
+            if (!v) continue;
+            const q = `[${attr}="${CSS.escape(v)}"]`;
+            if (isUniqueCss(q, e)) return { strategy: 'css', value: q };
+        }
+
+        const aria = e.getAttribute('aria-label');
+        if (aria) {
+            const q = `[aria-label="${CSS.escape(aria)}"]`;
+            if (isUniqueCss(q, e)) return { strategy: 'css', value: q };
+        }
+
+        const name = e.getAttribute('name');
+        if (name) {
+            const q = `${tag}[name="${CSS.escape(name)}"]`;
+            if (isUniqueCss(q, e)) return { strategy: 'css', value: q };
+        }
+
+        if (tag === 'input' && (itype === 'submit' || itype === 'button')) {
+            const val = e.getAttribute('value');
+            if (val) {
+                const q = `input[type="${itype}"][value="${val}"]`;
+                if (document.querySelectorAll(q).length === 1)
+                    return { strategy: 'css', value: q };
+            }
+        }
+
+        const role = e.getAttribute('role');
+        if (role) {
+            const q = `[role="${role}"]`;
+            if (document.querySelectorAll(q).length === 1)
+                return { strategy: 'css', value: q };
+        }
+
+        const title = e.getAttribute('title');
+        if (title) {
+            const q = `[title="${CSS.escape(title)}"]`;
+            if (document.querySelectorAll(q).length === 1)
+                return { strategy: 'css', value: q };
+        }
+
+        function getXPath(node) {
+            if (!node || node === document.documentElement) return '/html';
+            const t = node.tagName.toLowerCase();
+            const sibs = node.parentElement
+                ? Array.from(node.parentElement.children).filter(c => c.tagName === node.tagName)
+                : [node];
+            const idx = sibs.indexOf(node) + 1;
+            return `${getXPath(node.parentElement)}/${t}${sibs.length > 1 ? `[${idx}]` : ''}`;
+        }
+        return { strategy: 'xpath', value: getXPath(e) };
+    }
+
+    // Compute visibility
+    const rect = el.getBoundingClientRect();
+    const computed = window.getComputedStyle(el);
+    const visible = rect.width > 0 && rect.height > 0 && computed.display !== 'none' && computed.visibility !== 'hidden';
+    const display = computed.display || 'unknown';
+    const opacity = parseFloat(computed.opacity) || 1.0;
+
+    // Extract text
+    const text = (el.textContent || '').trim().replace(/\s+/g, ' ');
+    const wordCount = text.split(/\s+/).filter(w => w).length;
+    const charCount = text.length;
+    const accessibleName = el.getAttribute('aria-label') || el.getAttribute('title') || el.getAttribute('placeholder') || '';
+
+    // Extract value (for inputs, selects, textareas)
+    const tag = el.tagName.toLowerCase();
+    const value = el.value !== undefined ? el.value : '';
+    const inputType = (el.getAttribute('type') || '').toLowerCase();
+
+    // Extract dropdown options (if applicable)
+    let dropdownOptions = [];
+    if (tag === 'select') {
+        const options = Array.from(el.querySelectorAll('option'));
+        dropdownOptions = options.map(opt => ({
+            value: opt.value,
+            text: opt.textContent.trim(),
+            selected: opt.selected
+        }));
+    }
+
+    return {
+        visible,
+        display,
+        opacity,
+        text,
+        wordCount,
+        charCount,
+        accessibleName,
+        value,
+        type: inputType || 'unknown',
+        dropdownOptions,
+        selector: buildSelector(el)
+    };
+}
+"""
+
+
+async def discover_by_assertion_mode(page: Page, x: float, y: float, mode: str) -> dict | None:
+    """
+    Inspect element at (x, y) and extract assertion data for the given mode.
+    Reuses _INSPECT_FOR_ASSERTION_JS to capture all data in one pass.
+    
+    Args:
+        page: Playwright page
+        x: viewport x coordinate
+        y: viewport y coordinate
+        mode: 'visibility' | 'text' | 'value'
+        
+    Returns:
+        Mode-specific assertion data dict, or None on error
+    """
+    try:
+        result = await page.evaluate(_INSPECT_FOR_ASSERTION_JS, {"x": x, "y": y})
+        return result
+    except Exception as e:
+        logger.warning(f"assertion discovery failed at ({x},{y}) mode={mode}: {e}")
+        return None

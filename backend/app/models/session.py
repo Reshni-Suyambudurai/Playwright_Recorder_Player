@@ -39,6 +39,8 @@ class RecordingSession:
     active_tab_id: str = ""
     tab_watchers: dict = field(default_factory=dict)  # tab_id → DomWatcher
     tab_meta: dict = field(default_factory=dict)      # tab_id → {title, url}
+    # Assertion mode (used during interactive assertion)
+    assertion_mode: Optional[str] = None  # "visibility" | "text" | "value" | None
     
     def is_active(self) -> bool:
         """Check if the session is currently active."""

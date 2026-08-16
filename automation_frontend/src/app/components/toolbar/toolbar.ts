@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { WebsocketApi } from '../../services/websocket.api';
 import { NavigationApi } from '../../services/navigation.api';
 import { TokenStore } from '../../services/token-store.api';
+import { AssertionModeApi } from '../../services/assertion-mode.api';
 import { environment } from '../../../environments/environment';
 import { Subscription } from 'rxjs';
 import { Spinner } from '../spinner/spinner';
@@ -21,6 +22,7 @@ export class Toolbar implements OnInit, OnDestroy {
   private websocketApi = inject(WebsocketApi);
   private navigationApi = inject(NavigationApi);
   private tokenStore = inject(TokenStore);
+  private assertionModeApi = inject(AssertionModeApi);
   private sub?: Subscription;
 
   urlInput: string = '';
@@ -28,15 +30,20 @@ export class Toolbar implements OnInit, OnDestroy {
   readonly navigationState = this.navigationApi.navigationState;
   readonly isRecording = signal(false);
   readonly isConnecting = signal(false);
+  readonly activeAssertionMode = this.assertionModeApi.activeMode;
 
   /** Emits when the user wants to open the recording modal */
   readonly openRecordingModal = output<string>();
 
   ngOnInit(): void {
     this.sub = this.websocketApi.recordingStarted$.subscribe(() => this.isRecording.set(true));
-    this.websocketApi.recordingStopped$.subscribe(() => this.isRecording.set(false));
+    this.websocketApi.recordingStopped$.subscribe(() => {
+      this.isRecording.set(false);
+      this.assertionModeApi.setMode(null);  // Clear assertion mode on stop
+    });
     this.websocketApi.disconnected$.subscribe(() => {
       this.isRecording.set(false);
+      this.assertionModeApi.setMode(null);  // Clear assertion mode on disconnect
       this.urlInput = '';
     });
   }
@@ -110,5 +117,11 @@ export class Toolbar implements OnInit, OnDestroy {
 
   onStopRecording(): void {
     this.websocketApi.sendStopRecording();
+  }
+
+  toggleAssertionMode(mode: 'visibility' | 'text' | 'value'): void {
+    const newMode = this.activeAssertionMode() === mode ? null : mode;
+    this.assertionModeApi.setMode(newMode);
+    this.websocketApi.sendAssertionModeToggled(newMode);
   }
 }

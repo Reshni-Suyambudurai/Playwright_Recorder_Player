@@ -77,11 +77,13 @@ export class WebsocketApi {
   private recordingStoppedSubject = new Subject<RecordingStoppedData>();
   private tabOpenedSubject = new Subject<TabOpenedData>();
   private tabSwitchedSubject = new Subject<TabSwitchedData>();
+  private assertionDiscoveredSubject = new Subject<any>();
 
   readonly inputDetected$: Observable<InputDetectedData> = this.inputDetectedSubject.asObservable();
   readonly recordingStopped$: Observable<RecordingStoppedData> = this.recordingStoppedSubject.asObservable();
   readonly tabOpened$: Observable<TabOpenedData> = this.tabOpenedSubject.asObservable();
   readonly tabSwitched$: Observable<TabSwitchedData> = this.tabSwitchedSubject.asObservable();
+  readonly assertionDiscovered$: Observable<any> = this.assertionDiscoveredSubject.asObservable();
 
   /**
    * Connect to WebSocket server
@@ -226,6 +228,9 @@ export class WebsocketApi {
         case 'VALIDATION_DISCOVERED':
           this.handleValidationDiscovered(event.data);
           break;
+        case 'ASSERTION_DISCOVERED':
+          this.assertionDiscoveredSubject.next(event.data);
+          break;
         case 'RECORDING_STOPPED':
           this.validationState.clear();
           this.recordingStoppedSubject.next(event.data as RecordingStoppedData);
@@ -366,6 +371,14 @@ export class WebsocketApi {
 
   public sendSwitchTab(tabId: string): void {
     this.send('SWITCH_TAB', { tab_id: tabId } satisfies SwitchTabData);
+  }
+
+  public sendAssertionModeToggled(mode: 'visibility' | 'text' | 'value' | null): void {
+    this.send('ASSERTION_MODE_TOGGLED', { mode });
+  }
+
+  public sendAssertionHover(x: number, y: number): void {
+    this.send('ASSERTION_HOVER', { x, y });
   }
 
   public isConnected(): boolean {

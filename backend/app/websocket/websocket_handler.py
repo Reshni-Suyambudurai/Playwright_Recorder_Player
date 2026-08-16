@@ -902,6 +902,82 @@ class WebSocketHandler:
         except Exception as e:
             return self._error_response("SWITCH_TAB_ERROR", str(e))
 
+    async def handle_assertion_mode_toggled(self, session_id: str, client_id: str, data: dict) -> dict:
+        """
+        Handle assertion mode toggle (visibility, text, value, or null).
+        Store the active mode in session state.
+        """
+        try:
+            mode = data.get("mode")  # "visibility" | "text" | "value" | null
+            session = self.session_manager.get_session(session_id)
+            if not session:
+                return self._error_response("SESSION_NOT_FOUND", "No active session")
+
+            # Validate mode
+            if mode not in [None, "visibility", "text", "value"]:
+                return self._error_response("INVALID_MODE", f"Unknown assertion mode: {mode}")
+
+            # Store in session (will be used during hover to determine what to extract)
+            session.assertion_mode = mode
+            logger.debug(f"[ASSERTION] session={session_id} mode_toggled={mode}")
+
+            return {
+                "event_type": EventType.ASSERTION_MODE_TOGGLED,
+                "data": {"mode": mode, "status": "ok"},
+            }
+        except Exception as e:
+            return self._error_response("ASSERTION_MODE_ERROR", str(e))
+
+    async def handle_assertion_hover(self, session_id: str, client_id: str, data: dict) -> dict:
+        """
+        Handle assertion hover: inspect element at (x, y) and emit ASSERTION_DISCOVERED.
+        Uses the assertion mode stored in session to filter data.
+        """
+        try:
+            x = data.get("x")
+            y = data.get("y")
+            session = self.session_manager.get_session(session_id)
+            
+            if not session or not session.page:
+                return self._error_response("SESSION_NOT_FOUND", "No active session")
+
+            page = tab_manager.get_active_page(session) or session.page
+
+            if x is None or y is None:
+                return self._error_response("INVALID_COORDS", "x, y coordinates required")
+
+            # Validate that assertion mode is active
+            if not session.assertion_mode:
+                return self._error_response("MODE_INACTIVE", "No assertion mode is active")
+
+            # Import here to avoid circular imports
+            from app.services.assertion_service import AssertionService
+            assertion_service = AssertionService()
+
+            # Discover and filter based on mode
+            assertion_data = await assertion_service.discover_by_mode(
+                page, x, y, session.assertion_mode
+            )
+
+            # Send async ASSERTION_DISCOVERED event to client
+            discovery_event = {
+                "event_type": EventType.ASSERTION_DISCOVERED,
+                "data": {
+                    "mode": session.assertion_mode,
+                    "assertionData": assertion_data,
+                    "coords": {"x": x, "y": y},
+                    "pageUrl": page.url,
+                }
+            }
+            await self.connection_manager.send_to_client(session_id, client_id, discovery_event)
+
+            # Return empty response (event already sent)
+            return {}
+
+        except Exception as e:
+            logger.error(f"[ASSERTION_HOVER] session={session_id}: {e}", exc_info=True)
+            return self._error_response("ASSERTION_HOVER_ERROR", str(e))
+
     async def handle_event(self, session_id: str, websocket, event_data: dict) -> None:
         """
         Route incoming event to the appropriate handler and send the response
@@ -942,6 +1018,10 @@ class WebSocketHandler:
                 response = await self.handle_stop_recording(session_id, client_id)
             elif event_type == EventType.SWITCH_TAB:
                 response = await self.handle_switch_tab(session_id, client_id, data)
+            elif event_type == EventType.ASSERTION_MODE_TOGGLED:
+                response = await self.handle_assertion_mode_toggled(session_id, client_id, data)
+            elif event_type == EventType.ASSERTION_HOVER:
+                response = await self.handle_assertion_hover(session_id, client_id, data)
             else:
                 response = self._error_response("UNKNOWN_EVENT", f"Unknown event type: {event_type}")
 

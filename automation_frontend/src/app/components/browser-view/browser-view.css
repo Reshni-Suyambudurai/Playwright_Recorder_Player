@@ -46,6 +46,7 @@
   position: relative;
   display: inline-block;
   line-height: 0;
+  overflow: hidden;
 }
 
 .browser-frame {
@@ -79,6 +80,12 @@
   position: absolute;
   z-index: 30;
   pointer-events: auto;
+}
+
+.browser-assertion-overlay {
+  position: absolute;
+  z-index: 29;
+  pointer-events: none;
 }
 
 .browser-view-placeholder,

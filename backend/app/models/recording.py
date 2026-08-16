@@ -92,6 +92,46 @@ class RecordingStep(BaseModel):
         return self.model_dump(by_alias=True, exclude={"tab_id"})
 
 
+class AssertionStep(BaseModel):
+    """
+    Represents an assertion step recorded during interactive assertion mode.
+    
+    Fields:
+    - id: unique step ID
+    - type: always "ASSERTION"
+    - assertionType: "visibility" | "text" | "value" (the mode used)
+    - selector: CSS/XPath selector for the target element
+    - coords: (x, y) where hover occurred (for reference)
+    - discoveredData: mode-specific extracted data
+      - visibility: {visible, display, opacity}
+      - text: {text, wordCount, charCount, accessibleName}
+      - value: {value, type, dropdownOptions, optionCount}
+    - pageUrl: URL of the page when assertion was captured
+    - pageTitle: title of the page
+    - timestamp: when assertion was captured
+    - waitAfterMs: optional delay after assertion
+    """
+    id: int
+    type: str = "ASSERTION"  # Always "ASSERTION"
+    assertion_type: str = Field(alias="assertionType")  # "visibility" | "text" | "value"
+    selector: Optional[SelectorInfo] = None
+    coords: Optional[Coords] = None
+    discovered_data: Optional[dict[str, Any]] = Field(None, alias="discoveredData")
+    page_url: Optional[str] = Field(None, alias="pageUrl")
+    page_title: Optional[str] = Field(None, alias="pageTitle")
+    timestamp: int = Field(default_factory=lambda: int(time.time() * 1000))
+    wait_after_ms: Optional[int] = Field(None, alias="waitAfterMs")
+    label: Optional[str] = None
+    should_run: bool = Field(True, alias="shouldRun")
+    # Internal only — not serialised to JSON output
+    tab_id: str = Field("tab-1", exclude=True)
+
+    model_config = {"populate_by_name": True}
+
+    def to_json_dict(self) -> dict:
+        return self.model_dump(by_alias=True, exclude={"tab_id"})
+
+
 class RecordingMeta(BaseModel):
     id: str
     title: str
