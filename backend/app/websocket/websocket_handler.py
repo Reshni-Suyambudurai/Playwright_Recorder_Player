@@ -904,17 +904,17 @@ class WebSocketHandler:
 
     async def handle_assertion_mode_toggled(self, session_id: str, client_id: str, data: dict) -> dict:
         """
-        Handle assertion mode toggle (visibility, text, value, or null).
+        Handle assertion mode toggle (visibility, text, value, snapshot, or null).
         Store the active mode in session state.
         """
         try:
-            mode = data.get("mode")  # "visibility" | "text" | "value" | null
+            mode = data.get("mode")  # "visibility" | "text" | "value" | "snapshot" | null
             session = self.session_manager.get_session(session_id)
             if not session:
                 return self._error_response("SESSION_NOT_FOUND", "No active session")
 
             # Validate mode
-            if mode not in [None, "visibility", "text", "value"]:
+            if mode not in [None, "visibility", "text", "value", "snapshot"]:
                 return self._error_response("INVALID_MODE", f"Unknown assertion mode: {mode}")
 
             # Store in session (will be used during hover to determine what to extract)
@@ -978,6 +978,102 @@ class WebSocketHandler:
             logger.error(f"[ASSERTION_HOVER] session={session_id}: {e}", exc_info=True)
             return self._error_response("ASSERTION_HOVER_ERROR", str(e))
 
+    async def handle_snapshot_capture_request(self, session_id: str, client_id: str, data: dict) -> dict:
+        """
+        Handle snapshot capture request: capture ARIA snapshot in rectangular region.
+        """
+        try:
+            x = data.get("x")
+            y = data.get("y")
+            width = data.get("width")
+            height = data.get("height")
+            
+            session = self.session_manager.get_session(session_id)
+            if not session or not session.page:
+                return self._error_response("SESSION_NOT_FOUND", "No active session")
+
+            page = tab_manager.get_active_page(session) or session.page
+
+            if x is None or y is None or width is None or height is None:
+                return self._error_response("INVALID_COORDS", "x, y, width, height required")
+
+            # Validate that snapshot mode is active
+            if session.assertion_mode != "snapshot":
+                return self._error_response("MODE_INACTIVE", "Snapshot mode is not active")
+
+            # Import and use SnapshotService
+            from app.services.snapshot_service import SnapshotService
+            snapshot_service = SnapshotService()
+
+            # Capture ARIA snapshot
+            snapshot_data = await snapshot_service.capture_aria_snapshot(page, x, y, width, height)
+
+            # Send SNAPSHOT_PREVIEW event to client
+            preview_event = {
+                "event_type": EventType.SNAPSHOT_PREVIEW,
+                "data": {
+                    "label": snapshot_data.get("label", "Selected region"),
+                    "ariaSnapshot": snapshot_data.get("ariaSnapshot", ""),
+                    "elementCount": snapshot_data.get("elementCount", 0),
+                    "region": {"x": x, "y": y, "width": width, "height": height},
+                    "pageUrl": page.url,
+                }
+            }
+            await self.connection_manager.send_to_client(session_id, client_id, preview_event)
+
+            # Return empty response (event already sent)
+            return {}
+
+        except Exception as e:
+            logger.error(f"[SNAPSHOT_CAPTURE] session={session_id}: {e}", exc_info=True)
+            return self._error_response("SNAPSHOT_CAPTURE_ERROR", str(e))
+
+    async def handle_snapshot_save_assertion(self, session_id: str, client_id: str, data: dict) -> dict:
+        """
+        Handle snapshot save: store the assertion step in recording.
+        """
+        try:
+            session = self.session_manager.get_session(session_id)
+            if not session:
+                return self._error_response("SESSION_NOT_FOUND", "No active session")
+
+            # Extract snapshot data from the frontend
+            label = data.get("label", "")
+            aria_snapshot = data.get("ariaSnapshot", "")
+            region = data.get("region", {})
+
+            # Store assertion step
+            assertion_step = {
+                "type": "SNAPSHOT_ASSERTION",
+                "label": label,
+                "ariaSnapshot": aria_snapshot,
+                "region": region,
+                "timestamp": datetime.now().isoformat(),
+            }
+
+            # Add to recording steps (if recording is stored in session)
+            if hasattr(session, "recording_steps"):
+                session.recording_steps.append(assertion_step)
+
+            # Clear snapshot mode
+            session.assertion_mode = None
+
+            # Send confirmation to client (optional)
+            confirmation_event = {
+                "event_type": "ASSERTION_SAVED",
+                "data": {
+                    "type": "snapshot",
+                    "timestamp": datetime.now().isoformat(),
+                }
+            }
+            await self.connection_manager.send_to_client(session_id, client_id, confirmation_event)
+
+            return {}
+
+        except Exception as e:
+            logger.error(f"[SNAPSHOT_SAVE] session={session_id}: {e}", exc_info=True)
+            return self._error_response("SNAPSHOT_SAVE_ERROR", str(e))
+
     async def handle_event(self, session_id: str, websocket, event_data: dict) -> None:
         """
         Route incoming event to the appropriate handler and send the response
@@ -1022,6 +1118,10 @@ class WebSocketHandler:
                 response = await self.handle_assertion_mode_toggled(session_id, client_id, data)
             elif event_type == EventType.ASSERTION_HOVER:
                 response = await self.handle_assertion_hover(session_id, client_id, data)
+            elif event_type == EventType.SNAPSHOT_CAPTURE_REQUEST:
+                response = await self.handle_snapshot_capture_request(session_id, client_id, data)
+            elif event_type == EventType.SNAPSHOT_SAVE_ASSERTION:
+                response = await self.handle_snapshot_save_assertion(session_id, client_id, data)
             else:
                 response = self._error_response("UNKNOWN_EVENT", f"Unknown event type: {event_type}")
 

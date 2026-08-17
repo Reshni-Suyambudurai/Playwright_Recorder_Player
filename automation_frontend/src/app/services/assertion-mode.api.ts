@@ -9,9 +9,9 @@ import { Injectable, signal } from '@angular/core';
   providedIn: 'root',
 })
 export class AssertionModeApi {
-  readonly activeMode = signal<'visibility' | 'text' | 'value' | null>(null);
+  readonly activeMode = signal<'visibility' | 'text' | 'value' | 'snapshot' | null>(null);
 
-  setMode(mode: 'visibility' | 'text' | 'value' | null): void {
+  setMode(mode: 'visibility' | 'text' | 'value' | 'snapshot' | null): void {
     this.activeMode.set(mode);
   }
 }

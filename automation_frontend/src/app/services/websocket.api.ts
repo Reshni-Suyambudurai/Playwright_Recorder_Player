@@ -78,12 +78,14 @@ export class WebsocketApi {
   private tabOpenedSubject = new Subject<TabOpenedData>();
   private tabSwitchedSubject = new Subject<TabSwitchedData>();
   private assertionDiscoveredSubject = new Subject<any>();
+  private snapshotPreviewSubject = new Subject<any>();
 
   readonly inputDetected$: Observable<InputDetectedData> = this.inputDetectedSubject.asObservable();
   readonly recordingStopped$: Observable<RecordingStoppedData> = this.recordingStoppedSubject.asObservable();
   readonly tabOpened$: Observable<TabOpenedData> = this.tabOpenedSubject.asObservable();
   readonly tabSwitched$: Observable<TabSwitchedData> = this.tabSwitchedSubject.asObservable();
   readonly assertionDiscovered$: Observable<any> = this.assertionDiscoveredSubject.asObservable();
+  readonly snapshotPreview$: Observable<any> = this.snapshotPreviewSubject.asObservable();
 
   /**
    * Connect to WebSocket server
@@ -231,6 +233,9 @@ export class WebsocketApi {
         case 'ASSERTION_DISCOVERED':
           this.assertionDiscoveredSubject.next(event.data);
           break;
+        case 'SNAPSHOT_PREVIEW':
+          this.snapshotPreviewSubject.next(event.data);
+          break;
         case 'RECORDING_STOPPED':
           this.validationState.clear();
           this.recordingStoppedSubject.next(event.data as RecordingStoppedData);
@@ -373,12 +378,20 @@ export class WebsocketApi {
     this.send('SWITCH_TAB', { tab_id: tabId } satisfies SwitchTabData);
   }
 
-  public sendAssertionModeToggled(mode: 'visibility' | 'text' | 'value' | null): void {
+  public sendAssertionModeToggled(mode: 'visibility' | 'text' | 'value' | 'snapshot' | null): void {
     this.send('ASSERTION_MODE_TOGGLED', { mode });
   }
 
   public sendAssertionHover(x: number, y: number): void {
     this.send('ASSERTION_HOVER', { x, y });
+  }
+
+  public sendSnapshotCaptureRequest(coords: { x: number; y: number; width: number; height: number }): void {
+    this.send('SNAPSHOT_CAPTURE_REQUEST', coords);
+  }
+
+  public sendSnapshotSaveAssertion(data: any): void {
+    this.send('SNAPSHOT_SAVE_ASSERTION', data);
   }
 
   public isConnected(): boolean {

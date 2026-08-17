@@ -5,6 +5,7 @@ import { AssertionModeApi } from '../../services/assertion-mode.api';
 import { InputDetectedData, TabInfo } from '../../types/websocket';
 import { InputOverlay, InputOverlayConfirmPayload } from '../input-overlay/input-overlay';
 import { AssertionOverlay } from '../assertion-overlay/assertion-overlay';
+import { RectangleDrawerComponent } from '../rectangle-drawer/rectangle-drawer';
 import { TabBar } from '../tab-bar/tab-bar';
 import { Spinner } from '../spinner/spinner';
 
@@ -14,10 +15,11 @@ const VIEWPORT_HEIGHT = 720;
 @Component({
   selector: 'app-browser-view',
   standalone: true,
-  imports: [InputOverlay, AssertionOverlay, TabBar, Spinner],
+  imports: [InputOverlay, AssertionOverlay, RectangleDrawerComponent, TabBar, Spinner],
   templateUrl: './browser-view.html',
   styleUrl: './browser-view.css',
 })
+
 export class BrowserView implements OnInit, OnDestroy {
   private wsApi = inject(WebsocketApi);
   private assertionModeApi = inject(AssertionModeApi);
@@ -31,10 +33,16 @@ export class BrowserView implements OnInit, OnDestroy {
   readonly isNavigating = signal(false);
 
   // Assertion overlay state
-  readonly assertionMode = signal<'visibility' | 'text' | 'value' | null>(null);
+  readonly assertionMode = signal<'visibility' | 'text' | 'value' | 'snapshot' | null>(null);
   readonly assertionData = signal<any>(null);
   readonly assertionOverlayX = signal(0);
   readonly assertionOverlayY = signal(0);
+
+  // Snapshot rectangle drawing state
+  private snapshotStart = signal({ x: 0, y: 0 });
+  readonly snapshotDrawing = signal({ x: 0, y: 0, width: 0, height: 0 });
+  readonly showRectangleDrawer = signal(false);
+  private isDrawing = false;
 
   private imgRef = viewChild<ElementRef<HTMLImageElement>>('frameImg');
 
@@ -55,9 +63,10 @@ export class BrowserView implements OnInit, OnDestroy {
     effect(() => {
       const mode = this.assertionModeApi.activeMode();
       if (!mode) {
-        // When assertion mode is deactivated, clear the overlay
+        // When assertion mode is deactivated, clear the overlay and rectangle
         this.assertionData.set(null);
         this.assertionMode.set(null);
+        this.showRectangleDrawer.set(false);
       }
     });
   }
@@ -78,6 +87,19 @@ export class BrowserView implements OnInit, OnDestroy {
           this.assertionOverlayX.set(Math.round(event.coords.x + 10));
           this.assertionOverlayY.set(Math.round(event.coords.y + 10));
         }
+      }),
+      this.wsApi.snapshotPreview$.subscribe(event => {
+        // event structure: {label, ariaSnapshot, elementCount, region, pageUrl}
+        this.assertionMode.set('snapshot');
+        this.assertionData.set({
+          label: event.label,
+          ariaSnapshot: event.ariaSnapshot,
+          elementCount: event.elementCount,
+          region: event.region,
+        });
+        // Position overlay in center-top of the screenshot
+        this.assertionOverlayX.set(200);
+        this.assertionOverlayY.set(50);
       }),
       this.wsApi.tabOpened$.subscribe(data => this.tabs.set(data.tabs ?? [])),
       this.wsApi.tabSwitched$.subscribe(data => {
@@ -121,6 +143,9 @@ export class BrowserView implements OnInit, OnDestroy {
   }
 
   onImageClick(event: MouseEvent): void {
+    // Guard: don't allow clicks while drawing rectangle
+    if (this.showRectangleDrawer()) return;
+
     const img = this.imgRef()?.nativeElement;
     if (!img) return;
     const rect = img.getBoundingClientRect();
@@ -131,9 +156,98 @@ export class BrowserView implements OnInit, OnDestroy {
     this.wsApi.sendClickAction(x, y);
   }
 
+  onImageMouseDown(event: MouseEvent): void {
+    // Only handle mouse down if in snapshot mode
+    if (this.assertionModeApi.activeMode() !== 'snapshot') return;
+
+    const img = this.imgRef()?.nativeElement;
+    if (!img) return;
+    
+    event.preventDefault();
+    this.isDrawing = true;
+    const rect = img.getBoundingClientRect();
+    const x = event.clientX - rect.left;
+    const y = event.clientY - rect.top;
+    this.snapshotStart.set({ x, y });
+    this.showRectangleDrawer.set(true);
+  }
+
+  onImageMouseMove(event: MouseEvent): void {
+    if (!this.isDrawing || !this.showRectangleDrawer()) return;
+
+    const img = this.imgRef()?.nativeElement;
+    if (!img) return;
+
+    const rect = img.getBoundingClientRect();
+    const start = this.snapshotStart();
+    const x = event.clientX - rect.left;
+    const y = event.clientY - rect.top;
+
+    const width = Math.abs(x - start.x);
+    const height = Math.abs(y - start.y);
+    const drawX = Math.min(start.x, x);
+    const drawY = Math.min(start.y, y);
+
+    this.snapshotDrawing.set({ x: drawX, y: drawY, width, height });
+  }
+
+  onImageMouseUp(event: MouseEvent): void {
+    if (!this.isDrawing) return;
+
+    this.isDrawing = false;
+    const drawing = this.snapshotDrawing();
+
+    // Ignore clicks/invalid rectangles (too small)
+    if (drawing.width < 10 || drawing.height < 10) {
+      this.showRectangleDrawer.set(false);
+      return;
+    }
+
+    const img = this.imgRef()?.nativeElement;
+    if (!img) return;
+
+    const rect = img.getBoundingClientRect();
+    const scaleX = VIEWPORT_WIDTH / rect.width;
+    const scaleY = VIEWPORT_HEIGHT / rect.height;
+
+    // Convert display coordinates to viewport coordinates
+    const vpCoords = {
+      x: Math.round(drawing.x * scaleX),
+      y: Math.round(drawing.y * scaleY),
+      width: Math.round(drawing.width * scaleX),
+      height: Math.round(drawing.height * scaleY),
+    };
+
+    // Send snapshot capture request to backend
+    this.wsApi.sendSnapshotCaptureRequest(vpCoords);
+  }
+
+  onImageMouseLeave(): void {
+    if (this.isDrawing) {
+      this.isDrawing = false;
+      this.showRectangleDrawer.set(false);
+    }
+  }
+
+  onSnapshotSaved(): void {
+    // Emit save event and clear rectangle
+    this.wsApi.sendSnapshotSaveAssertion(this.assertionData());
+    this.showRectangleDrawer.set(false);
+    this.assertionData.set(null);
+    // Keep assertionMode active so user can draw another rectangle immediately
+  }
+
+  onSnapshotCancelled(): void {
+    // Cancel and clear rectangle
+    this.showRectangleDrawer.set(false);
+    this.assertionData.set(null);
+    // Keep assertionMode active so user can draw another rectangle immediately
+  }
+
   onImageHover(event: MouseEvent): void {
-    // Only emit if assertion mode is active
-    if (!this.assertionModeApi.activeMode()) return;
+    // Only emit if assertion mode is active (but NOT in snapshot mode)
+    const mode = this.assertionModeApi.activeMode();
+    if (!mode || mode === 'snapshot') return;  // Skip for snapshot mode (uses rectangle drawing instead)
 
     // Throttle hover events (300ms for smooth updates without flickering)
     const now = Date.now();

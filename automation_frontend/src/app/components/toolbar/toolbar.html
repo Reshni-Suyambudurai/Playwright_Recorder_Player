@@ -98,12 +98,17 @@
         <button
           type="button"
           class="toolbar-assertion-icon toolbar-assertion-icon--snapshot"
-          [appTooltip]="'Snapshot assertion'"
+          [class.active]="activeAssertionMode() === 'snapshot'"
+          (click)="toggleAssertionMode('snapshot')"
+          [appTooltip]="activeAssertionMode() === 'snapshot' ? 'Deactivate snapshot assertion' : 'Snapshot assertion'"
           tooltipPosition="bottom"
           aria-label="Snapshot assertion"
-          disabled
         >
-          <app-svg-icon name="camera" cssClass="svg-icon--tiny"></app-svg-icon>
+          @if (activeAssertionMode() === 'snapshot') {
+            <span class="toolbar-assertion-x" aria-hidden="true">✕</span>
+          } @else {
+            <app-svg-icon name="camera" cssClass="svg-icon--tiny"></app-svg-icon>
+          }
         </button>
       }
     </div>

@@ -29,7 +29,10 @@ export type EventType =
   | 'ASSERTION_MODE_TOGGLED'
   | 'ASSERTION_HOVER'
   | 'ASSERTION_DISCOVERED'
-  | 'ASSERTION_STEP_RECORDED';
+  | 'ASSERTION_STEP_RECORDED'
+  | 'SNAPSHOT_CAPTURE_REQUEST'
+  | 'SNAPSHOT_PREVIEW'
+  | 'SNAPSHOT_SAVE_ASSERTION';
 
 /* WebSocket Event Structure */
 export interface WebSocketEvent<T = any> {

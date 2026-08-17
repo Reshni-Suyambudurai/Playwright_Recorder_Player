@@ -39,12 +39,16 @@ class AssertionService:
             page: Playwright page
             x: viewport x coordinate
             y: viewport y coordinate
-            mode: 'visibility' | 'text' | 'value'
+            mode: 'visibility' | 'text' | 'value' | 'snapshot'
             
         Returns:
             Filtered dict with mode-specific fields + selector
         """
         try:
+            # Snapshot mode uses rectangle-based discovery via SnapshotService, not hover-based
+            if mode == "snapshot":
+                raise ValueError("Snapshot mode does not support hover-based discovery. Use rectangle-based discovery instead.")
+            
             raw = await discover_by_assertion_mode(page, x, y, mode)
             if not raw:
                 raise ValueError(f"No DOM element found at ({x}, {y})")

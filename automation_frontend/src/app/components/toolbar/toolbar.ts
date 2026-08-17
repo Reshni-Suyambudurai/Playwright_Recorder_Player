@@ -119,7 +119,7 @@ export class Toolbar implements OnInit, OnDestroy {
     this.websocketApi.sendStopRecording();
   }
 
-  toggleAssertionMode(mode: 'visibility' | 'text' | 'value'): void {
+  toggleAssertionMode(mode: 'visibility' | 'text' | 'value' | 'snapshot'): void {
     const newMode = this.activeAssertionMode() === mode ? null : mode;
     this.assertionModeApi.setMode(newMode);
     this.websocketApi.sendAssertionModeToggled(newMode);

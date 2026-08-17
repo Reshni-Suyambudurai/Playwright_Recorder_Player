@@ -1,24 +1,45 @@
 @if (mode() && data()) {
   <div class="assertion-overlay" [attr.data-mode]="mode()" role="tooltip">
     <div class="assertion-overlay-content">
-      @for (field of getVisibleFields(); track field) {
-        <div class="assertion-field-line">
-          <span class="assertion-field-key">{{ getFieldLabel(field) }}:</span>
-          <span class="assertion-field-val">
-            @if (field === 'dropdownOptions' && isArray(data()[field])) {
-              [{{ (data()[field] || []).length }}]
-            } @else {
-              {{ formatValue(data()[field]) }}
-            }
-          </span>
-        </div>
-      }
+      @if (mode() === 'snapshot') {
+        @if (data()['label']) {
+          <div class="assertion-field-line">
+            <span class="assertion-field-key">{{ getFieldLabel('label') }}:</span>
+            <span class="assertion-field-val">{{ formatValue(data()['label']) }}</span>
+          </div>
+        }
+        
+        @if (data()['ariaSnapshot']) {
+          <div class="assertion-field-line assertion-snapshot-line">
+            <span class="assertion-field-key">{{ getFieldLabel('ariaSnapshot') }}:</span>
+            <pre class="aria-snapshot-text">{{ formatValue(data()['ariaSnapshot']) }}</pre>
+          </div>
+        }
 
-      @if (data()['selector']) {
-        <div class="assertion-field-line assertion-selector-line">
-          <span class="assertion-field-key">Selector:</span>
-          <span class="assertion-field-val">{{ data()['selector']?.value || '—' }}</span>
+        <div class="assertion-overlay-actions">
+          <button class="assertion-btn assertion-btn-cancel" (click)="onCancelAssertion()">Cancel</button>
+          <button class="assertion-btn assertion-btn-save" (click)="onSaveAssertion()">Save</button>
         </div>
+      } @else {
+        @for (field of getVisibleFields(); track field) {
+          <div class="assertion-field-line">
+            <span class="assertion-field-key">{{ getFieldLabel(field) }}:</span>
+            <span class="assertion-field-val">
+              @if (field === 'dropdownOptions' && isArray(data()[field])) {
+                [{{ (data()[field] || []).length }}]
+              } @else {
+                {{ formatValue(data()[field]) }}
+              }
+            </span>
+          </div>
+        }
+
+        @if (data()['selector']) {
+          <div class="assertion-field-line assertion-selector-line">
+            <span class="assertion-field-key">Selector:</span>
+            <span class="assertion-field-val">{{ data()['selector']?.value || '—' }}</span>
+          </div>
+        }
       }
     </div>
   </div>

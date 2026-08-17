@@ -15,6 +15,10 @@
           (click)="onImageClick($event)"
           (wheel)="onImageWheel($event)"
           (mousemove)="onImageHover($event)"
+          (mousedown)="onImageMouseDown($event)"
+          (mousemove)="onImageMouseMove($event)"
+          (mouseup)="onImageMouseUp($event)"
+          (mouseleave)="onImageMouseLeave()"
           draggable="false"
         />
         <!-- Loading overlay shown while waiting for next frame after navigation -->
@@ -47,8 +51,15 @@
             [style.top.px]="assertionOverlayY()"
             [mode]="assertionMode()"
             [data]="assertionData()"
+            (saved)="onSnapshotSaved()"
+            (cancelled)="onSnapshotCancelled()"
           />
         }
+        <!-- Rectangle drawer for snapshot assertion region selection -->
+        <app-rectangle-drawer
+          [isActive]="showRectangleDrawer()"
+          [rect]="snapshotDrawing()"
+        />
       </div>
     </div>
 
