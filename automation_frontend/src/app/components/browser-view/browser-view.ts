@@ -50,15 +50,19 @@ export class BrowserView implements OnInit, OnDestroy {
   private _lastHoverTime = 0;
   private readonly HOVER_THROTTLE_MS = 300;
 
-  ngOnInit(): void {
-    // Listen to assertion mode changes and clear overlay when deactivated
+  constructor() {
+    // Monitor assertion mode changes and clear overlay when deactivated
     effect(() => {
-      if (!this.assertionModeApi.activeMode()) {
-        // Clear assertion overlay when any assertion mode is deactivated
+      const mode = this.assertionModeApi.activeMode();
+      if (!mode) {
+        // When assertion mode is deactivated, clear the overlay
         this.assertionData.set(null);
+        this.assertionMode.set(null);
       }
     });
+  }
 
+  ngOnInit(): void {
     this.subs.push(
       this.wsApi.frame$.subscribe(frame => {
         this.isNavigating.set(false);
