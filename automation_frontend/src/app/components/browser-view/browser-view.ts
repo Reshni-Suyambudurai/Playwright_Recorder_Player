@@ -27,8 +27,12 @@ export class BrowserView implements OnInit, OnDestroy {
 
   readonly frameUrl: WritableSignal<string> = signal('');
   readonly overlayData: WritableSignal<InputDetectedData | null> = signal(null);
+  // Exact click point — used only for the yellow marker dot
   readonly overlayX = signal(0);
   readonly overlayY = signal(0);
+  // Popup position — starts at the click point, then clamped to stay fully on screen
+  readonly overlayPopupX = signal(0);
+  readonly overlayPopupY = signal(0);
   readonly tabs = signal<TabInfo[]>([]);
   readonly isNavigating = signal(false);
 
@@ -45,6 +49,7 @@ export class BrowserView implements OnInit, OnDestroy {
   private isDrawing = false;
 
   private imgRef = viewChild<ElementRef<HTMLImageElement>>('frameImg');
+  private inputOverlayRef = viewChild<ElementRef<HTMLElement>>('inputOverlayEl');
 
   // Scroll debounce state
   private _scrollTimer: ReturnType<typeof setTimeout> | null = null;
@@ -137,9 +142,42 @@ export class BrowserView implements OnInit, OnDestroy {
     const scaleY = rect.height / VIEWPORT_HEIGHT;
     // Position relative to the container (container is position:relative)
     const containerRect = (img.parentElement as HTMLElement).getBoundingClientRect();
-    this.overlayX.set(Math.round(data.x * scaleX + (rect.left - containerRect.left)));
-    this.overlayY.set(Math.round(data.y * scaleY + (rect.top - containerRect.top)));
+    const x = Math.round(data.x * scaleX + (rect.left - containerRect.left));
+    const y = Math.round(data.y * scaleY + (rect.top - containerRect.top));
+    // Marker sits at the exact click point
+    this.overlayX.set(x);
+    this.overlayY.set(y);
+    // Popup starts at the click point too; it gets clamped on-screen after it renders
+    this.overlayPopupX.set(x);
+    this.overlayPopupY.set(y);
     this.overlayData.set(data);
+    // Wait a frame so the popup has its real dimensions, then clamp it into view
+    requestAnimationFrame(() => this._repositionInputOverlay());
+  }
+
+  private _repositionInputOverlay(): void {
+    const popup = this.inputOverlayRef()?.nativeElement;
+    const img = this.imgRef()?.nativeElement;
+    if (!popup || !img) return;
+
+    const containerRect = (img.parentElement as HTMLElement).getBoundingClientRect();
+    const popupWidth = popup.offsetWidth;
+    const popupHeight = popup.offsetHeight;
+    const padding = 4;
+
+    let x = this.overlayX();
+    let y = this.overlayY();
+
+    // Pull the popup back inside the right/bottom edges of the screenshot
+    if (x + popupWidth > containerRect.width - padding) {
+      x = Math.max(padding, containerRect.width - popupWidth - padding);
+    }
+    if (y + popupHeight > containerRect.height - padding) {
+      y = Math.max(padding, containerRect.height - popupHeight - padding);
+    }
+
+    this.overlayPopupX.set(x);
+    this.overlayPopupY.set(y);
   }
 
   onImageClick(event: MouseEvent): void {

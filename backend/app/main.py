@@ -123,13 +123,16 @@ def create_app():
 
         except WebSocketDisconnect:
             logger.info(f"[WS] Client disconnected from session {session_id}")
-            # Detach all tab watchers so no more frames are emitted for this client
+            # Detach watchers
             session = session_manager.get_session(session_id)
             if session:
                 await tab_manager.detach_all_watchers(session)
                 if session.dom_watcher:
                     await session.dom_watcher.detach()
                     session.dom_watcher = None
+            
+            # Cleanup Playwright resources
+            await session_manager.cleanup_session(session_id)
             await connection_manager.disconnect(websocket)
 
         except Exception as e:

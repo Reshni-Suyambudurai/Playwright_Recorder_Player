@@ -111,6 +111,8 @@ _INSPECT_JS = r"""
     function findInteractive(node) {
         // If click lands on editable text-entry controls, keep them as target even
         // when wrapped by semantic combobox/listbox widgets.
+        // NOTE: Only walk UP (ancestors), not DOWN (descendants), to avoid false positives
+        // where clicking on a parent returns a hidden/unrelated nested input.
         const editableSelfOrAncestor = node.closest('input, textarea, [contenteditable="true"], [role="textbox"], [role="searchbox"]');
         if (editableSelfOrAncestor && isEditableControl(editableSelfOrAncestor)) return editableSelfOrAncestor;
 
@@ -118,14 +120,7 @@ _INSPECT_JS = r"""
         const dropdownOwner = node.closest('[role="combobox"], [role="listbox"], select, [aria-haspopup="listbox"]');
         if (dropdownOwner && !isEditableControl(dropdownOwner)) return dropdownOwner;
 
-        // Some UI libs keep combobox role on a descendant input; prioritize editable descendant.
-        if (node && node.querySelector) {
-            const editableDesc = node.querySelector('input, textarea, [contenteditable="true"], [role="textbox"], [role="searchbox"]');
-            if (editableDesc && isEditableControl(editableDesc)) return editableDesc;
-            const dropdownChild = node.querySelector('[role="combobox"], [role="listbox"], select, [aria-haspopup="listbox"]');
-            if (dropdownChild && !isEditableControl(dropdownChild)) return dropdownChild;
-        }
-
+        // Walk up the DOM tree to find interactive candidates
         let cur = node;
         for (let i = 0; i < 6 && cur && cur !== document.body; i++) {
             if (isInteractiveCandidate(cur)) return cur;

@@ -34,9 +34,10 @@
           ></div>
 
           <app-input-overlay
+            #inputOverlayEl
             class="browser-input-overlay"
-            [style.left.px]="overlayX()"
-            [style.top.px]="overlayY()"
+            [style.left.px]="overlayPopupX()"
+            [style.top.px]="overlayPopupY()"
             [inputData]="overlayData()!"
             [enableValidation]="true"
             (confirm)="onOverlayConfirm($event)"
