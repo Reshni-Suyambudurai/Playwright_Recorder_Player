@@ -1,120 +1,141 @@
-.assertion-overlay {
+.assertion-box {
   position: absolute;
-  background-color: rgba(0, 0, 0, 0.9);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 6px;
-  padding: 0.6rem 0.8rem;
+  display: flex;
+  flex-direction: column;
   width: auto;
-  min-width: 16rem;
-  max-width: 32rem;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+  min-width: 17rem;
+  max-width: 30rem;
+  background: var(--bg-elevated, var(--bg-primary));
+  border: 1px solid var(--border-color);
+  border-radius: var(--rounded-lg, 12px);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.28), 0 2px 8px rgba(0, 0, 0, 0.14);
+  overflow: hidden;
   z-index: 1000;
   pointer-events: none;
-  font-size: 0.75rem;
-  line-height: 1.5;
-  animation: fadeIn 0.2s ease-out;
-  transition: all 0.15s ease-out;
-  color: #e0e0e0;
+  font-size: 0.8rem;
+  color: var(--text-primary);
+  animation: assertionBoxIn 0.16s ease-out;
+  transition: left 0.12s ease-out, top 0.12s ease-out;
 }
 
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
+@keyframes assertionBoxIn {
+  from { opacity: 0; transform: translateY(-4px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.assertion-box-header {
+  display: flex;
+  align-items: center;
+  padding: 0.55rem 0.85rem;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.assertion-box-title {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--color-primary-600, var(--text-secondary));
+}
+
+.assertion-box-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.7rem 0.85rem;
+  line-height: 1.5;
+}
+
+/* Snapshot mode allows clicking Cancel/Save */
+.assertion-box[data-mode="snapshot"] {
+  pointer-events: auto;
+  max-width: 46rem;
+  min-width: 21rem;
 }
 
 .assertion-field-line {
   display: flex;
-  gap: 0.5rem;
+  gap: 0.6rem;
   word-break: break-word;
 }
 
 .assertion-field-key {
-  font-weight: 500;
-  color: #b0b0b0;
+  font-weight: 600;
+  color: var(--text-secondary);
   white-space: nowrap;
   flex-shrink: 0;
+  min-width: 5.5rem;
 }
 
 .assertion-field-val {
-  color: #e0e0e0;
+  color: var(--text-primary);
   flex: 1;
   word-break: break-word;
 }
 
 .assertion-selector-line {
-  margin-top: 0.3rem;
-  padding-top: 0.3rem;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-/* Snapshot mode specific styles */
-.assertion-overlay[data-mode="snapshot"] {
-  pointer-events: auto;
-  max-width: 48rem;
-  min-width: 20rem;
+  margin-top: 0.2rem;
+  padding-top: 0.5rem;
+  border-top: 1px dashed var(--border-color);
 }
 
 .assertion-snapshot-line {
   flex-direction: column;
-  gap: 0.3rem;
-  margin-top: 0.5rem;
+  gap: 0.35rem;
+  margin-top: 0.2rem;
 }
 
 .aria-snapshot-text {
-  background-color: rgba(0, 0, 0, 0.5);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 4px;
-  padding: 0.5rem;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--rounded-md, 6px);
+  padding: 0.55rem;
   margin: 0;
   font-family: var(--font-mono, 'Courier New', monospace);
   font-size: 0.7rem;
   line-height: 1.4;
-  color: #d0d0d0;
+  color: var(--text-primary);
   max-height: 12rem;
   overflow-y: auto;
   word-break: break-word;
   white-space: pre-wrap;
-  flex: 1;
 }
 
-.assertion-overlay-actions {
+.assertion-box-actions {
   display: flex;
   gap: 0.5rem;
-  margin-top: 0.8rem;
+  margin-top: 0.3rem;
   padding-top: 0.6rem;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  border-top: 1px solid var(--border-color);
 }
 
 .assertion-btn {
   flex: 1;
   padding: 0.4rem 0.8rem;
   border: none;
-  border-radius: 4px;
-  font-size: 0.75rem;
-  font-weight: 500;
+  border-radius: var(--rounded-md, 6px);
+  font-size: 0.78rem;
+  font-weight: 600;
   cursor: pointer;
-  transition: all var(--transition-fast, 150ms) ease-out;
-  color: white;
+  transition: filter var(--transition-fast, 150ms) ease-out, transform var(--transition-fast, 150ms) ease-out;
+  color: #fff;
 }
 
 .assertion-btn-cancel {
-  background-color: rgba(239, 68, 68, 0.7);
+  background-color: var(--color-danger-600, #dc2626);
 }
 
 .assertion-btn-cancel:hover {
-  background-color: rgba(239, 68, 68, 0.9);
+  filter: brightness(1.1);
   transform: translateY(-1px);
 }
 
 .assertion-btn-save {
-  background-color: rgba(16, 185, 129, 0.7);
+  background-color: var(--color-success-600, #16a34a);
 }
 
 .assertion-btn-save:hover {
-  background-color: rgba(16, 185, 129, 0.9);
+  filter: brightness(1.1);
   transform: translateY(-1px);
 }

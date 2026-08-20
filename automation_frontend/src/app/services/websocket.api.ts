@@ -394,6 +394,14 @@ export class WebsocketApi {
     this.send('SNAPSHOT_SAVE_ASSERTION', data);
   }
 
+  public sendAssertionSave(
+    mode: 'visibility' | 'text' | 'value',
+    data: any
+  ): void {
+    // Send assertion step recorded event
+    this.send('ASSERTION_STEP_RECORDED', { mode, data });
+  }
+
   public isConnected(): boolean {
     return this.ws !== null && this.ws.readyState === WebSocket.OPEN;
   }

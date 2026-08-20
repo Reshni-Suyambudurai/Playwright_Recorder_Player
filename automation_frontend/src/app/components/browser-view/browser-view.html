@@ -25,10 +25,11 @@
         @if (isNavigating()) {
           <app-spinner [overlay]="true" size="lg" color="white" />
         }
-        <!-- Yellow dot marks where the input will be filled -->
+        <!-- Yellow dot marks where the input will be filled (red when assertion mode active) -->
         @if (overlayData()) {
           <div
             class="input-marker"
+            [class.assertion-mode]="!!assertionModeApi.activeMode()"
             [style.left.px]="overlayX()"
             [style.top.px]="overlayY()"
           ></div>
@@ -44,17 +45,21 @@
             (cancel)="onOverlayCancel()"
           />
         }
-        <!-- Assertion overlay shown when hovering with assertion mode active -->
-        @if (assertionMode() && assertionData()) {
-          <app-assertion-overlay
-            class="browser-assertion-overlay"
-            [style.left.px]="assertionOverlayX()"
-            [style.top.px]="assertionOverlayY()"
-            [mode]="assertionMode()"
-            [data]="assertionData()"
-            (saved)="onSnapshotSaved()"
-            (cancelled)="onSnapshotCancelled()"
-          />
+        <!-- Yellow dot follows the cursor whenever any assertion mode is active -->
+        @if (assertionCursorVisible()) {
+          <div
+            class="assertion-cursor-dot"
+            [style.left.px]="assertionCursorX()"
+            [style.top.px]="assertionCursorY()"
+          ></div>
+        }
+        <!-- Static yellow dot pinned at the last-clicked point while an assertion is locked -->
+        @if (assertionModeApi.locked()) {
+          <div
+            class="assertion-cursor-dot assertion-cursor-dot--pinned"
+            [style.left.px]="assertionClickX()"
+            [style.top.px]="assertionClickY()"
+          ></div>
         }
         <!-- Rectangle drawer for snapshot assertion region selection -->
         <app-rectangle-drawer

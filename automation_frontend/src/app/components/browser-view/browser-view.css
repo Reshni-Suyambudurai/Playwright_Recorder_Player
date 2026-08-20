@@ -76,16 +76,45 @@
   50%       { box-shadow: 0 0 0 8px rgba(250, 204, 21, 0.1); }
 }
 
+/* Yellow dot indicator when assertion mode is active (amber-toned to stand out from the default marker) */
+.input-marker.assertion-mode {
+  background: rgba(245, 158, 11, 0.9);
+  border-color: #b45309;
+  box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.3);
+  animation: pulse-marker-assertion 1.2s ease-in-out infinite;
+}
+
+@keyframes pulse-marker-assertion {
+  0%, 100% { box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.3), 0 0 8px rgba(245, 158, 11, 0.5); }
+  50%       { box-shadow: 0 0 0 8px rgba(245, 158, 11, 0.1), 0 0 12px rgba(245, 158, 11, 0.3); }
+}
+
 .browser-input-overlay {
   position: absolute;
   z-index: 30;
   pointer-events: auto;
 }
 
-.browser-assertion-overlay {
+/* Small yellow dot that tracks the cursor while any assertion mode is active */
+.assertion-cursor-dot {
   position: absolute;
-  z-index: 29;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #f59e0b;
+  border: 2px solid #b45309;
+  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.35);
+  transform: translate(-50%, -50%);
   pointer-events: none;
+  z-index: 25;
+}
+
+/* Pinned variant: marks the exact clicked point once an assertion is locked */
+.assertion-cursor-dot--pinned {
+  width: 14px;
+  height: 14px;
+  z-index: 26;
+  animation: pulse-marker-assertion 1.2s ease-in-out infinite;
 }
 
 .browser-view-placeholder,

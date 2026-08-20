@@ -4,7 +4,6 @@ import { WebsocketApi } from '../../services/websocket.api';
 import { AssertionModeApi } from '../../services/assertion-mode.api';
 import { InputDetectedData, TabInfo } from '../../types/websocket';
 import { InputOverlay, InputOverlayConfirmPayload } from '../input-overlay/input-overlay';
-import { AssertionOverlay } from '../assertion-overlay/assertion-overlay';
 import { RectangleDrawerComponent } from '../rectangle-drawer/rectangle-drawer';
 import { TabBar } from '../tab-bar/tab-bar';
 import { Spinner } from '../spinner/spinner';
@@ -15,14 +14,14 @@ const VIEWPORT_HEIGHT = 720;
 @Component({
   selector: 'app-browser-view',
   standalone: true,
-  imports: [InputOverlay, AssertionOverlay, RectangleDrawerComponent, TabBar, Spinner],
+  imports: [InputOverlay, RectangleDrawerComponent, TabBar, Spinner],
   templateUrl: './browser-view.html',
   styleUrl: './browser-view.css',
 })
 
 export class BrowserView implements OnInit, OnDestroy {
   private wsApi = inject(WebsocketApi);
-  private assertionModeApi = inject(AssertionModeApi);
+  readonly assertionModeApi = inject(AssertionModeApi);
   private subs: Subscription[] = [];
 
   readonly frameUrl: WritableSignal<string> = signal('');
@@ -36,11 +35,16 @@ export class BrowserView implements OnInit, OnDestroy {
   readonly tabs = signal<TabInfo[]>([]);
   readonly isNavigating = signal(false);
 
-  // Assertion overlay state
-  readonly assertionMode = signal<'visibility' | 'text' | 'value' | 'snapshot' | null>(null);
-  readonly assertionData = signal<any>(null);
-  readonly assertionOverlayX = signal(0);
-  readonly assertionOverlayY = signal(0);
+  // Assertion state (detected from backend, stored in AssertionModeApi)
+
+  // Cursor-tracking yellow dot shown while any assertion mode is active (hidden once locked)
+  readonly assertionCursorX = signal(0);
+  readonly assertionCursorY = signal(0);
+  readonly assertionCursorVisible = signal(false);
+
+  // Static yellow dot pinned at the last-clicked point once an assertion is locked
+  readonly assertionClickX = signal(0);
+  readonly assertionClickY = signal(0);
 
   // Snapshot rectangle drawing state
   private snapshotStart = signal({ x: 0, y: 0 });
@@ -49,7 +53,9 @@ export class BrowserView implements OnInit, OnDestroy {
   private isDrawing = false;
 
   private imgRef = viewChild<ElementRef<HTMLImageElement>>('frameImg');
-  private inputOverlayRef = viewChild<ElementRef<HTMLElement>>('inputOverlayEl');
+  // These template refs point at component tags, so `read: ElementRef` is required —
+  // otherwise viewChild resolves to the component instance and .nativeElement is undefined.
+  private inputOverlayRef = viewChild('inputOverlayEl', { read: ElementRef<HTMLElement> });
 
   // Scroll debounce state
   private _scrollTimer: ReturnType<typeof setTimeout> | null = null;
@@ -68,10 +74,10 @@ export class BrowserView implements OnInit, OnDestroy {
     effect(() => {
       const mode = this.assertionModeApi.activeMode();
       if (!mode) {
-        // When assertion mode is deactivated, clear the overlay and rectangle
-        this.assertionData.set(null);
-        this.assertionMode.set(null);
+        // When assertion mode is deactivated, clear the rectangle drawer and cursor dot
         this.showRectangleDrawer.set(false);
+        this.assertionModeApi.clearDetectedAssertion();
+        this.assertionCursorVisible.set(false);
       }
     });
   }
@@ -86,25 +92,18 @@ export class BrowserView implements OnInit, OnDestroy {
       this.wsApi.inputDetected$.subscribe(data => this._showOverlay(data)),
       this.wsApi.assertionDiscovered$.subscribe(event => {
         // event structure: {mode, assertionData: {...fields...}, coords, pageUrl}
-        this.assertionMode.set(event.mode || null);
-        this.assertionData.set(event.assertionData || null);
-        if (event.coords) {
-          this.assertionOverlayX.set(Math.round(event.coords.x + 10));
-          this.assertionOverlayY.set(Math.round(event.coords.y + 10));
-        }
+        // Store in AssertionModeApi for status sidebar to display
+        this.assertionModeApi.setDetectedAssertion(event.mode || null, event.assertionData || null);
       }),
       this.wsApi.snapshotPreview$.subscribe(event => {
         // event structure: {label, ariaSnapshot, elementCount, region, pageUrl}
-        this.assertionMode.set('snapshot');
-        this.assertionData.set({
+        // Store in AssertionModeApi for status sidebar to display
+        this.assertionModeApi.setDetectedAssertion('snapshot', {
           label: event.label,
           ariaSnapshot: event.ariaSnapshot,
           elementCount: event.elementCount,
           region: event.region,
         });
-        // Position overlay in center-top of the screenshot
-        this.assertionOverlayX.set(200);
-        this.assertionOverlayY.set(50);
       }),
       this.wsApi.tabOpened$.subscribe(data => this.tabs.set(data.tabs ?? [])),
       this.wsApi.tabSwitched$.subscribe(data => {
@@ -113,16 +112,14 @@ export class BrowserView implements OnInit, OnDestroy {
       }),
       this.wsApi.recordingStopped$.subscribe(() => {
         this.tabs.set([]);
-        this.assertionMode.set(null);
-        this.assertionData.set(null);
+        this.assertionModeApi.clearDetectedAssertion();
       }),
       this.wsApi.disconnected$.subscribe(() => {
         this.frameUrl.set('');
         this.overlayData.set(null);
         this.tabs.set([]);
         this.isNavigating.set(false);
-        this.assertionMode.set(null);
-        this.assertionData.set(null);
+        this.assertionModeApi.clearDetectedAssertion();
         if (this._scrollTimer !== null) { clearTimeout(this._scrollTimer); this._scrollTimer = null; }
         this._accDeltaX = 0; this._accDeltaY = 0;
       }),
@@ -184,6 +181,11 @@ export class BrowserView implements OnInit, OnDestroy {
     // Guard: don't allow clicks while drawing rectangle
     if (this.showRectangleDrawer()) return;
 
+    const mode = this.assertionModeApi.activeMode();
+
+    // Snapshot mode uses drag-to-select instead of click; ignore plain clicks
+    if (mode === 'snapshot') return;
+
     const img = this.imgRef()?.nativeElement;
     if (!img) return;
     const rect = img.getBoundingClientRect();
@@ -191,6 +193,18 @@ export class BrowserView implements OnInit, OnDestroy {
     const scaleY = VIEWPORT_HEIGHT / rect.height;
     const x = Math.round((event.clientX - rect.left) * scaleX);
     const y = Math.round((event.clientY - rect.top) * scaleY);
+
+    if (mode) {
+      // Pin the assertion at this exact point: one last hover request, then stop
+      // reacting to further mouse movement until the user Saves or Dismisses it.
+      this.assertionClickX.set(Math.round(event.clientX - rect.left));
+      this.assertionClickY.set(Math.round(event.clientY - rect.top));
+      this.assertionCursorVisible.set(false);
+      this.assertionModeApi.lock();
+      this.wsApi.sendAssertionHover(x, y);
+      return;
+    }
+
     this.wsApi.sendClickAction(x, y);
   }
 
@@ -265,74 +279,50 @@ export class BrowserView implements OnInit, OnDestroy {
       this.isDrawing = false;
       this.showRectangleDrawer.set(false);
     }
-  }
-
-  onSnapshotSaved(): void {
-    // Emit save event and clear rectangle
-    this.wsApi.sendSnapshotSaveAssertion(this.assertionData());
-    this.showRectangleDrawer.set(false);
-    this.assertionData.set(null);
-    // Keep assertionMode active so user can draw another rectangle immediately
-  }
-
-  onSnapshotCancelled(): void {
-    // Cancel and clear rectangle
-    this.showRectangleDrawer.set(false);
-    this.assertionData.set(null);
-    // Keep assertionMode active so user can draw another rectangle immediately
+    this.assertionCursorVisible.set(false);
   }
 
   onImageHover(event: MouseEvent): void {
-    // Only emit if assertion mode is active (but NOT in snapshot mode)
     const mode = this.assertionModeApi.activeMode();
-    if (!mode || mode === 'snapshot') return;  // Skip for snapshot mode (uses rectangle drawing instead)
+    const img = this.imgRef()?.nativeElement;
+    if (!img) return;
+    const rect = img.getBoundingClientRect();
+
+    // Once an assertion is locked (user clicked an element), freeze the display —
+    // ignore further mouse movement until it's Saved or Dismissed from the sidebar.
+    if (this.assertionModeApi.locked()) return;
+
+    // Track the yellow cursor dot for any active assertion mode (visibility/text/value/snapshot)
+    if (mode) {
+      this.assertionCursorX.set(Math.round(event.clientX - rect.left));
+      this.assertionCursorY.set(Math.round(event.clientY - rect.top));
+      this.assertionCursorVisible.set(true);
+    } else {
+      this.assertionCursorVisible.set(false);
+    }
+
+    // Hover-based discovery only applies to non-snapshot modes (snapshot uses drag-select instead)
+    if (!mode || mode === 'snapshot') return;
 
     // Throttle hover events (300ms for smooth updates without flickering)
     const now = Date.now();
     if (now - this._lastHoverTime < this.HOVER_THROTTLE_MS) return;
     this._lastHoverTime = now;
 
-    const img = this.imgRef()?.nativeElement;
-    if (!img) return;
-    const rect = img.getBoundingClientRect();
     const scaleX = VIEWPORT_WIDTH / rect.width;
     const scaleY = VIEWPORT_HEIGHT / rect.height;
     const x = Math.round((event.clientX - rect.left) * scaleX);
     const y = Math.round((event.clientY - rect.top) * scaleY);
 
-    // Tooltip dimensions
-    const tooltipWidth = 500;
-    const tooltipHeight = 300;
-    const padding = 2;
-
-    // Position at cursor, but keep within bounds
-    let overlayX = Math.round(event.clientX - rect.left);
-    let overlayY = Math.round(event.clientY - rect.top);
-
-    // Constrain to left boundary
-    overlayX = Math.max(padding, overlayX);
-
-    // Constrain to right boundary (ensure tooltip doesn't extend beyond screenshot width)
-    if (overlayX + tooltipWidth > rect.width) {
-      overlayX = rect.width - tooltipWidth - padding;
-    }
-
-    // Constrain to top boundary
-    overlayY = Math.max(padding, overlayY);
-
-    // Constrain to bottom boundary (ensure tooltip doesn't extend beyond screenshot height)
-    if (overlayY + tooltipHeight > rect.height) {
-      overlayY = rect.height - tooltipHeight - padding;
-    }
-
-    this.assertionOverlayX.set(overlayX);
-    this.assertionOverlayY.set(overlayY);
-
     this.wsApi.sendAssertionHover(x, y);
   }
 
+
+
   onImageWheel(event: WheelEvent): void {
     event.preventDefault();
+    // While any assertion mode is active, don't record scroll actions
+    if (this.assertionModeApi.activeMode()) return;
     const img = this.imgRef()?.nativeElement;
     if (!img) return;
     const rect = img.getBoundingClientRect();

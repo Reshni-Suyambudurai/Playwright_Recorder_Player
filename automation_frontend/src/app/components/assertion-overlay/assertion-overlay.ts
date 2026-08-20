@@ -71,6 +71,16 @@ export class AssertionOverlay {
     return key === 'ariaSnapshot';
   }
 
+  getModeLabel(): string {
+    const labels: Record<string, string> = {
+      visibility: 'Visibility Assertion',
+      text: 'Text Assertion',
+      value: 'Value Assertion',
+      snapshot: 'Snapshot Assertion',
+    };
+    return labels[this.mode() || ''] || 'Assertion';
+  }
+
   getVisibleFields(): string[] {
     const data = this.data();
     if (!data) return [];

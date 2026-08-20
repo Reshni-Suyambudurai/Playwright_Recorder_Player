@@ -1,56 +1,168 @@
 <div class="status-panel">
   @let connState = connectionState();
+  @let showAssertion = isAsserting();
 
-  <div class="status-section">
-    <h3>Connection Status</h3>
-    <div class="status-item">
-      <label>Status:</label>
-      <div class="status-value"
-        [ngClass]="{
-          'connected': connState.isConnected,
-          'session-closed': !connState.isConnected && connState.sessionClosed,
-          'error': !connState.isConnected && !connState.sessionClosed && !!connState.error,
-          'disconnected': !connState.isConnected && !connState.sessionClosed && !connState.error
-        }">
-        <span class="status-indicator"
+  @if (!showAssertion) {
+    <!-- Connection Status Section (shown when not displaying assertions) -->
+    <div class="status-section">
+      <h3>Connection Status</h3>
+      <div class="status-item">
+        <label>Status:</label>
+        <div class="status-value"
           [ngClass]="{
-            'status-connected': connState.isConnected,
-            'status-session-closed': !connState.isConnected && connState.sessionClosed,
-            'status-error': !connState.isConnected && !connState.sessionClosed && !!connState.error,
-            'status-disconnected': !connState.isConnected && !connState.sessionClosed && !connState.error
-          }"></span>
-        @if (connState.isConnected) { Connected }
-        @else if (connState.sessionClosed) { Session Closed }
-        @else { Disconnected }
+            'connected': connState.isConnected,
+            'session-closed': !connState.isConnected && connState.sessionClosed,
+            'error': !connState.isConnected && !connState.sessionClosed && !!connState.error,
+            'disconnected': !connState.isConnected && !connState.sessionClosed && !connState.error
+          }">
+          <span class="status-indicator"
+            [ngClass]="{
+              'status-connected': connState.isConnected,
+              'status-session-closed': !connState.isConnected && connState.sessionClosed,
+              'status-error': !connState.isConnected && !connState.sessionClosed && !!connState.error,
+              'status-disconnected': !connState.isConnected && !connState.sessionClosed && !connState.error
+            }"></span>
+          @if (connState.isConnected) { Connected }
+          @else if (connState.sessionClosed) { Session Closed }
+          @else { Disconnected }
+        </div>
       </div>
+
+
+
+      @if (connState.lastUpdate) {
+        <div class="status-item">
+          <label>Last Update:</label>
+          <div class="status-value">{{ formatTime(connState.lastUpdate) }}</div>
+        </div>
+      }
+
+     
     </div>
 
-
-
-    @if (connState.lastUpdate) {
-      <div class="status-item">
-        <label>Last Update:</label>
-        <div class="status-value">{{ formatTime(connState.lastUpdate) }}</div>
+    @if (recordedSteps().length > 0) {
+      <div class="status-section">
+        <h3>Recorded Steps <span class="badge badge-primary">{{ recordedSteps().length }}</span></h3>
+        <p class="recording-name">{{ lastRecordingName() }}</p>
+        <div class="steps-list">
+          @for (step of recordedSteps(); track step.id) {
+            <div class="step-item">
+              <span class="step-icon">{{ stepIcon(step.type) }}</span>
+              <div class="step-body">
+                <span class="step-type badge badge-neutral">{{ step.type }}</span>
+                <span class="step-label">{{ step.label }}</span>
+              </div>
+            </div>
+          }
+        </div>
       </div>
     }
+  } @else {
+    <!-- Assertion Panel (shown when assertion is detected) -->
+    <div class="assertion-panel">
+      <div class="assertion-header">
+        <h3>{{ assertionMode() === 'snapshot' ? 'Snapshot' : 'Assertion' }}</h3>
+        <span class="assertion-type badge badge-accent">{{ assertionMode() }}</span>
+      </div>
 
-   
-  </div>
-
-  @if (recordedSteps().length > 0) {
-    <div class="status-section">
-      <h3>Recorded Steps <span class="badge badge-primary">{{ recordedSteps().length }}</span></h3>
-      <p class="recording-name">{{ lastRecordingName() }}</p>
-      <div class="steps-list">
-        @for (step of recordedSteps(); track step.id) {
-          <div class="step-item">
-            <span class="step-icon">{{ stepIcon(step.type) }}</span>
-            <div class="step-body">
-              <span class="step-type badge badge-neutral">{{ step.type }}</span>
-              <span class="step-label">{{ step.label }}</span>
-            </div>
-          </div>
+      <div class="assertion-content">
+        @if (assertionData(); as data) {
+          @switch (assertionMode()) {
+            @case ('visibility') {
+              <div class="assertion-field">
+                <label>Visibility:</label>
+                <span class="field-value">{{ data.visible ? 'Visible' : 'Hidden' }}</span>
+              </div>
+              <div class="assertion-field">
+                <label>Display:</label>
+                <span class="field-value">{{ data.display }}</span>
+              </div>
+              <div class="assertion-field">
+                <label>Opacity:</label>
+                <span class="field-value">{{ data.opacity }}</span>
+              </div>
+              @if (data.selector) {
+                <div class="assertion-field">
+                  <label>Selector:</label>
+                  <span class="field-value">{{ data.selector?.value || data.selector }}</span>
+                </div>
+              }
+            }
+            @case ('text') {
+              <div class="assertion-field">
+                <label>Text Content:</label>
+                <div class="field-value field-value-text">{{ data.text }}</div>
+              </div>
+              <div class="assertion-field">
+                <label>Word / Char Count:</label>
+                <span class="field-value">{{ data.wordCount }} words, {{ data.charCount }} chars</span>
+              </div>
+              @if (data.accessibleName) {
+                <div class="assertion-field">
+                  <label>Accessible Name:</label>
+                  <span class="field-value">{{ data.accessibleName }}</span>
+                </div>
+              }
+              @if (data.selector) {
+                <div class="assertion-field">
+                  <label>Selector:</label>
+                  <span class="field-value">{{ data.selector?.value || data.selector }}</span>
+                </div>
+              }
+            }
+            @case ('value') {
+              <div class="assertion-field">
+                <label>Element Value:</label>
+                <div class="field-value field-value-text">{{ data.value }}</div>
+              </div>
+              <div class="assertion-field">
+                <label>Type:</label>
+                <span class="field-value">{{ data.type }}</span>
+              </div>
+              @if (data.optionCount) {
+                <div class="assertion-field">
+                  <label>Dropdown Options:</label>
+                  <span class="field-value">{{ data.optionCount }} options</span>
+                </div>
+              }
+              @if (data.selector) {
+                <div class="assertion-field">
+                  <label>Selector:</label>
+                  <span class="field-value">{{ data.selector?.value || data.selector }}</span>
+                </div>
+              }
+            }
+            @case ('snapshot') {
+              <div class="assertion-field">
+                <label>Label:</label>
+                <span class="field-value">{{ data.label }}</span>
+              </div>
+              <div class="assertion-field">
+                <label>Region:</label>
+                <span class="field-value">{{ formatRegion(data.region) }}</span>
+              </div>
+              <div class="assertion-field">
+                <label>Elements:</label>
+                <span class="field-value">{{ data.elementCount }}</span>
+              </div>
+              @if (data.ariaSnapshot) {
+                <div class="assertion-field">
+                  <label>Accessibility Tree:</label>
+                  <pre class="field-value field-value-mono">{{ data.ariaSnapshot }}</pre>
+                </div>
+              }
+            }
+          }
         }
+      </div>
+
+      <div class="assertion-actions">
+        <button class="btn btn-primary btn-sm" (click)="saveAssertion()">
+          Save Assertion
+        </button>
+        <button class="btn btn-secondary btn-sm" (click)="cancelAssertion()">
+          Dismiss
+        </button>
       </div>
     </div>
   }
