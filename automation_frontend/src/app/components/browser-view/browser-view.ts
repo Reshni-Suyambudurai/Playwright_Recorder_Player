@@ -92,18 +92,28 @@ export class BrowserView implements OnInit, OnDestroy {
       this.wsApi.inputDetected$.subscribe(data => this._showOverlay(data)),
       this.wsApi.assertionDiscovered$.subscribe(event => {
         // event structure: {mode, assertionData: {...fields...}, coords, pageUrl}
-        // Store in AssertionModeApi for status sidebar to display
-        this.assertionModeApi.setDetectedAssertion(event.mode || null, event.assertionData || null);
+        // Store in AssertionModeApi for status sidebar to display and for Save to persist
+        this.assertionModeApi.setDetectedAssertion(
+          event.mode || null,
+          event.assertionData || null,
+          event.coords || null,
+          event.pageUrl || null,
+        );
       }),
       this.wsApi.snapshotPreview$.subscribe(event => {
         // event structure: {label, ariaSnapshot, elementCount, region, pageUrl}
-        // Store in AssertionModeApi for status sidebar to display
-        this.assertionModeApi.setDetectedAssertion('snapshot', {
-          label: event.label,
-          ariaSnapshot: event.ariaSnapshot,
-          elementCount: event.elementCount,
-          region: event.region,
-        });
+        // Store in AssertionModeApi for status sidebar to display and for Save to persist
+        this.assertionModeApi.setDetectedAssertion(
+          'snapshot',
+          {
+            label: event.label,
+            ariaSnapshot: event.ariaSnapshot,
+            elementCount: event.elementCount,
+            region: event.region,
+          },
+          null,
+          event.pageUrl || null,
+        );
       }),
       this.wsApi.tabOpened$.subscribe(data => this.tabs.set(data.tabs ?? [])),
       this.wsApi.tabSwitched$.subscribe(data => {

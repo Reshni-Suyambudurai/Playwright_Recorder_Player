@@ -5,6 +5,7 @@ streaming FRAME events and playback lifecycle events to the frontend.
 Reuses: BrowserService, ScreenshotService, DomWatcher from the recording stack.
 """
 import asyncio
+import difflib
 import json
 import logging
 import re
@@ -15,6 +16,8 @@ from app.services.browser_service import BrowserService
 from app.services.screenshot_service import ScreenshotService
 from app.services.dom_watcher import DomWatcher
 from app.services.capture_manager import CaptureManager, CaptureReason, SettleStrategy
+from app.services.assertion_service import AssertionService
+from app.services.snapshot_service import SnapshotService
 from app.utils.selector_builder import build_selector
 from app.websocket.connection_manager import ConnectionManager
 
@@ -44,14 +47,18 @@ class PlaybackService:
         self._browser_service   = browser_service
         self._screenshot_service = screenshot_service
         self._connection_manager = connection_manager
+        # Stateless — one shared instance reused across every ASSERTION step in a playback run
+        self._assertion_service = AssertionService()
+        self._snapshot_service  = SnapshotService()
         # Dispatch table: step type → handler method
         # Add new step types here without touching _execute_step
         self._STEP_HANDLERS = {
-            "NAVIGATE": self._step_navigate,
-            "CLICK":    self._step_click,
-            "TYPE":     self._step_type,
-            "SCROLL":   self._step_scroll,
-            "KEY":      self._step_key,
+            "NAVIGATE":  self._step_navigate,
+            "CLICK":     self._step_click,
+            "TYPE":      self._step_type,
+            "SCROLL":    self._step_scroll,
+            "KEY":       self._step_key,
+            "ASSERTION": self._step_assertion,
         }
         self._active_play_id: str | None = None
 
@@ -431,6 +438,112 @@ class PlaybackService:
 
     async def _step_key(self, step: dict, page) -> None:
         await self._browser_service.perform_key(page, step.get("text", "Enter"))
+
+    async def _step_assertion(self, step: dict, page) -> None:
+        """
+        Re-run a recorded assertion live and compare it against what was captured at record
+        time. Reuses AssertionService/SnapshotService — the same extractors used during
+        recording — so replayed and recorded values are always produced by identical logic.
+        Raises on mismatch, which flows through the standard step-failure path (PLAY_STEP_ERROR
+        + pause-for-review), same as a failed CLICK or TYPE.
+        """
+        assertion_type = step.get("assertionType") or step.get("assertion_type") or ""
+        expected = step.get("discoveredData") or {}
+
+        if assertion_type == "snapshot":
+            region = expected.get("region") or {}
+            actual = await self._snapshot_service.capture_aria_snapshot(
+                page,
+                int(region.get("x", 0)), int(region.get("y", 0)),
+                int(region.get("width", 0)), int(region.get("height", 0)),
+            )
+            if actual.get("error"):
+                raise Exception(f"ASSERTION (snapshot) could not be re-captured: {actual['error']}")
+        else:
+            x, y = await self._resolve_assertion_point(step, page)
+            actual = await self._assertion_service.discover_by_mode(page, x, y, assertion_type)
+
+        passed, reason = self._compare_assertion(assertion_type, expected, actual)
+        if not passed:
+            raise Exception(f"ASSERTION ({assertion_type}) failed: {reason}")
+
+    async def _resolve_assertion_point(self, step: dict, page) -> tuple[int, int]:
+        """
+        Resolve the live (x, y) to inspect for a visibility/text/value assertion.
+        Prefers the recorded selector — re-centered on the element's *current* position,
+        since the page may have scrolled or reflowed since recording — and falls back to the
+        recorded coords only if the selector can no longer be found (mirrors _step_click's
+        selector-first/coords-fallback strategy).
+        """
+        selector = step.get("selector")
+        pw_selector = self._resolve_pw_selector(selector)
+
+        if pw_selector:
+            try:
+                await self._wait_for_selector_visible(page, pw_selector, timeout_ms=3000)
+                matches = await page.query_selector_all(pw_selector)
+                occurrence_index = self._get_occurrence_index(selector)
+                if occurrence_index < len(matches):
+                    box = await matches[occurrence_index].bounding_box()
+                    if box:
+                        return int(box["x"] + box["width"] / 2), int(box["y"] + box["height"] / 2)
+            except Exception:
+                pass  # fall through to recorded coords
+
+        coords = step.get("coords") or {}
+        if coords:
+            return int(coords.get("x", 0)), int(coords.get("y", 0))
+
+        raise Exception(f"ASSERTION target not found: selector={pw_selector!r}, no recorded coords")
+
+    def _compare_assertion(self, assertion_type: str, expected: dict, actual: dict) -> tuple[bool, str]:
+        """Compare recorded vs. freshly-discovered assertion data. Returns (passed, reason)."""
+        if assertion_type == "visibility":
+            exp_visible, act_visible = bool(expected.get("visible")), bool(actual.get("visible"))
+            if exp_visible != act_visible:
+                return False, f"expected visible={exp_visible}, got visible={act_visible}"
+            return True, ""
+
+        if assertion_type in ("text", "value"):
+            exp_val, act_val = expected.get(assertion_type), actual.get(assertion_type)
+            if self._normalize_text(exp_val) != self._normalize_text(act_val):
+                return False, f"expected {assertion_type}={exp_val!r}, got {act_val!r}"
+            return True, ""
+
+        if assertion_type == "snapshot":
+            # Exact word-by-word match — playback never exits on a mismatch (it pauses for
+            # review, same as any other step failure), so there's no need to tolerate drift;
+            # any difference is worth surfacing to the user.
+            exp_words = str(expected.get("ariaSnapshot") or "").split()
+            act_words = str(actual.get("ariaSnapshot") or "").split()
+            if exp_words != act_words:
+                diff_excerpt = self._snapshot_diff_excerpt(exp_words, act_words)
+                return False, f"snapshot content changed:\n{diff_excerpt}"
+            return True, ""
+
+        return False, f"unknown assertion type: {assertion_type!r}"
+
+    def _snapshot_diff_excerpt(self, expected_words: list[str], actual_words: list[str], max_diffs: int = 6) -> str:
+        """
+        Word-by-word diff excerpt of exactly what changed, for the failure message sent to
+        the frontend. Reports each mismatched run as "word N: expected 'X', got 'Y'".
+        """
+        matcher = difflib.SequenceMatcher(None, expected_words, actual_words)
+        mismatches = [
+            (i1, expected_words[i1:i2], actual_words[j1:j2])
+            for tag, i1, i2, j1, j2 in matcher.get_opcodes()
+            if tag != "equal"
+        ]
+        if not mismatches:
+            return "(content differs but no word-level diff available)"
+
+        lines = [
+            f"word {i1 + 1}: expected {' '.join(exp) or '(nothing)'!r}, got {' '.join(act) or '(nothing)'!r}"
+            for i1, exp, act in mismatches[:max_diffs]
+        ]
+        if len(mismatches) > max_diffs:
+            lines.append(f"... ({len(mismatches) - max_diffs} more mismatch(es))")
+        return "\n".join(lines)
 
     # ─── Selector resolver — maps recorded strategy/value to Playwright selector ───
     def _resolve_pw_selector(self, recorded_selector: dict | None) -> str | None:

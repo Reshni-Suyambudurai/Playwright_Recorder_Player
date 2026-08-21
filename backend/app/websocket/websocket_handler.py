@@ -36,7 +36,9 @@ from app.services.dom_watcher import DomWatcher
 from app.services.capture_manager import CaptureManager, CaptureReason, SettleStrategy
 from app.services.database import DatabaseService
 from app.services.validation_service import ValidationService
-from app.models.recording import Recording, RecordingMeta, RecordingStep, Coords, SelectorInfo, TargetMeta
+from app.services.assertion_service import AssertionService
+from app.services.snapshot_service import SnapshotService
+from app.models.recording import Recording, RecordingMeta, RecordingStep, AssertionStep, Coords, SelectorInfo, TargetMeta
 from app.utils.selector_builder import build_selector
 from app.utils import tab_manager
 
@@ -56,6 +58,9 @@ class WebSocketHandler:
         self.recording_storage = RecordingStorage()
         self.db = db
         self.validation_service = validation_service or ValidationService()
+        # Stateless — one shared instance reused across every hover/snapshot event
+        self.assertion_service = AssertionService()
+        self.snapshot_service = SnapshotService()
     
     async def handle_hello(self, session_id: str, websocket, data: dict) -> dict:
         """Handle HELLO — validates session, registers client_id mapping, replies WELCOME."""
@@ -795,7 +800,7 @@ class WebSocketHandler:
                 {
                     "id": s.id,
                     "type": s.type,
-                    "label": s.label or s.text or s.url or f"({s.coords.x},{s.coords.y})" if s.coords else s.type,
+                    "label": self._step_summary_label(s),
                     "pageUrl": s.page_url,
                     "timestamp": s.timestamp,
                 }
@@ -950,12 +955,8 @@ class WebSocketHandler:
             if not session.assertion_mode:
                 return self._error_response("MODE_INACTIVE", "No assertion mode is active")
 
-            # Import here to avoid circular imports
-            from app.services.assertion_service import AssertionService
-            assertion_service = AssertionService()
-
             # Discover and filter based on mode
-            assertion_data = await assertion_service.discover_by_mode(
+            assertion_data = await self.assertion_service.discover_by_mode(
                 page, x, y, session.assertion_mode
             )
 
@@ -1001,12 +1002,8 @@ class WebSocketHandler:
             if session.assertion_mode != "snapshot":
                 return self._error_response("MODE_INACTIVE", "Snapshot mode is not active")
 
-            # Import and use SnapshotService
-            from app.services.snapshot_service import SnapshotService
-            snapshot_service = SnapshotService()
-
             # Capture ARIA snapshot
-            snapshot_data = await snapshot_service.capture_aria_snapshot(page, x, y, width, height)
+            snapshot_data = await self.snapshot_service.capture_aria_snapshot(page, x, y, width, height)
 
             # Send SNAPSHOT_PREVIEW event to client
             preview_event = {
@@ -1028,46 +1025,126 @@ class WebSocketHandler:
             logger.error(f"[SNAPSHOT_CAPTURE] session={session_id}: {e}", exc_info=True)
             return self._error_response("SNAPSHOT_CAPTURE_ERROR", str(e))
 
-    async def handle_snapshot_save_assertion(self, session_id: str, client_id: str, data: dict) -> dict:
+    def _step_summary_label(self, step: RecordingStep | AssertionStep) -> str:
+        """Human-readable label for the RECORDING_STOPPED step summary sent to the frontend."""
+        if isinstance(step, AssertionStep):
+            return step.label or f"{step.assertion_type} assertion"
+        if step.label:
+            return step.label
+        if step.text:
+            return step.text
+        if step.url:
+            return step.url
+        if step.coords:
+            return f"({step.coords.x},{step.coords.y})"
+        return step.type
+
+    def _build_assertion_step(
+        self,
+        session,
+        assertion_type: str,
+        raw_data: Dict[str, Any],
+        coords: dict | None,
+        page_url: str | None,
+        page_title: str | None,
+        label: str | None = None,
+    ) -> AssertionStep:
         """
-        Handle snapshot save: store the assertion step in recording.
+        Build an AssertionStep from mode-specific data (as returned by AssertionService /
+        SnapshotService). `selector` and `mode` — if present in raw_data — become their own
+        fields instead of being duplicated inside discoveredData.
+
+        Shared by handle_assertion_save (visibility/text/value) and
+        handle_snapshot_save_assertion (snapshot) so both save paths produce identical,
+        playback-ready step shapes.
+        """
+        selector = raw_data.get("selector")
+        discovered_data = {k: v for k, v in raw_data.items() if k not in ("mode", "selector")}
+        return AssertionStep(
+            id=len(session.recording_steps) + 1,
+            assertionType=assertion_type,
+            selector=SelectorInfo(**selector) if selector else None,
+            coords=Coords(**coords) if coords else None,
+            discoveredData=discovered_data,
+            pageUrl=page_url,
+            pageTitle=page_title,
+            label=label,
+            tab_id=session.active_tab_id or "tab-1",
+        )
+
+    async def _send_assertion_saved(self, session_id: str, client_id: str, assertion_type: str) -> None:
+        await self.connection_manager.send_to_client(session_id, client_id, {
+            "event_type": EventType.ASSERTION_SAVED,
+            "data": {"type": assertion_type, "timestamp": datetime.now().isoformat()},
+        })
+
+    async def handle_assertion_save(self, session_id: str, client_id: str, data: dict) -> dict:
+        """
+        Handle ASSERTION_STEP_RECORDED: persist a visibility/text/value assertion
+        (captured via hover, pinned by click) as a recording step.
         """
         try:
             session = self.session_manager.get_session(session_id)
             if not session:
                 return self._error_response("SESSION_NOT_FOUND", "No active session")
 
-            # Extract snapshot data from the frontend
+            mode = data.get("mode")
+            assertion_data = data.get("data") or {}
+            if not mode or not assertion_data:
+                return self._error_response("INVALID_ASSERTION", "mode and data are required")
+
+            page = tab_manager.get_active_page(session) or session.page
+            page_title = await page.title() if page else None
+
+            if session.recording_steps is not None:
+                step = self._build_assertion_step(
+                    session,
+                    assertion_type=mode,
+                    raw_data=assertion_data,
+                    coords=data.get("coords"),
+                    page_url=data.get("pageUrl") or session.current_url,
+                    page_title=page_title,
+                )
+                session.recording_steps.append(step)
+
+            await self._send_assertion_saved(session_id, client_id, mode)
+            return {}
+
+        except Exception as e:
+            logger.error(f"[ASSERTION_SAVE] session={session_id}: {e}", exc_info=True)
+            return self._error_response("ASSERTION_SAVE_ERROR", str(e))
+
+    async def handle_snapshot_save_assertion(self, session_id: str, client_id: str, data: dict) -> dict:
+        """
+        Handle SNAPSHOT_SAVE_ASSERTION: persist the previewed ARIA snapshot as an assertion step.
+        """
+        try:
+            session = self.session_manager.get_session(session_id)
+            if not session:
+                return self._error_response("SESSION_NOT_FOUND", "No active session")
+
             label = data.get("label", "")
-            aria_snapshot = data.get("ariaSnapshot", "")
-            region = data.get("region", {})
-
-            # Store assertion step
-            assertion_step = {
-                "type": "SNAPSHOT_ASSERTION",
+            page = tab_manager.get_active_page(session) or session.page
+            raw_data = {
                 "label": label,
-                "ariaSnapshot": aria_snapshot,
-                "region": region,
-                "timestamp": datetime.now().isoformat(),
+                "ariaSnapshot": data.get("ariaSnapshot", ""),
+                "elementCount": data.get("elementCount", 0),
+                "region": data.get("region"),
             }
 
-            # Add to recording steps (if recording is stored in session)
-            if hasattr(session, "recording_steps"):
-                session.recording_steps.append(assertion_step)
+            if session.recording_steps is not None:
+                step = self._build_assertion_step(
+                    session,
+                    assertion_type="snapshot",
+                    raw_data=raw_data,
+                    coords=None,
+                    page_url=data.get("pageUrl") or (page.url if page else None),
+                    page_title=await page.title() if page else None,
+                    label=label,
+                )
+                session.recording_steps.append(step)
 
-            # Clear snapshot mode
-            session.assertion_mode = None
-
-            # Send confirmation to client (optional)
-            confirmation_event = {
-                "event_type": "ASSERTION_SAVED",
-                "data": {
-                    "type": "snapshot",
-                    "timestamp": datetime.now().isoformat(),
-                }
-            }
-            await self.connection_manager.send_to_client(session_id, client_id, confirmation_event)
-
+            await self._send_assertion_saved(session_id, client_id, "snapshot")
             return {}
 
         except Exception as e:
@@ -1122,6 +1199,8 @@ class WebSocketHandler:
                 response = await self.handle_snapshot_capture_request(session_id, client_id, data)
             elif event_type == EventType.SNAPSHOT_SAVE_ASSERTION:
                 response = await self.handle_snapshot_save_assertion(session_id, client_id, data)
+            elif event_type == EventType.ASSERTION_STEP_RECORDED:
+                response = await self.handle_assertion_save(session_id, client_id, data)
             else:
                 response = self._error_response("UNKNOWN_EVENT", f"Unknown event type: {event_type}")
 

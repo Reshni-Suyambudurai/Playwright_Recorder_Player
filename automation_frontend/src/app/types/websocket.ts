@@ -323,6 +323,9 @@ export interface RecordingStep {
   pause?: boolean;
   storeValue?: boolean;
   inputValidation?: InputValidation | null;
+  // Present when type === 'ASSERTION'
+  assertionType?: 'visibility' | 'text' | 'value' | 'snapshot';
+  discoveredData?: Record<string, unknown> | null;
 }
 
 export interface RecordingDetail {

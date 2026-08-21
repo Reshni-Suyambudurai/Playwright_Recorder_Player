@@ -48,15 +48,18 @@ export class Status implements OnInit, OnDestroy {
     // Send assertion save event to backend via WebSocket
     const mode = this.assertionMode();
     const data = this.assertionData();
+    const pageUrl = this.assertionModeApi.detectedAssertionPageUrl();
     if (mode && data) {
       if (mode === 'snapshot') {
         // Snapshot assertions use the specific snapshot save method
-        this.websocketApi.sendSnapshotSaveAssertion(data);
+        this.websocketApi.sendSnapshotSaveAssertion({ ...data, pageUrl });
       } else {
         // Other assertion types (visibility, text, value)
         this.websocketApi.sendAssertionSave(
           mode as 'visibility' | 'text' | 'value',
-          data
+          data,
+          this.assertionModeApi.detectedAssertionCoords(),
+          pageUrl,
         );
       }
     }

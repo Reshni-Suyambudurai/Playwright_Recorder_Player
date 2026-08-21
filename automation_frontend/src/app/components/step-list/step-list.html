@@ -13,6 +13,7 @@
           <li class="runs-step-item"
               [id]="'play-step-' + step.id"
               [class.runs-step-item--password]="step.isPassword"
+              [class.runs-step-item--assertion]="isAssertionStep(step)"
               [class.runs-step-item--skipped]="!getShouldRun(step)"
               [class.runs-step-item--active]="currentStepId() === step.id">
 

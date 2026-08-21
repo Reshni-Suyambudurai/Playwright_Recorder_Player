@@ -92,6 +92,21 @@
   border-left: 3px solid #10b981;
 }
 
+/* Assertion step — yellow border + text to stand out from regular action steps */
+.runs-step-item--assertion {
+  border: 1.5px solid #f59e0b;
+  background: color-mix(in srgb, #f59e0b 6%, var(--bg-primary));
+}
+
+.runs-step-item--assertion .step-type-pill {
+  background: color-mix(in srgb, #f59e0b 16%, transparent);
+  color: #b45309;
+}
+
+.runs-step-item--assertion .step-val-primary {
+  color: #b45309;
+}
+
 /* Skipped step — muted */
 .runs-step-item--skipped {
   opacity: 0.45;

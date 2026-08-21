@@ -396,10 +396,12 @@ export class WebsocketApi {
 
   public sendAssertionSave(
     mode: 'visibility' | 'text' | 'value',
-    data: any
+    data: any,
+    coords: { x: number; y: number } | null = null,
+    pageUrl: string | null = null,
   ): void {
     // Send assertion step recorded event
-    this.send('ASSERTION_STEP_RECORDED', { mode, data });
+    this.send('ASSERTION_STEP_RECORDED', { mode, data, coords, pageUrl });
   }
 
   public isConnected(): boolean {

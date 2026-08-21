@@ -23,6 +23,10 @@ export class StepList {
   readonly togglePause     = output<{ stepId: number; current: boolean }>();
   readonly editValue       = output<{ stepId: number; value: string }>();
 
+  isAssertionStep(step: RecordingStep): boolean {
+    return step.type === 'ASSERTION';
+  }
+
   getShouldRun(step: RecordingStep): boolean {
     const m = this.shouldRunState();
     return m.has(step.id) ? (m.get(step.id) ?? true) : (step.shouldRun ?? true);

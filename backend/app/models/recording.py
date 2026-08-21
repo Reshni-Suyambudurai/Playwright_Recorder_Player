@@ -150,7 +150,7 @@ class Recording(BaseModel):
     # steps grouped by tab: { "tab-1": [[step1], [step2], ...] }
     steps: dict[str, list[list[dict]]] = Field(default_factory=lambda: {"tab-1": []})
 
-    def add_step(self, step: RecordingStep) -> None:
+    def add_step(self, step: RecordingStep | AssertionStep) -> None:
         tab_key = step.tab_id or "tab-1"
         if tab_key not in self.steps:
             self.steps[tab_key] = []
