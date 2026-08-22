@@ -460,41 +460,45 @@ class PlaybackService:
             if actual.get("error"):
                 raise Exception(f"ASSERTION (snapshot) could not be re-captured: {actual['error']}")
         else:
-            x, y = await self._resolve_assertion_point(step, page)
-            actual = await self._assertion_service.discover_by_mode(page, x, y, assertion_type)
+            element = await self._resolve_assertion_element(step, page)
+            if element is not None:
+                # Read data straight from the resolved element — no pixel re-guessing, so
+                # this can't land on the wrong element the way coordinate hit-testing could.
+                actual = await self._assertion_service.discover_from_element(element, assertion_type)
+            else:
+                # Selector couldn't be resolved at all; coords-only hit-test is the last resort.
+                coords = step.get("coords") or {}
+                if not coords:
+                    raise Exception("ASSERTION target not found: no selector match and no recorded coords")
+                actual = await self._assertion_service.discover_by_mode(
+                    page, int(coords.get("x", 0)), int(coords.get("y", 0)), assertion_type
+                )
 
         passed, reason = self._compare_assertion(assertion_type, expected, actual)
         if not passed:
             raise Exception(f"ASSERTION ({assertion_type}) failed: {reason}")
 
-    async def _resolve_assertion_point(self, step: dict, page) -> tuple[int, int]:
+    async def _resolve_assertion_element(self, step: dict, page):
         """
-        Resolve the live (x, y) to inspect for a visibility/text/value assertion.
-        Prefers the recorded selector — re-centered on the element's *current* position,
-        since the page may have scrolled or reflowed since recording — and falls back to the
-        recorded coords only if the selector can no longer be found (mirrors _step_click's
-        selector-first/coords-fallback strategy).
+        Resolve the live element to inspect for a visibility/text/value assertion, via the
+        recorded selector (mirrors _step_click's selector-first strategy). Returns None if the
+        selector can't be found, so the caller can fall back to the recorded coords instead.
         """
         selector = step.get("selector")
         pw_selector = self._resolve_pw_selector(selector)
+        if not pw_selector:
+            return None
 
-        if pw_selector:
-            try:
-                await self._wait_for_selector_visible(page, pw_selector, timeout_ms=3000)
-                matches = await page.query_selector_all(pw_selector)
-                occurrence_index = self._get_occurrence_index(selector)
-                if occurrence_index < len(matches):
-                    box = await matches[occurrence_index].bounding_box()
-                    if box:
-                        return int(box["x"] + box["width"] / 2), int(box["y"] + box["height"] / 2)
-            except Exception:
-                pass  # fall through to recorded coords
+        try:
+            await self._wait_for_selector_visible(page, pw_selector, timeout_ms=3000)
+            matches = await page.query_selector_all(pw_selector)
+            occurrence_index = self._get_occurrence_index(selector)
+            if occurrence_index < len(matches):
+                return matches[occurrence_index]
+        except Exception:
+            pass  # fall through to coords fallback
 
-        coords = step.get("coords") or {}
-        if coords:
-            return int(coords.get("x", 0)), int(coords.get("y", 0))
-
-        raise Exception(f"ASSERTION target not found: selector={pw_selector!r}, no recorded coords")
+        return None
 
     def _compare_assertion(self, assertion_type: str, expected: dict, actual: dict) -> tuple[bool, str]:
         """Compare recorded vs. freshly-discovered assertion data. Returns (passed, reason)."""

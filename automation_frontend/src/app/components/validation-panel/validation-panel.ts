@@ -12,6 +12,9 @@ export class ValidationPanel {
   private validationState = inject(ValidationStateApi);
   openGroupKey: string | null = null;
 
+  /** Synthetic group key the dropdown-options checklist is stored under in ValidationStateApi. */
+  readonly DROPDOWN_GROUP_KEY = 'dropdown-options';
+
   readonly context = this.validationState.activeContext;
   readonly hasContext = this.validationState.hasContext;
   readonly currentValidation = computed(() => this.context());
@@ -38,6 +41,30 @@ export class ValidationPanel {
     const explicitCount = validation?.elementSnapshot?.optionCount;
     if (typeof explicitCount === 'number') return explicitCount;
     return this.getDropdownOptions(validation).length;
+  }
+
+  /** Stable per-position key for a dropdown option — option text alone isn't guaranteed unique. */
+  getDropdownOptionKey(index: number): string {
+    return `opt-${index}`;
+  }
+
+  areAllDropdownOptionsSelected(validation: ValidationDiscoveryData): boolean {
+    const options = this.getDropdownOptions(validation);
+    return options.length > 0 && options.every((_, i) =>
+      this.isSelected(this.DROPDOWN_GROUP_KEY, this.getDropdownOptionKey(i))
+    );
+  }
+
+  isAnyDropdownOptionSelected(validation: ValidationDiscoveryData): boolean {
+    return this.getDropdownOptions(validation).some((_, i) =>
+      this.isSelected(this.DROPDOWN_GROUP_KEY, this.getDropdownOptionKey(i))
+    );
+  }
+
+  toggleAllDropdownOptions(validation: ValidationDiscoveryData): void {
+    const keys = this.getDropdownOptions(validation).map((_, i) => this.getDropdownOptionKey(i));
+    const nextSelected = !this.areAllDropdownOptionsSelected(validation);
+    this.validationState.setGroupOptionsSelected(this.DROPDOWN_GROUP_KEY, keys, nextSelected);
   }
 
   shouldRenderOption(validation: ValidationDiscoveryData, group: ValidationGroup, option: ValidationCatalogOption): boolean {
@@ -102,12 +129,26 @@ export class ValidationPanel {
     return this.openGroupKey === groupKey;
   }
 
-  onGroupToggle(groupKey: string, event: Event): void {
-    const detailsElement = event.currentTarget as HTMLDetailsElement | null;
-    if (!detailsElement) {
-      return;
-    }
+  /**
+   * Single-select accordion toggle, driven entirely by openGroupKey — the sole source of
+   * truth for which group is open (see [open]="isGroupOpen(...)" in the template).
+   * The native click is prevented so the browser never toggles <details> on its own; without
+   * that, its own toggle and this state update race, which is what caused the "click once to
+   * close the old group, click again to actually open the new one" bug.
+   */
+  onGroupSummaryClick(groupKey: string, event: Event): void {
+    event.preventDefault();
+    const opening = this.openGroupKey !== groupKey;
+    this.openGroupKey = opening ? groupKey : null;
 
-    this.openGroupKey = detailsElement.open ? groupKey : null;
+    if (opening) {
+      // The clicked <details> hasn't expanded yet on this tick — wait a frame so its full
+      // height is in the DOM, then bring it fully into view. Without this, opening the last
+      // group in the scroll container leaves its bottom content below the visible area.
+      const summary = event.currentTarget as HTMLElement | null;
+      requestAnimationFrame(() => {
+        summary?.closest('details')?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      });
+    }
   }
 }

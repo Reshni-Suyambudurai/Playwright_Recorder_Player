@@ -21,6 +21,7 @@ from app.models.validation import (
     ValidationMatchRule,
     ValidationOptionCatalog,
 )
+from app.utils.selector_builder import _COLLECT_DROPDOWN_DATA_JS
 
 logger = logging.getLogger("playwright_recorder.services.validation")
 
@@ -415,9 +416,7 @@ def _build_snapshot_from_element_js() -> str:
 (element) => {
     if (!element) return null;
 
-    function normalizeText(value) {
-        return (value || '').trim().replace(/\s+/g, ' ');
-    }
+    %s
 
     function isVisible(node) {
         const style = window.getComputedStyle(node);
@@ -443,134 +442,6 @@ def _build_snapshot_from_element_js() -> str:
     const textContent = normalizeText(element.textContent || '');
     const computedStyle = window.getComputedStyle(element);
     const download = element.hasAttribute('download');
-
-    function uniqueNonEmpty(values) {
-        const seen = new Set();
-        const result = [];
-        for (const raw of values) {
-            const text = normalizeText(raw);
-            if (!text) continue;
-            const key = text.toLowerCase();
-            if (seen.has(key)) continue;
-            seen.add(key);
-            result.push(text);
-        }
-        return result;
-    }
-
-    function collectDropdownData(target) {
-        const tag = target.tagName.toLowerCase();
-        const ariaRole = (target.getAttribute('role') || '').toLowerCase();
-        const isSelect = tag === 'select';
-        const isAriaDropdown = ariaRole === 'combobox' || ariaRole === 'listbox';
-
-        if (!isSelect && !isAriaDropdown) {
-            return { selectedOption: null, dropdownOptions: [], optionCount: null };
-        }
-
-        if (isSelect) {
-            const selectOptions = Array.from(target.options || []);
-            const dropdownOptions = uniqueNonEmpty(selectOptions.map((opt) => opt.textContent || opt.value || ''));
-            const selected = selectOptions.find((opt) => opt.selected);
-            const selectedOption = normalizeText(selected?.textContent || selected?.value || target.value || '') || null;
-            return {
-                selectedOption,
-                dropdownOptions,
-                optionCount: dropdownOptions.length,
-            };
-        }
-
-        const candidateContainers = [];
-        const candidateNodes = [];
-
-        function isLikelySelectedOption(node) {
-            if (!node) return false;
-
-            if (node.getAttribute('aria-selected') === 'true') return true;
-            if (node.hasAttribute('selected')) return true;
-            if (node.getAttribute('data-selected') === 'true') return true;
-
-            const classText = (node.className || '').toString().toLowerCase();
-            return classText.includes('selected');
-        }
-
-        function pushContainerById(rawId) {
-            const id = normalizeText(rawId);
-            if (!id) return;
-            const container = document.getElementById(id);
-            if (container) candidateContainers.push(container);
-        }
-
-        pushContainerById(target.getAttribute('aria-controls'));
-        pushContainerById(target.getAttribute('aria-owns'));
-
-        const activeId = target.getAttribute('aria-activedescendant');
-        let selectedOption = null;
-        if (activeId) {
-            const activeNode = document.getElementById(activeId);
-            const activeContainer = activeNode?.closest('[role="listbox"]') || activeNode?.parentElement || null;
-            if (activeContainer) candidateContainers.push(activeContainer);
-            selectedOption = normalizeText(activeNode?.textContent || activeNode?.getAttribute('value') || '') || null;
-        }
-
-        if (ariaRole === 'listbox') {
-            candidateContainers.push(target);
-        }
-
-        if (ariaRole === 'listbox' && target.id) {
-            const escapedId = window.CSS && window.CSS.escape ? window.CSS.escape(target.id) : target.id;
-            const controller = document.querySelector(
-                `[aria-controls="${escapedId}"], [aria-owns="${escapedId}"]`
-            );
-            if (controller) {
-                const controllerValue = normalizeText(
-                    controller.value
-                    || controller.getAttribute('value')
-                    || controller.getAttribute('aria-label')
-                    || ''
-                );
-                if (controllerValue) {
-                    selectedOption = controllerValue;
-                }
-
-                pushContainerById(controller.getAttribute('aria-controls'));
-                pushContainerById(controller.getAttribute('aria-owns'));
-            }
-        }
-
-        const nearestListbox = target.closest('[role="listbox"]');
-        if (nearestListbox) {
-            candidateContainers.push(nearestListbox);
-        }
-
-        const seen = new Set();
-        const uniqueContainers = [];
-        for (const container of candidateContainers) {
-            if (!container || seen.has(container)) continue;
-            seen.add(container);
-            uniqueContainers.push(container);
-        }
-
-        for (const container of uniqueContainers) {
-            candidateNodes.push(...Array.from(container.querySelectorAll('[role="option"], option, li')));
-        }
-
-        const dropdownOptions = uniqueNonEmpty(candidateNodes.map((node) => node.textContent || node.getAttribute('value') || ''));
-        if (!selectedOption) {
-            const selectedNode = candidateNodes.find((node) => isLikelySelectedOption(node));
-            selectedOption = normalizeText(selectedNode?.textContent || selectedNode?.getAttribute('value') || '') || null;
-        }
-
-        if (!selectedOption) {
-            selectedOption = normalizeText(target.value || target.getAttribute('value') || '') || null;
-        }
-
-        return {
-            selectedOption,
-            dropdownOptions,
-            optionCount: dropdownOptions.length,
-        };
-    }
 
     const dropdownData = collectDropdownData(element);
 
@@ -624,7 +495,7 @@ def _build_snapshot_from_element_js() -> str:
 
     return snapshot;
 }
-"""
+""" % _COLLECT_DROPDOWN_DATA_JS
 
 
 def _build_snapshot_from_point_js() -> str:

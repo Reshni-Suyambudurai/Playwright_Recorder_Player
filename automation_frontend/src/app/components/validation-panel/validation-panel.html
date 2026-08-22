@@ -33,9 +33,9 @@
             <div class="validation-history__groups">
               @for (group of validation.availableGroups; track group.key) {
                 <details class="validation-group"
-                         [open]="isGroupOpen(group.key)"
-                         (toggle)="onGroupToggle(group.key, $event)">
-                  <summary class="validation-group__summary">
+                         [open]="isGroupOpen(group.key)">
+                  <summary class="validation-group__summary"
+                           (click)="onGroupSummaryClick(group.key, $event)">
                     <span class="validation-group__name">{{ group.displayName }} ({{ group.options.length }})</span>
                   </summary>
                   <div class="validation-group__options">
@@ -58,17 +58,31 @@
 
               @if (isDropdownValidation(validation)) {
                 <details class="validation-group validation-group--options-list"
-                         [open]="isGroupOpen('dropdown-options')"
-                         (toggle)="onGroupToggle('dropdown-options', $event)">
-                  <summary class="validation-group__summary">
+                         [open]="isGroupOpen(DROPDOWN_GROUP_KEY)">
+                  <summary class="validation-group__summary"
+                           (click)="onGroupSummaryClick(DROPDOWN_GROUP_KEY, $event)">
                     <span class="validation-group__name">Options ({{ getDropdownOptionCount(validation) }})</span>
                   </summary>
+                  @if (getDropdownOptions(validation).length > 0) {
+                    <label class="validation-options-select-all">
+                      <input type="checkbox"
+                             [checked]="areAllDropdownOptionsSelected(validation)"
+                             [indeterminate]="isAnyDropdownOptionSelected(validation) && !areAllDropdownOptionsSelected(validation)"
+                             (change)="toggleAllDropdownOptions(validation)" />
+                      <span>Select all</span>
+                    </label>
+                  }
                   <div class="validation-options-list">
                     @if (getDropdownOptions(validation).length === 0) {
                       <div class="validation-options-list__empty">No options detected</div>
                     } @else {
-                      @for (optionText of getDropdownOptions(validation); track optionText + $index) {
-                        <div class="validation-options-list__item">{{ optionText }}</div>
+                      @for (optionText of getDropdownOptions(validation); track optionText + $index; let i = $index) {
+                        <label class="validation-options-list__item">
+                          <input type="checkbox"
+                                 [checked]="isSelected(DROPDOWN_GROUP_KEY, getDropdownOptionKey(i))"
+                                 (change)="toggleOption(DROPDOWN_GROUP_KEY, getDropdownOptionKey(i))" />
+                          <span>{{ optionText }}</span>
+                        </label>
                       }
                     }
                   </div>

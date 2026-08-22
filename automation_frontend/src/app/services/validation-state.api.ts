@@ -116,6 +116,28 @@ export class ValidationStateApi {
     this._logCache('selection-toggle', cacheKey);
   }
 
+  /** Bulk-select/deselect a set of options under one group in a single update (used by "Select all"). */
+  setGroupOptionsSelected(groupKey: string, optionKeys: string[], selected: boolean): void {
+    const cacheKey = this.activeCacheKey();
+    if (!cacheKey) return;
+
+    const nextSelected = new Map(this.selectedOptions());
+    const nextGroupSet = new Set(nextSelected.get(cacheKey) ?? []);
+
+    for (const optionKey of optionKeys) {
+      const compositeKey = this._optionCompositeKey(groupKey, optionKey);
+      if (selected) {
+        nextGroupSet.add(compositeKey);
+      } else {
+        nextGroupSet.delete(compositeKey);
+      }
+    }
+
+    nextSelected.set(cacheKey, nextGroupSet);
+    this.selectedOptions.set(nextSelected);
+    this._logCache('selection-bulk-set', cacheKey);
+  }
+
   selectedLabels(): string[] {
     const cacheKey = this.activeCacheKey();
     const context = this.activeContext();

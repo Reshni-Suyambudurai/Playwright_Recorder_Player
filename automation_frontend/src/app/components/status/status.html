@@ -121,8 +121,15 @@
               </div>
               @if (data.optionCount) {
                 <div class="assertion-field">
-                  <label>Dropdown Options:</label>
-                  <span class="field-value">{{ data.optionCount }} options</span>
+                  <label>Dropdown Options ({{ data.optionCount }}):</label>
+                  <div class="assertion-options-list">
+                    @for (optionText of data.dropdownOptions; track optionText + $index) {
+                      <div class="assertion-options-list__item"
+                           [class.assertion-options-list__item--selected]="optionText === data.selectedOption">
+                        {{ optionText }}
+                      </div>
+                    }
+                  </div>
                 </div>
               }
               @if (data.selector) {

@@ -12,7 +12,7 @@ import logging
 from typing import Any, Optional
 from playwright.async_api import Page
 
-from app.utils.selector_builder import discover_by_assertion_mode
+from app.utils.selector_builder import discover_by_assertion_mode, discover_assertion_data_from_element
 
 logger = logging.getLogger("playwright_recorder.services.assertion")
 
@@ -48,23 +48,47 @@ class AssertionService:
             # Snapshot mode uses rectangle-based discovery via SnapshotService, not hover-based
             if mode == "snapshot":
                 raise ValueError("Snapshot mode does not support hover-based discovery. Use rectangle-based discovery instead.")
-            
+
             raw = await discover_by_assertion_mode(page, x, y, mode)
             if not raw:
                 raise ValueError(f"No DOM element found at ({x}, {y})")
 
-            if mode == "visibility":
-                return self._extract_visibility(raw)
-            elif mode == "text":
-                return self._extract_text(raw)
-            elif mode == "value":
-                return self._extract_value(raw)
-            else:
-                raise ValueError(f"Unknown assertion mode: {mode}")
+            return self._filter_by_mode(raw, mode)
 
         except Exception as e:
             logger.error(f"Assertion discovery failed at ({x}, {y}) mode={mode}: {e}")
             raise
+
+    async def discover_from_element(self, element, mode: str) -> dict[str, Any]:
+        """
+        Same extraction as discover_by_mode, but reads directly from an already-resolved
+        element handle instead of hit-testing a pixel coordinate. This is what playback uses:
+        once the recorded selector has found the right element, there's no need (and no
+        safe way, for large container elements) to re-locate it by coordinates.
+        """
+        try:
+            if mode == "snapshot":
+                raise ValueError("Snapshot mode does not support element-based discovery. Use rectangle-based discovery instead.")
+
+            raw = await discover_assertion_data_from_element(element, mode)
+            if not raw:
+                raise ValueError("Element evaluation returned no data")
+
+            return self._filter_by_mode(raw, mode)
+
+        except Exception as e:
+            logger.error(f"Assertion discovery from element failed mode={mode}: {e}")
+            raise
+
+    def _filter_by_mode(self, raw: dict[str, Any], mode: str) -> dict[str, Any]:
+        if mode == "visibility":
+            return self._extract_visibility(raw)
+        elif mode == "text":
+            return self._extract_text(raw)
+        elif mode == "value":
+            return self._extract_value(raw)
+        else:
+            raise ValueError(f"Unknown assertion mode: {mode}")
 
     def _extract_visibility(self, raw: dict[str, Any]) -> dict[str, Any]:
         """
@@ -98,9 +122,10 @@ class AssertionService:
 
     def _extract_value(self, raw: dict[str, Any]) -> dict[str, Any]:
         """
-        Extract value-only fields (includes dropdown options if applicable).
-        
-        Returns: { mode, value, type, dropdownOptions, optionCount, selector }
+        Extract value-only fields (includes dropdown options for native <select> AND
+        ARIA combobox/listbox widgets — see collectDropdownData in selector_builder.py).
+
+        Returns: { mode, value, type, dropdownOptions, selectedOption, optionCount, selector }
         """
         options = raw.get("dropdownOptions", [])
         return {
@@ -108,6 +133,7 @@ class AssertionService:
             "value": raw.get("value", ""),
             "type": raw.get("type", "unknown"),
             "dropdownOptions": options,
+            "selectedOption": raw.get("selectedOption"),
             "optionCount": len(options) if options else 0,
             "selector": raw.get("selector"),
         }

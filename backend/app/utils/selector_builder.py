@@ -365,11 +365,153 @@ async def build_selector(page: Page, x: int, y: int) -> dict | None:
 
 
 # JS for assertion discovery — captures all data (visibility, text, value)
-_INSPECT_FOR_ASSERTION_JS = r"""
-(args) => {
-    const { x, y } = args;
-    const el = document.elementFromPoint(x, y);
+# Shared dropdown-detection helpers — recognizes native <select> AND ARIA-based custom
+# dropdowns (role="combobox"/"listbox", via aria-activedescendant/aria-controls/aria-owns
+# linking or the nearest role="listbox" ancestor). This is the same logic ValidationService
+# uses for the Validation panel's dropdown checklist, kept in exactly one place so assertion
+# discovery and validation discovery can never silently diverge on what counts as a dropdown.
+_COLLECT_DROPDOWN_DATA_JS = r"""
+    function normalizeText(value) {
+        return (value || '').trim().replace(/\s+/g, ' ');
+    }
+
+    function uniqueNonEmpty(values) {
+        const seen = new Set();
+        const result = [];
+        for (const raw of values) {
+            const text = normalizeText(raw);
+            if (!text) continue;
+            const key = text.toLowerCase();
+            if (seen.has(key)) continue;
+            seen.add(key);
+            result.push(text);
+        }
+        return result;
+    }
+
+    function collectDropdownData(target) {
+        const tag = target.tagName.toLowerCase();
+        const ariaRole = (target.getAttribute('role') || '').toLowerCase();
+        const isSelect = tag === 'select';
+        const isAriaDropdown = ariaRole === 'combobox' || ariaRole === 'listbox';
+
+        if (!isSelect && !isAriaDropdown) {
+            return { selectedOption: null, dropdownOptions: [], optionCount: null };
+        }
+
+        if (isSelect) {
+            const selectOptions = Array.from(target.options || []);
+            const dropdownOptions = uniqueNonEmpty(selectOptions.map((opt) => opt.textContent || opt.value || ''));
+            const selected = selectOptions.find((opt) => opt.selected);
+            const selectedOption = normalizeText(selected?.textContent || selected?.value || target.value || '') || null;
+            return {
+                selectedOption,
+                dropdownOptions,
+                optionCount: dropdownOptions.length,
+            };
+        }
+
+        const candidateContainers = [];
+        const candidateNodes = [];
+
+        function isLikelySelectedOption(node) {
+            if (!node) return false;
+            if (node.getAttribute('aria-selected') === 'true') return true;
+            if (node.hasAttribute('selected')) return true;
+            if (node.getAttribute('data-selected') === 'true') return true;
+            const classText = (node.className || '').toString().toLowerCase();
+            return classText.includes('selected');
+        }
+
+        function pushContainerById(rawId) {
+            const id = normalizeText(rawId);
+            if (!id) return;
+            const container = document.getElementById(id);
+            if (container) candidateContainers.push(container);
+        }
+
+        pushContainerById(target.getAttribute('aria-controls'));
+        pushContainerById(target.getAttribute('aria-owns'));
+
+        const activeId = target.getAttribute('aria-activedescendant');
+        let selectedOption = null;
+        if (activeId) {
+            const activeNode = document.getElementById(activeId);
+            const activeContainer = activeNode?.closest('[role="listbox"]') || activeNode?.parentElement || null;
+            if (activeContainer) candidateContainers.push(activeContainer);
+            selectedOption = normalizeText(activeNode?.textContent || activeNode?.getAttribute('value') || '') || null;
+        }
+
+        if (ariaRole === 'listbox') {
+            candidateContainers.push(target);
+        }
+
+        if (ariaRole === 'listbox' && target.id) {
+            const escapedId = window.CSS && window.CSS.escape ? window.CSS.escape(target.id) : target.id;
+            const controller = document.querySelector(
+                `[aria-controls="${escapedId}"], [aria-owns="${escapedId}"]`
+            );
+            if (controller) {
+                const controllerValue = normalizeText(
+                    controller.value
+                    || controller.getAttribute('value')
+                    || controller.getAttribute('aria-label')
+                    || ''
+                );
+                if (controllerValue) {
+                    selectedOption = controllerValue;
+                }
+
+                pushContainerById(controller.getAttribute('aria-controls'));
+                pushContainerById(controller.getAttribute('aria-owns'));
+            }
+        }
+
+        const nearestListbox = target.closest('[role="listbox"]');
+        if (nearestListbox) {
+            candidateContainers.push(nearestListbox);
+        }
+
+        const seen = new Set();
+        const uniqueContainers = [];
+        for (const container of candidateContainers) {
+            if (!container || seen.has(container)) continue;
+            seen.add(container);
+            uniqueContainers.push(container);
+        }
+
+        for (const container of uniqueContainers) {
+            candidateNodes.push(...Array.from(container.querySelectorAll('[role="option"], option, li')));
+        }
+
+        const dropdownOptions = uniqueNonEmpty(candidateNodes.map((node) => node.textContent || node.getAttribute('value') || ''));
+        if (!selectedOption) {
+            const selectedNode = candidateNodes.find((node) => isLikelySelectedOption(node));
+            selectedOption = normalizeText(selectedNode?.textContent || selectedNode?.getAttribute('value') || '') || null;
+        }
+
+        if (!selectedOption) {
+            selectedOption = normalizeText(target.value || target.getAttribute('value') || '') || null;
+        }
+
+        return {
+            selectedOption,
+            dropdownOptions,
+            optionCount: dropdownOptions.length,
+        };
+    }
+"""
+
+# Element-based core: extracts assertion data from a known element handle directly — no
+# pixel hit-testing involved. This is what playback uses once it has already resolved the
+# right element via the recorded selector, so it never has to re-guess which element is at
+# some computed coordinate (that re-guess is what broke on large container elements like a
+# listbox, whose bounding-box center is covered by a child option, not the listbox itself).
+_INSPECT_ELEMENT_FOR_ASSERTION_JS = r"""
+(el) => {
     if (!el) return null;
+
+    %s
 
     // Helper to build selector (reuse same logic as _INSPECT_JS)
     function isStableId(value) {
@@ -472,16 +614,8 @@ _INSPECT_FOR_ASSERTION_JS = r"""
     const value = el.value !== undefined ? el.value : '';
     const inputType = (el.getAttribute('type') || '').toLowerCase();
 
-    // Extract dropdown options (if applicable)
-    let dropdownOptions = [];
-    if (tag === 'select') {
-        const options = Array.from(el.querySelectorAll('option'));
-        dropdownOptions = options.map(opt => ({
-            value: opt.value,
-            text: opt.textContent.trim(),
-            selected: opt.selected
-        }));
-    }
+    // Extract dropdown options — recognizes native <select> and ARIA combobox/listbox widgets
+    const dropdownData = collectDropdownData(el);
 
     return {
         visible,
@@ -493,11 +627,25 @@ _INSPECT_FOR_ASSERTION_JS = r"""
         accessibleName,
         value,
         type: inputType || 'unknown',
-        dropdownOptions,
+        dropdownOptions: dropdownData.dropdownOptions,
+        selectedOption: dropdownData.selectedOption,
+        optionCount: dropdownData.optionCount,
         selector: buildSelector(el)
     };
 }
-"""
+""" % _COLLECT_DROPDOWN_DATA_JS
+
+# Point-based wrapper: only used for live hover during recording, where the browser genuinely
+# needs to hit-test "what's under the mouse right now". It just locates the element, then hands
+# off to the same element-based core above.
+_INSPECT_FOR_ASSERTION_JS = r"""
+(args) => {
+    const { x, y } = args;
+    const el = document.elementFromPoint(x, y);
+    if (!el) return null;
+    return (%s)(el);
+}
+""" % _INSPECT_ELEMENT_FOR_ASSERTION_JS
 
 
 async def discover_by_assertion_mode(page: Page, x: float, y: float, mode: str) -> dict | None:
@@ -519,4 +667,19 @@ async def discover_by_assertion_mode(page: Page, x: float, y: float, mode: str) 
         return result
     except Exception as e:
         logger.warning(f"assertion discovery failed at ({x},{y}) mode={mode}: {e}")
+        return None
+
+
+async def discover_assertion_data_from_element(element, mode: str) -> dict | None:
+    """
+    Extract assertion data directly from an already-resolved element handle — no pixel
+    hit-testing. Used by playback once it has found the right element via the recorded
+    selector, so it never has to re-guess the element at some computed coordinate (that
+    re-guess breaks for large container elements, e.g. a listbox whose bounding-box center
+    is covered by a child option rather than the listbox itself).
+    """
+    try:
+        return await element.evaluate(_INSPECT_ELEMENT_FOR_ASSERTION_JS)
+    except Exception as e:
+        logger.warning(f"assertion discovery from element failed mode={mode}: {e}")
         return None
