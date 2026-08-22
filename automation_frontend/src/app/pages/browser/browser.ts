@@ -1,38 +1,24 @@
-import { Component, inject, OnDestroy, OnInit, signal } from '@angular/core';
-import { Subscription } from 'rxjs';
+import { Component, inject, signal } from '@angular/core';
 import { Toolbar } from '../../components/toolbar/toolbar';
 import { Status } from '../../components/status/status';
+import { AssertionPanel } from '../../components/assertion-panel/assertion-panel';
 import { BrowserView } from '../../components/browser-view/browser-view';
 import { RecordingModal } from '../../components/recording-modal/recording-modal';
-import { ValidationPanel } from '../../components/validation-panel/validation-panel';
 import { WebsocketApi } from '../../services/websocket.api';
-import { ValidationStateApi } from '../../services/validation-state.api';
 import { StartRecordingData } from '../../types/websocket';
 
 @Component({
   selector: 'app-browser',
   standalone: true,
-  imports: [Toolbar, Status, BrowserView, RecordingModal, ValidationPanel],
+  imports: [Toolbar, Status, AssertionPanel, BrowserView, RecordingModal],
   templateUrl: './browser.html',
   styleUrl: './browser.css',
 })
-export class BrowserComponent implements OnInit, OnDestroy {
+export class BrowserComponent {
   private wsApi = inject(WebsocketApi);
-  private validationState = inject(ValidationStateApi);
-  private subscription?: Subscription;
 
   readonly showModal = signal(false);
   pendingUrl = '';
-
-  ngOnInit(): void {
-    this.subscription = this.wsApi.recordingStopped$.subscribe(() => {
-      this.validationState.clearHistory();
-    });
-  }
-
-  ngOnDestroy(): void {
-    this.subscription?.unsubscribe();
-  }
 
   onOpenModal(url: string): void {
     this.pendingUrl = url;

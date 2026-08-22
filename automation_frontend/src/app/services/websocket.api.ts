@@ -1,4 +1,4 @@
-import { Injectable, inject, signal, WritableSignal } from '@angular/core';
+import { Injectable, signal, WritableSignal } from '@angular/core';
 import {
   ActionDoneData,
   ClickActionData,
@@ -30,14 +30,12 @@ import {
 import { Observable, Subject } from 'rxjs';
 import { environment } from '../../environments/environment';
 import { TokenStore } from './token-store.api';
-import { ValidationStateApi } from './validation-state.api';
 
 @Injectable({
   providedIn: 'root',
 })
 export class WebsocketApi {
   private tokenStore = new TokenStore();
-  private validationState = inject(ValidationStateApi);
   private ws: WebSocket | null = null;
   private clientId: string = this.tokenStore.resolveClientId();
 
@@ -136,7 +134,6 @@ export class WebsocketApi {
     if (this.ws && this.ws.readyState === WebSocket.OPEN) {
       this.ws.close();
     }
-    this.validationState.clear();
     this.updateConnectionState({
       isConnected: false,
       sessionId: null,
@@ -227,9 +224,6 @@ export class WebsocketApi {
         case 'INPUT_DETECTED':
           this.handleInputDetected(event.data as InputDetectedData);
           break;
-        case 'VALIDATION_DISCOVERED':
-          this.handleValidationDiscovered(event.data);
-          break;
         case 'ASSERTION_DISCOVERED':
           this.assertionDiscoveredSubject.next(event.data);
           break;
@@ -237,7 +231,6 @@ export class WebsocketApi {
           this.snapshotPreviewSubject.next(event.data);
           break;
         case 'RECORDING_STOPPED':
-          this.validationState.clear();
           this.recordingStoppedSubject.next(event.data as RecordingStoppedData);
           break;
         case 'TAB_OPENED':
@@ -247,7 +240,6 @@ export class WebsocketApi {
           this.tabSwitchedSubject.next(event.data as TabSwitchedData);
           break;
         case 'SESSION_CLOSED':
-          this.validationState.clear();
           this.updateConnectionState({ isConnected: false, sessionId: null, error: null, sessionClosed: true });
           this.disconnectedSubject.next();
           break;
@@ -357,21 +349,11 @@ export class WebsocketApi {
   }
 
   private handleActionDone(data: ActionDoneData): void {
-    if (data.validation) {
-      this.validationState.upsertContext(data.validation);
-    }
     this.actionDoneSubject.next(data);
   }
 
   private handleInputDetected(data: InputDetectedData): void {
-    if (data.validation) {
-      this.validationState.upsertContext(data.validation);
-    }
     this.inputDetectedSubject.next(data);
-  }
-
-  private handleValidationDiscovered(data: any): void {
-    this.validationState.upsertContext(data);
   }
 
   public sendSwitchTab(tabId: string): void {

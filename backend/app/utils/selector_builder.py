@@ -365,11 +365,9 @@ async def build_selector(page: Page, x: int, y: int) -> dict | None:
 
 
 # JS for assertion discovery — captures all data (visibility, text, value)
-# Shared dropdown-detection helpers — recognizes native <select> AND ARIA-based custom
-# dropdowns (role="combobox"/"listbox", via aria-activedescendant/aria-controls/aria-owns
-# linking or the nearest role="listbox" ancestor). This is the same logic ValidationService
-# uses for the Validation panel's dropdown checklist, kept in exactly one place so assertion
-# discovery and validation discovery can never silently diverge on what counts as a dropdown.
+# Dropdown-detection helper — recognizes native <select> AND ARIA-based custom dropdowns
+# (role="combobox"/"listbox", via aria-activedescendant/aria-controls/aria-owns linking or
+# the nearest role="listbox" ancestor). Used by the value-assertion extraction below.
 _COLLECT_DROPDOWN_DATA_JS = r"""
     function normalizeText(value) {
         return (value || '').trim().replace(/\s+/g, ' ');
