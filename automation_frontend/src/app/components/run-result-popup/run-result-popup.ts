@@ -10,6 +10,7 @@ export class RunResultPopup implements OnChanges, OnDestroy {
   @Input() visible = false;
   @Input() title = '';
   @Input() message = '';
+  @Input() isHtml = false;
   @Input() variant: 'success' | 'error' = 'success';
   @Input() autoCloseMs = 2000;
 

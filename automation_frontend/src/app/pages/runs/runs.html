@@ -72,21 +72,35 @@
           <!-- Status overlay -->
           @if (state.playStatus() === 'running') {
             <div class="player-overlay player-overlay--running">
-              <span class="player-overlay-pill">{{ state.currentType() }}</span>
-              <span class="player-overlay-progress">Step {{ state.currentStep() + 1 }} / {{ state.totalSteps() }}</span>
+              <div class="player-overlay-row">
+                <span class="player-overlay-pill">{{ state.currentType() }}</span>
+                <span class="player-overlay-progress">Step {{ state.currentStep() + 1 }} / {{ state.totalSteps() }}</span>
+                @if (state.assertionTotal() > 0) {
+                  <span class="player-overlay-assertions">✔ {{ state.assertionPassed() }}/{{ state.assertionTotal() }} assertions</span>
+                }
+              </div>
               @if (state.playError()) {
-                <span class="player-overlay-step-err">⚠ {{ state.playError() }}</span>
+                <div class="player-overlay-row">
+                  <span class="player-overlay-step-err">⚠ {{ state.playError() }}</span>
+                </div>
               }
             </div>
           }
           @if (state.playStatus() === 'paused') {
             <div class="player-overlay player-overlay--paused">
-              <span class="player-overlay-pill player-overlay-pill--paused">⏸ Paused</span>
-              <span class="player-overlay-progress">Step {{ state.currentStep() + 1 }} / {{ state.totalSteps() }}</span>
+              <div class="player-overlay-row">
+                <span class="player-overlay-pill player-overlay-pill--paused">⏸ Paused</span>
+                <span class="player-overlay-progress">Step {{ state.currentStep() + 1 }} / {{ state.totalSteps() }}</span>
+                @if (state.assertionTotal() > 0) {
+                  <span class="player-overlay-assertions">✔ {{ state.assertionPassed() }}/{{ state.assertionTotal() }} assertions</span>
+                }
+                <button class="player-overlay-resume" (click)="onResumeClick()">▶ Resume</button>
+              </div>
               @if (state.playError()) {
-                <span class="player-overlay-step-err">⚠ {{ state.playError() }}</span>
+                <div class="player-overlay-row">
+                  <span class="player-overlay-step-err">⚠ {{ state.playError() }}</span>
+                </div>
               }
-              <button class="player-overlay-resume" (click)="onResumeClick()">▶ Resume</button>
             </div>
           }
           <app-run-result-popup
@@ -95,6 +109,7 @@
             [title]="runPopupTitle()"
             [message]="runPopupMessage()"
             [autoCloseMs]="runPopupAutoCloseMs()"
+            [isHtml]="runPopupIsHtml()"
             (closed)="closeRunPopup()" />
         </div>
       </div><!-- /runs-right -->
@@ -138,6 +153,7 @@
             [validationErrors]="validationErrors()"
             [shouldRunState]="shouldRunState()"
             [pauseState]="pauseState()"
+            [assertionResults]="state.assertionResults()"
             (toggleShouldRun)="toggleShouldRun($event.stepId, $event.current)"
             (togglePause)="togglePause($event.stepId, $event.current)"
             (editValue)="setEditValue($event.stepId, $event.value)"

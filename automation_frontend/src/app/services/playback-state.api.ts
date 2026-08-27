@@ -17,6 +17,9 @@ export class PlaybackStateApi {
   readonly failedCount   = signal<number>(0);
   readonly failedSteps   = signal<FailedStep[]>([]);
   readonly hasLiveFrame  = signal<boolean>(false);
+  readonly assertionPassed = signal<number>(0);
+  readonly assertionTotal  = signal<number>(0);
+  readonly assertionResults = signal<Map<number, 'pass' | 'fail'>>(new Map());
 
   /** Reset all state before a new run starts. */
   resetForNewRun(): void {
@@ -29,6 +32,9 @@ export class PlaybackStateApi {
     this.totalSteps.set(0);
     this.currentStepId.set(null);
     this.currentType.set('');
+    this.assertionPassed.set(0);
+    this.assertionTotal.set(0);
+    this.assertionResults.set(new Map());
   }
 
   /**
@@ -58,16 +64,29 @@ export class PlaybackStateApi {
         break;
       }
       case 'PLAY_DONE': {
-        const d = evt.data as { stepCount: number; failedCount: number; failedSteps: FailedStep[]; message: string };
+        const d = evt.data as { stepCount: number; failedCount: number; failedSteps: FailedStep[]; message: string; assertionTotal?: number; assertionPassed?: number };
         this.totalSteps.set(d.stepCount ?? this.totalSteps());
         this.failedCount.set(d.failedCount ?? 0);
         this.failedSteps.set(d.failedSteps ?? []);
+        this.assertionTotal.set(d.assertionTotal ?? 0);
+        this.assertionPassed.set(d.assertionPassed ?? 0);
         this.playStatus.set(d.failedCount > 0 ? 'done_with_errors' : 'done');
         break;
       }
+      case 'PLAY_ASSERTION_PASSED': {
+        const d = evt.data as { stepId: number };
+        this.assertionPassed.update(n => n + 1);
+        this.assertionResults.update(m => { const next = new Map(m); next.set(d.stepId, 'pass'); return next; });
+        break;
+      }
       case 'PLAY_STEP_ERROR': {
-        const d = evt.data as { error: string };
-        this.playError.set(d.error ?? 'Step failed');
+        const d = evt.data as { stepId?: number; error?: string; comparison?: unknown };
+        // Strip the ||COMPARISON:{...} suffix before showing in overlay
+        const rawErr = d.error ?? 'Step failed';
+        this.playError.set(rawErr.split('||COMPARISON:')[0].trim());
+        if (d.stepId && d.comparison) {
+          this.assertionResults.update(m => { const next = new Map(m); next.set(d.stepId!, 'fail'); return next; });
+        }
         break;
       }
       case 'PLAY_ERROR': {
