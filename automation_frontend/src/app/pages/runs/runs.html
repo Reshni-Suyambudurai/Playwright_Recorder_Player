@@ -3,113 +3,155 @@
   <div class="page-header">
     <div class="page-header-left">
       <h1 class="page-title">Runs</h1>
-      </div>
+    </div>
   </div>
 
   <!-- Loading -->
   @if (loading()) {
-    <div class="runs-loading">
-      <span class="spinner"></span>
-      <span>Loading recordings…</span>
-    </div>
+  <div class="runs-loading">
+    <span class="spinner"></span>
+    <span>Loading recordings…</span>
+  </div>
   }
 
   <!-- Error -->
   @if (error()) {
-    <div class="runs-error">{{ error() }}</div>
+  <div class="runs-error">{{ error() }}</div>
   }
 
   <!-- Empty state -->
   @if (!loading() && !error() && recordings().length === 0) {
-    <div class="runs-empty">
-      <div class="runs-empty-icon">
-        <app-svg-icon name="runs" />
-      </div>
-      <h3>No recordings yet</h3>
-      <p>Go to the Browser tab and record your first automation flow.</p>
+  <div class="runs-empty">
+    <div class="runs-empty-icon">
+      <app-svg-icon name="runs" />
     </div>
+    <h3>No recordings yet</h3>
+    <p>Go to the Browser tab and record your first automation flow.</p>
+  </div>
   }
 
   <!-- Main content: dropdown + two-column body -->
   @if (!loading() && recordings().length > 0) {
 
-    <!-- Two-column body -->
-    <div class="runs-body">
+  <!-- Two-column body -->
+  <div class="runs-body">
 
-      <!-- LEFT: Player browser screen -->
-      <div class="runs-right">
-     
-        <div class="player-screen"
-             [class.player-screen--interactive]="state.playStatus() === 'paused'"
-             (click)="onFrameClick($event)"
-             (wheel)="onFrameWheel($event)">
-          <!-- Live frame: always in DOM so viewChild ref is available; hidden until first frame -->
-          <img #frameImg
-               class="player-live-frame"
-               [class.player-live-frame--hidden]="!state.hasLiveFrame()"
-               alt="Live playback frame" />
+    <!-- LEFT: Player browser screen -->
+    <div class="runs-right">
 
-          <!-- Pause-time input overlay — rendered when backend detects an input element was clicked -->
-          @if (pauseInputData()) {
-            <app-input-overlay
-              class="pause-input-overlay"
-              [style.left.px]="pauseOverlayX()"
-              [style.top.px]="pauseOverlayY()"
-              [inputData]="pauseInputData()!"
-              (confirm)="onPauseTypeConfirm($event)"
-              (cancel)="onPauseTypeCancel()" />
+      <div class="player-screen" [class.player-screen--interactive]="state.playStatus() === 'paused'"
+        (click)="onFrameClick($event)" (wheel)="onFrameWheel($event)">
+        <!-- Live frame: always in DOM so viewChild ref is available; hidden until first frame -->
+        <img #frameImg class="player-live-frame" [class.player-live-frame--hidden]="!state.hasLiveFrame()"
+          alt="Live playback frame" />
+
+        <!-- Pause-time input overlay — rendered when backend detects an input element was clicked -->
+        @if (pauseInputData()) {
+        <app-input-overlay class="pause-input-overlay" [style.left.px]="pauseOverlayX()"
+          [style.top.px]="pauseOverlayY()" [inputData]="pauseInputData()!" (confirm)="onPauseTypeConfirm($event)"
+          (cancel)="onPauseTypeCancel()" />
+        }
+
+        <!-- Status overlay -->
+        @if (state.playStatus() === 'running') {
+        <div class="player-overlay player-overlay--running">
+          <span class="player-overlay-pill">{{ state.currentType() }}</span>
+          <span class="player-overlay-progress">Step {{ state.currentStep() + 1 }} / {{ state.totalSteps() }}</span>
+          @if (state.playError()) {
+          <span class="player-overlay-step-err">⚠ {{ state.playError() }}</span>
           }
-
-          <!-- Placeholder: shown until first frame arrives -->
-          @if (!state.hasLiveFrame()) {
-            <div class="player-screen-inner">
-              <app-svg-icon name="runs" class="player-placeholder-icon" />
-              <span class="player-placeholder-text">Ready to play</span>
-              <span class="player-placeholder-sub">Select a recording and press Run</span>
-            </div>
+        </div>
+        }
+        @if (state.playStatus() === 'paused') {
+        <div class="player-overlay player-overlay--paused">
+          <span class="player-overlay-pill player-overlay-pill--paused">⏸ Paused</span>
+          <span class="player-overlay-progress">Step {{ state.currentStep() + 1 }} / {{ state.totalSteps() }}</span>
+          @if (state.playError()) {
+          <span class="player-overlay-step-err">⚠ {{ state.playError() }}</span>
           }
+          <button class="player-overlay-resume" (click)="onResumeClick()">▶ Resume</button>
+        </div>
+        }
+        <app-run-result-popup [visible]="runPopupVisible()" [variant]="runPopupVariant()" [title]="runPopupTitle()"
+          [message]="runPopupMessage()" [autoCloseMs]="runPopupAutoCloseMs()" (closed)="closeRunPopup()" />
+        <!-- Placeholder: shown until first frame arrives -->
+        @if (!state.hasLiveFrame()) {
+        <div class="player-screen-inner">
+          <app-svg-icon name="runs" class="player-placeholder-icon" />
+          <span class="player-placeholder-text">Ready to play</span>
+          <span class="player-placeholder-sub">Select a recording and press Run</span>
+        </div>
+        }
 
-          <!-- Status overlay -->
-          @if (state.playStatus() === 'running') {
-            <div class="player-overlay player-overlay--running">
-              <div class="player-overlay-row">
-                <span class="player-overlay-pill">{{ state.currentType() }}</span>
-                <span class="player-overlay-progress">Step {{ state.currentStep() + 1 }} / {{ state.totalSteps() }}</span>
-                @if (state.assertionTotal() > 0) {
-                  <span class="player-overlay-assertions">✔ {{ state.assertionPassed() }}/{{ state.assertionTotal() }} assertions</span>
-                }
-              </div>
-              @if (state.playError()) {
-                <div class="player-overlay-row">
-                  <span class="player-overlay-step-err">⚠ {{ state.playError() }}</span>
-                </div>
-              }
-            </div>
+        <!-- Status overlay -->
+        @if (state.playStatus() === 'running') {
+        <div class="player-overlay player-overlay--running">
+          <div class="player-overlay-row">
+            <span class="player-overlay-pill">{{ state.currentType() }}</span>
+            <span class="player-overlay-progress">Step {{ state.currentStep() + 1 }} / {{ state.totalSteps() }}</span>
+            @if (state.assertionTotal() > 0) {
+            <span class="player-overlay-assertions">✔ {{ state.assertionPassed() }}/{{ state.assertionTotal() }}
+              assertions</span>
+            }
+          </div>
+          @if (state.playError()) {
+          <div class="player-overlay-row">
+            <span class="player-overlay-step-err">⚠ {{ state.playError() }}</span>
+          </div>
           }
+        </div>
+        }
+
+        <div class="runs-step-meta">
+          <span class="runs-flow-name">{{ selectedRecording()?.flowName }}</span>
+          <span class="runs-step-count">{{ selectedRecording()?.stepCount }} steps</span>
+        </div>
+
+        <!-- Scrollable step list -->
+        <app-step-list [groups]="tabGroups()" [currentStepId]="state.currentStepId()" [editValues]="editValues()"
+          [validationErrors]="validationErrors()" [shouldRunState]="shouldRunState()" [pauseState]="pauseState()"
+          (toggleShouldRun)="toggleShouldRun($event.stepId, $event.current)"
+          (togglePause)="togglePause($event.stepId, $event.current)"
+          (editValue)="setEditValue($event.stepId, $event.value)" />
+
+        <!-- Save bar -->
+        <div class="runs-save-bar">
+          <div class="runs-save-actions">
+            <button class="runs-run-btn" (click)="onRunClick()"
+              [disabled]="!detail() || state.playStatus() === 'running' || state.playStatus() === 'paused'">
+              ▶
+            </button>
+            <button class="runs-save-btn" (click)="saveEdits()" [disabled]="saving() || !hasEdits()">
+              @if (saving()) { Saving… } @else { Save to DB }
+            </button>
+          </div>
+          @if (saveSuccess()) {
+          <span class="runs-save-ok">✓ Saved</span>
+          }
+          @if (saveError()) {
+          <span class="runs-save-err">{{ saveError() }}</span>
+          =======
           @if (state.playStatus() === 'paused') {
-            <div class="player-overlay player-overlay--paused">
-              <div class="player-overlay-row">
-                <span class="player-overlay-pill player-overlay-pill--paused">⏸ Paused</span>
-                <span class="player-overlay-progress">Step {{ state.currentStep() + 1 }} / {{ state.totalSteps() }}</span>
-                @if (state.assertionTotal() > 0) {
-                  <span class="player-overlay-assertions">✔ {{ state.assertionPassed() }}/{{ state.assertionTotal() }} assertions</span>
-                }
-                <button class="player-overlay-resume" (click)="onResumeClick()">▶ Resume</button>
-              </div>
-              @if (state.playError()) {
-                <div class="player-overlay-row">
-                  <span class="player-overlay-step-err">⚠ {{ state.playError() }}</span>
-                </div>
+          <div class="player-overlay player-overlay--paused">
+            <div class="player-overlay-row">
+              <span class="player-overlay-pill player-overlay-pill--paused">⏸ Paused</span>
+              <span class="player-overlay-progress">Step {{ state.currentStep() + 1 }} / {{ state.totalSteps()
+                }}</span>
+              @if (state.assertionTotal() > 0) {
+              <span class="player-overlay-assertions">✔ {{ state.assertionPassed() }}/{{ state.assertionTotal() }}
+                assertions</span>
+              >>>>>>> Stashed changes
               }
             </div>
+            @if (state.playError()) {
+            <div class="player-overlay-row">
+              <span class="player-overlay-step-err">⚠ {{ state.playError() }}</span>
+            </div>
+            }
+          </div>
           }
-          <app-run-result-popup
-            [visible]="runPopupVisible()"
-            [variant]="runPopupVariant()"
-            [title]="runPopupTitle()"
-            [message]="runPopupMessage()"
-            [autoCloseMs]="runPopupAutoCloseMs()"
-            [isHtml]="runPopupIsHtml()"
+          <app-run-result-popup [visible]="runPopupVisible()" [variant]="runPopupVariant()" [title]="runPopupTitle()"
+            [message]="runPopupMessage()" [autoCloseMs]="runPopupAutoCloseMs()" [isHtml]="runPopupIsHtml()"
             (closed)="closeRunPopup()" />
         </div>
       </div><!-- /runs-right -->
@@ -123,72 +165,63 @@
           <select id="rec-select" class="runs-select" (change)="onSelect($event)">
             <option value="">-- Choose a flow --</option>
             @for (rec of recordings(); track rec.recordId) {
-              <option [value]="rec.recordId">
-                {{ rec.flowName }} — {{ formatDate(rec.createdAt) }}
-              </option>
+            <option [value]="rec.recordId">
+              {{ rec.flowName }} — {{ formatDate(rec.createdAt) }}
+            </option>
             }
           </select>
         </div>
 
         @if (detailLoading()) {
-          <div class="runs-loading">
-            <span class="spinner"></span>
-            <span>Loading steps…</span>
-          </div>
+        <div class="runs-loading">
+          <span class="spinner"></span>
+          <span>Loading steps…</span>
+        </div>
         }
 
         @if (!detailLoading() && detail()) {
 
-          <!-- Meta row -->
-          <div class="runs-step-meta">
-            <span class="runs-flow-name">{{ selectedRecording()?.flowName }}</span>
-            <span class="runs-step-count">{{ selectedRecording()?.stepCount }} steps</span>
-          </div>
+        <!-- Meta row -->
+        <div class="runs-step-meta">
+          <span class="runs-flow-name">{{ selectedRecording()?.flowName }}</span>
+          <span class="runs-step-count">{{ selectedRecording()?.stepCount }} steps</span>
+        </div>
 
-          <!-- Scrollable step list -->
-          <app-step-list
-            [groups]="tabGroups()"
-            [currentStepId]="state.currentStepId()"
-            [editValues]="editValues()"
-            [validationErrors]="validationErrors()"
-            [shouldRunState]="shouldRunState()"
-            [pauseState]="pauseState()"
-            [assertionResults]="state.assertionResults()"
-            (toggleShouldRun)="toggleShouldRun($event.stepId, $event.current)"
-            (togglePause)="togglePause($event.stepId, $event.current)"
-            (editValue)="setEditValue($event.stepId, $event.value)"
-          />
+        <!-- Scrollable step list -->
+        <app-step-list [groups]="tabGroups()" [currentStepId]="state.currentStepId()" [editValues]="editValues()"
+          [validationErrors]="validationErrors()" [shouldRunState]="shouldRunState()" [pauseState]="pauseState()"
+          [assertionResults]="state.assertionResults()"
+          (toggleShouldRun)="toggleShouldRun($event.stepId, $event.current)"
+          (togglePause)="togglePause($event.stepId, $event.current)"
+          (editValue)="setEditValue($event.stepId, $event.value)" />
 
-          <!-- Save bar -->
-          <div class="runs-save-bar">
-            <div class="runs-save-actions">
-              <button class="runs-run-btn"
-                      (click)="onRunClick()"
-                      [disabled]="!detail() || state.playStatus() === 'running' || state.playStatus() === 'paused'">
-                ▶
-              </button>
-              <button class="runs-save-btn"
-                      (click)="saveEdits()"
-                      [disabled]="saving() || !hasEdits()">
-                @if (saving()) { Saving… } @else { Save to DB }
-              </button>
-            </div>
-            @if (saveSuccess()) {
-              <span class="runs-save-ok">✓ Saved</span>
-            }
-            @if (saveError()) {
-              <span class="runs-save-err">{{ saveError() }}</span>
-            }
+        <!-- Save bar -->
+        <div class="runs-save-bar">
+          <div class="runs-save-actions">
+            <button class="runs-run-btn" (click)="onRunClick()"
+              [disabled]="!detail() || state.playStatus() === 'running' || state.playStatus() === 'paused'">
+              ▶
+            </button>
+            <button class="runs-save-btn" (click)="saveEdits()" [disabled]="saving() || !hasEdits()">
+              @if (saving()) { Saving… } @else { Save to DB }
+            </button>
           </div>
+          @if (saveSuccess()) {
+          <span class="runs-save-ok">✓ Saved</span>
+          }
+          @if (saveError()) {
+          <span class="runs-save-err">{{ saveError() }}</span>
+          }
+        </div>
         }
 
         @if (!detailLoading() && selectedId() && !detail()) {
-          <p class="runs-no-steps">No steps found for this recording.</p>
+        <p class="runs-no-steps">No steps found for this recording.</p>
         }
 
       </div><!-- /runs-left -->
 
     </div><!-- /runs-body -->
-  }
+    }
 
-</div>
+  </div>
