@@ -1,118 +1,198 @@
 @if (!isAsserting()) {
-  <div class="assertion-panel assertion-panel--idle">
-    <strong>No assertion yet.</strong>
-    <p>Turn on an assertion mode in the toolbar and click an element to inspect it.</p>
+<div class="assertion-panel assertion-panel--idle">
+  <strong>No assertion yet.</strong>
+  <p>Turn on an assertion mode in the toolbar and click an element to inspect it.</p>
+</div>
+} @else if (isDiscovering()) {
+<!-- Loading State -->
+<div class="assertion-panel assertion-panel--loading">
+  <div class="loading-indicator">
+    <div class="spinner"></div>
+    <span>Discovering element...</span>
   </div>
-} @else if (assertionData(); as data) {
-  <div class="assertion-panel">
-    <div class="assertion-header">
-      <h3>{{ assertionMode() === 'snapshot' ? 'Snapshot' : 'Assertion' }}</h3>
-      <span class="assertion-type badge badge-accent">{{ assertionMode() }}</span>
+</div>
+} @else if (discoveryError()) {
+<!-- Error State -->
+<div class="assertion-panel assertion-panel--error">
+  <div class="error-container">
+    <span class="error-icon">!</span>
+    <div class="error-content">
+      <h4>Discovery Failed</h4>
+      <p>{{ discoveryError() }}</p>
     </div>
+  </div>
+  <div class="assertion-actions">
+    <button class="btn btn-secondary btn-sm" (click)="cancelAssertion()">
+      Dismiss
+    </button>
+  </div>
+</div>
+} @else if (assertionData(); as data) {
+<div class="assertion-panel">
+  <!-- Enhanced Header with Step Counter -->
+  <div class="assertion-header">
+    <div class="header-left">
+      <div class="header-text">
+        <h3>{{ getModeLabel(assertionMode()) }}</h3>
+        @if (stepCounter().total > 0) {
+        <span class="step-counter">Step {{ stepCounter().current }} of {{ stepCounter().total }}</span>
+        }
+      </div>
+    </div>
+  </div>
 
-    <div class="assertion-content">
-      @switch (assertionMode()) {
-        @case ('visibility') {
-          <div class="assertion-field">
-            <label>Visibility:</label>
-            <span class="field-value">{{ data.visible ? 'Visible' : 'Hidden' }}</span>
+  <!-- Content Sections -->
+  <div class="assertion-content">
+    @switch (assertionMode()) {
+    @case ('visibility') {
+    <div class="assertion-section">
+      <h4 class="section-title">Visual State</h4>
+      <div class="assertion-field">
+        <label>Visibility:</label>
+        <span class="field-value" [class.status-visible]="data.visible" [class.status-hidden]="!data.visible">
+          {{ data.visible ? 'Visible' : 'Hidden' }}
+        </span>
+      </div>
+      <div class="assertion-field">
+        <label>Display:</label>
+        <span class="field-value">{{ data.display }}</span>
+      </div>
+      <div class="assertion-field">
+        <label>Opacity:</label>
+        <span class="field-value">{{ data.opacity }}</span>
+      </div>
+    </div>
+    @if (data.selector) {
+    <div class="assertion-section">
+      <h4 class="section-title">Element Locator</h4>
+      <div class="assertion-field">
+        <label>Selector:</label>
+        <span class="field-value field-value-mono">{{ data.selector?.value || data.selector }}</span>
+      </div>
+    </div>
+    }
+    }
+    @case ('text') {
+    <div class="assertion-section">
+      <div class="assertion-field">
+        <label>Text:</label>
+        <div class="field-value field-value-text">{{ data.text || '(empty)' }}</div>
+      </div>
+      <div class="assertion-field">
+        <label>Statistics:</label>
+        <span class="field-value">{{ data.wordCount }} words, {{ data.charCount }} chars</span>
+      </div>
+    </div>
+    @if (data.accessibleName) {
+    <div class="assertion-section">
+      <h4 class="section-title">Accessibility</h4>
+      <div class="assertion-field">
+        <label>Accessible Name:</label>
+        <span class="field-value">{{ data.accessibleName }}</span>
+      </div>
+    </div>
+    }
+    @if (data.selector) {
+    <div class="assertion-section">
+      <h4 class="section-title">Element Locator</h4>
+      <div class="assertion-field">
+        <label>Selector:</label>
+        <span class="field-value field-value-mono">{{ data.selector?.value || data.selector }}</span>
+      </div>
+    </div>
+    }
+    }
+    @case ('value') {
+    <div class="assertion-section">
+      <div class="assertion-field">
+        <label>Value:</label>
+        <div class="field-value field-value-text">{{ data.value || '(empty)' }}</div>
+      </div>
+      <div class="assertion-field">
+        <label>Element Type:</label>
+        <span class="field-value">{{ data.type }}</span>
+      </div>
+    </div>
+    @if (data.optionCount) {
+    <div class="assertion-section">
+      <div class="dropdown-options-header">
+        <span class="dropdown-info">Dropdown Options ({{ data.optionCount }})</span>
+        <button class="btn-toggle-options" (click)="toggleDropdownOptions()" [class.active]="showDropdownOptions()">
+          {{ showDropdownOptions() ? '▼' : '▶' }}
+        </button>
+      </div>
+      @if (showDropdownOptions()) {
+      <div class="assertion-field">
+        <div class="assertion-options-list">
+          @for (optionText of data.dropdownOptions; track optionText + $index) {
+          <div class="assertion-options-list__item"
+            [class.assertion-options-list__item--selected]="optionText === data.selectedOption">
+            {{ optionText }}
           </div>
-          <div class="assertion-field">
-            <label>Display:</label>
-            <span class="field-value">{{ data.display }}</span>
-          </div>
-          <div class="assertion-field">
-            <label>Opacity:</label>
-            <span class="field-value">{{ data.opacity }}</span>
-          </div>
-          @if (data.selector) {
-            <div class="assertion-field">
-              <label>Selector:</label>
-              <span class="field-value">{{ data.selector?.value || data.selector }}</span>
-            </div>
           }
-        }
-        @case ('text') {
-          <div class="assertion-field">
-            <label>Text Content:</label>
-            <div class="field-value field-value-text">{{ data.text }}</div>
-          </div>
-          <div class="assertion-field">
-            <label>Word / Char Count:</label>
-            <span class="field-value">{{ data.wordCount }} words, {{ data.charCount }} chars</span>
-          </div>
-          @if (data.accessibleName) {
-            <div class="assertion-field">
-              <label>Accessible Name:</label>
-              <span class="field-value">{{ data.accessibleName }}</span>
-            </div>
-          }
-          @if (data.selector) {
-            <div class="assertion-field">
-              <label>Selector:</label>
-              <span class="field-value">{{ data.selector?.value || data.selector }}</span>
-            </div>
-          }
-        }
-        @case ('value') {
-          <div class="assertion-field">
-            <label>Element Value:</label>
-            <div class="field-value field-value-text">{{ data.value }}</div>
-          </div>
-          <div class="assertion-field">
-            <label>Type:</label>
-            <span class="field-value">{{ data.type }}</span>
-          </div>
-          @if (data.optionCount) {
-            <div class="assertion-field">
-              <label>Dropdown Options ({{ data.optionCount }}):</label>
-              <div class="assertion-options-list">
-                @for (optionText of data.dropdownOptions; track optionText + $index) {
-                  <div class="assertion-options-list__item"
-                       [class.assertion-options-list__item--selected]="optionText === data.selectedOption">
-                    {{ optionText }}
-                  </div>
-                }
-              </div>
-            </div>
-          }
-          @if (data.selector) {
-            <div class="assertion-field">
-              <label>Selector:</label>
-              <span class="field-value">{{ data.selector?.value || data.selector }}</span>
-            </div>
-          }
-        }
-        @case ('snapshot') {
-          <div class="assertion-field">
-            <label>Label:</label>
-            <span class="field-value">{{ data.label }}</span>
-          </div>
-          <div class="assertion-field">
-            <label>Region:</label>
-            <span class="field-value">{{ formatRegion(data.region) }}</span>
-          </div>
-          <div class="assertion-field">
-            <label>Elements:</label>
-            <span class="field-value">{{ data.elementCount }}</span>
-          </div>
-          @if (data.ariaSnapshot) {
-            <div class="assertion-field">
-              <label>Accessibility Tree:</label>
-              <pre class="field-value field-value-mono">{{ data.ariaSnapshot }}</pre>
-            </div>
-          }
-        }
+        </div>
+      </div>
       }
     </div>
-
-    <div class="assertion-actions">
-      <button class="btn btn-primary btn-sm" (click)="saveAssertion()">
-        Save Assertion
-      </button>
-      <button class="btn btn-secondary btn-sm" (click)="cancelAssertion()">
-        Dismiss
-      </button>
+    }
+    @if (data.selector) {
+    <div class="assertion-section">
+      <h4 class="section-title">Element Locator</h4>
+      <div class="assertion-field">
+        <label>Selector:</label>
+        <span class="field-value field-value-mono">{{ data.selector?.value || data.selector }}</span>
+      </div>
     </div>
+    }
+    }
+    @case ('snapshot') {
+    <div class="assertion-section">
+      <h4 class="section-title">Snapshot Info</h4>
+      <div class="assertion-field">
+        <label>Label:</label>
+        <span class="field-value">{{ data.label }}</span>
+      </div>
+      <div class="assertion-field">
+        <label>Region:</label>
+        <span class="field-value">{{ formatRegion(data.region) }}</span>
+      </div>
+      <div class="assertion-field">
+        <label>Elements in Region:</label>
+        <span class="field-value">{{ data.elementCount }}</span>
+      </div>
+    </div>
+    @if (data.ariaSnapshot) {
+    <div class="assertion-section">
+      <div class="aria-tree-header">
+        <span class="aria-tree-label">Accessibility Tree</span>
+        <div class="aria-tree-actions">
+          <button class="btn-copy" (click)="copyAriaTree()" title="Copy to clipboard" [disabled]="copyFeedback()">
+            {{ copyFeedback() ? 'Copied!' : 'Copy' }}
+          </button>
+          <button class="btn-toggle-options" (click)="toggleAriaTree()" [class.active]="showAriaTree()">
+            {{ showAriaTree() ? '▼' : '▶' }}
+          </button>
+        </div>
+      </div>
+      @if (showAriaTree()) {
+      <div class="aria-tree-container">
+        <pre class="aria-tree-content">{{ data.ariaSnapshot }}</pre>
+      </div>
+      }
+    </div>
+    }
+    }
+    }
   </div>
+
+  <!-- Actions -->
+  <div class="assertion-actions">
+    <button class="btn btn-primary btn-sm" (click)="saveAssertion()" title="Save this assertion (Enter)">
+      Save Assertion
+    </button>
+    <button class="btn btn-secondary btn-sm" (click)="cancelAssertion()" title="Dismiss without saving (Esc)">
+      Dismiss
+    </button>
+  </div>
+</div>
 }

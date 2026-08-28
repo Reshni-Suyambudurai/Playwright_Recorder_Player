@@ -79,6 +79,7 @@ export class Runs implements OnInit, OnDestroy {
   readonly runPopupMessage = signal('');
   readonly runPopupVariant = signal<'success' | 'error'>('success');
   readonly runPopupAutoCloseMs = signal(2000);
+  readonly runPopupIsHtml = signal(false);
 
   // Direct DOM reference — we set img.src directly to bypass Angular zone
   private _frameImgRef = viewChild<ElementRef<HTMLImageElement>>('frameImg');
@@ -110,12 +111,12 @@ export class Runs implements OnInit, OnDestroy {
     () => this.runtimeTrackingActive() && this.isPlaybackActive()
   );
 
-  private _showErrorPopupOnce(key: string, title: string, message: string): void {
+  private _showErrorPopupOnce(key: string, title: string, message: string, isHtml = false): void {
     const normalized = message?.trim();
     if (!normalized) return;
     if (this._lastErrorPopupKey === key) return;
     this._lastErrorPopupKey = key;
-    this._showRunPopup('error', title, normalized, 0);
+    this._showRunPopup('error', title, normalized, 0, isHtml);
   }
 
   private _captureRuntimeRunStartBaselines(): void {
@@ -605,10 +606,40 @@ export class Runs implements OnInit, OnDestroy {
 
   private _onPlayEvent(evt: PlayEvent): void {
     if (evt.event_type === 'PLAY_STEP_ERROR') {
-      const data = evt.data as { stepId?: number; error?: string };
+      const data = evt.data as { stepId?: number; error?: string; comparison?: { assertionType: string; expected: Record<string, unknown>; actual: Record<string, unknown>; reason: string } };
       const stepId = data.stepId ?? 0;
-      const message = data.error ?? 'Step failed';
-      this._showErrorPopupOnce(`play-step-error-${stepId}-${message}`, 'Playback Step Error', `Step ID ${stepId}: ${message}`);
+      // Strip the raw ||COMPARISON:{...} suffix the backend appends to the error string
+      const rawMsg = data.error ?? 'Step failed';
+      const cleanMsg = rawMsg.split('||COMPARISON:')[0].trim();
+
+      const comparisonHtml = data.comparison
+        ? (() => {
+            const c = data.comparison!;
+            const skipKeys = new Set(['mode', 'selector']);
+            const fmt = (obj: Record<string, unknown>) =>
+              Object.entries(obj ?? {})
+                .filter(([k]) => !skipKeys.has(k))
+                .map(([k, v]) => `<tr><td class="cmp-key">${k}</td><td class="cmp-val">${JSON.stringify(v)}</td></tr>`)
+                .join('');
+            return `<div class="cmp-block">
+  <table class="cmp-table">
+    <thead><tr><th>Expected</th><th>Actual</th></tr></thead>
+    <tbody><tr>
+      <td><table>${fmt(c.expected)}</table></td>
+      <td><table>${fmt(c.actual)}</table></td>
+    </tr></tbody>
+  </table>
+</div>`;
+          })()
+        : '';
+
+      const bodyHtml = `<p class="popup-err-msg">${cleanMsg}</p>${comparisonHtml}`;
+      this._showErrorPopupOnce(`play-step-error-${stepId}-${cleanMsg}`, `Assertion Failed — Step ${stepId}`, bodyHtml, true);
+    }
+
+    if (evt.event_type === 'PLAY_STEP_SKIPPED') {
+      const data = evt.data as { stepId?: number; reason?: string };
+      console.info(`[STEP SKIPPED] stepId=${data.stepId} reason=${data.reason ?? 'shouldRun=false'}`);
     }
 
     if (evt.event_type === 'PLAY_PAUSED') {
@@ -628,17 +659,29 @@ export class Runs implements OnInit, OnDestroy {
     }
 
     if (evt.event_type === 'PLAY_DONE') {
-      const data = evt.data as { stepCount: number };
+      const data = evt.data as { stepCount: number; assertionTotal?: number; assertionPassed?: number; assertionFailed?: number };
       this._resetRuntimeTrackingState();
-      this._showRunPopup('success', 'Playback Successful', `${data.stepCount} steps executed successfully. Refreshing in 10 seconds.`, 10000);
+      const assertionSummary = data.assertionTotal
+        ? ` | Assertions: ${data.assertionPassed}/${data.assertionTotal} passed`
+        : '';
+      this._showRunPopup('success', 'Playback Successful', `${data.stepCount} steps executed successfully${assertionSummary}. Refreshing in 10 seconds.`, 10000);
       this._scheduleSuccessRefresh();
+    }
+
+    if (evt.event_type === 'PLAY_ASSERTION_PASSED') {
+      const data = evt.data as { stepId: number; assertionType: string; expected: Record<string, unknown>; actual: Record<string, unknown> };
+      const key = `${data.assertionType}:${data.stepId}`;
+      const exp = JSON.stringify(data.expected ?? {});
+      const act = JSON.stringify(data.actual ?? {});
+      console.debug(`[ASSERTION PASSED] ${key} expected=${exp} actual=${act}`);
     }
 
     if (evt.event_type === 'PLAY_ERROR') {
       this._clearSuccessRefreshTimer();
-      const data = evt.data as { error?: string };
+      const data = evt.data as { error?: string; lastStepId?: number; lastStepType?: string };
       this._resetRuntimeTrackingState();
-      this._showErrorPopupOnce(`play-error-${data.error ?? 'Playback failed.'}`, 'Playback Error', data.error ?? 'Playback failed.');
+      const stepCtx = data.lastStepId ? ` (failed at step ${data.lastStepId} — ${data.lastStepType ?? ''})` : '';
+      this._showErrorPopupOnce(`play-error-${data.error ?? 'Playback failed.'}`, 'Playback Error', (data.error ?? 'Playback failed.') + stepCtx);
     }
 
     // Handle pause-type overlay events before the state machine
@@ -671,13 +714,15 @@ export class Runs implements OnInit, OnDestroy {
 
   closeRunPopup(): void {
     this.runPopupVisible.set(false);
+    this.runPopupIsHtml.set(false);
   }
 
-  private _showRunPopup(variant: 'success' | 'error', title: string, message: string, autoCloseMs = 2000): void {
+  private _showRunPopup(variant: 'success' | 'error', title: string, message: string, autoCloseMs = 2000, isHtml = false): void {
     this.runPopupVariant.set(variant);
     this.runPopupTitle.set(title);
     this.runPopupMessage.set(message);
     this.runPopupAutoCloseMs.set(autoCloseMs);
+    this.runPopupIsHtml.set(isHtml);
     this.runPopupVisible.set(true);
   }
 

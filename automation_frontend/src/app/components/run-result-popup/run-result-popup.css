@@ -50,6 +50,64 @@
   font-size: var(--text-sm);
 }
 
+.run-popup-message--html {
+  text-align: left;
+  max-height: 55vh;
+  overflow-y: auto;
+}
+
+.run-popup-message--html .popup-err-msg {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  margin: 0 0 0.75rem;
+  text-align: center;
+}
+
+.run-popup-message--html .cmp-block {
+  margin-top: 0.5rem;
+}
+
+.run-popup-message--html .cmp-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.72rem;
+}
+
+.run-popup-message--html .cmp-table th {
+  padding: 0.3rem 0.5rem;
+  text-align: left;
+  font-weight: 700;
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted, #64748b);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.run-popup-message--html .cmp-table > tbody > tr > td {
+  vertical-align: top;
+  padding: 0.4rem 0.5rem;
+  width: 50%;
+  border-right: 1px solid var(--border-color);
+}
+
+.run-popup-message--html .cmp-table > tbody > tr > td:last-child {
+  border-right: none;
+}
+
+.run-popup-message--html .cmp-key {
+  color: var(--text-muted, #64748b);
+  padding: 0.15rem 0.4rem 0.15rem 0;
+  white-space: nowrap;
+  font-weight: 600;
+}
+
+.run-popup-message--html .cmp-val {
+  color: var(--text-primary);
+  padding: 0.15rem 0;
+  word-break: break-all;
+}
+
 .run-popup-icon-wrap {
   display: flex;
   justify-content: center;

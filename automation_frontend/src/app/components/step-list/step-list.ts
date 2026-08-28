@@ -18,6 +18,7 @@ export class StepList {
   readonly validationErrors = input.required<Map<number, string>>();
   readonly shouldRunState = input.required<Map<number, boolean>>();
   readonly pauseState    = input.required<Map<number, boolean>>();
+  readonly assertionResults = input<Map<number, 'pass' | 'fail'>>(new Map());
 
   readonly toggleShouldRun = output<{ stepId: number; current: boolean }>();
   readonly togglePause     = output<{ stepId: number; current: boolean }>();
@@ -25,6 +26,10 @@ export class StepList {
 
   isAssertionStep(step: RecordingStep): boolean {
     return step.type === 'ASSERTION';
+  }
+
+  getAssertionResult(step: RecordingStep): 'pass' | 'fail' | null {
+    return this.assertionResults().get(step.id) ?? null;
   }
 
   getShouldRun(step: RecordingStep): boolean {

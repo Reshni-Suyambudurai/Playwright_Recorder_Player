@@ -14,7 +14,11 @@
       </div>
 
       <h3 class="run-popup-title">{{ title }}</h3>
-      <p class="run-popup-message">{{ message }}</p>
+      @if (isHtml) {
+        <div class="run-popup-message run-popup-message--html" [innerHTML]="message"></div>
+      } @else {
+        <p class="run-popup-message">{{ message }}</p>
+      }
     </section>
   </div>
 }

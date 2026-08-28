@@ -890,10 +890,14 @@ class WebSocketHandler:
             tab_id=session.active_tab_id or "tab-1",
         )
 
-    async def _send_assertion_saved(self, session_id: str, client_id: str, assertion_type: str) -> None:
+    async def _send_assertion_saved(self, session_id: str, client_id: str, assertion_type: str, captured_data: dict | None = None) -> None:
         await self.connection_manager.send_to_client(session_id, client_id, {
             "event_type": EventType.ASSERTION_SAVED,
-            "data": {"type": assertion_type, "timestamp": datetime.now().isoformat()},
+            "data": {
+                "type": assertion_type,
+                "timestamp": datetime.now().isoformat(),
+                "capturedData": captured_data or {},
+            },
         })
 
     async def handle_assertion_save(self, session_id: str, client_id: str, data: dict) -> dict:
@@ -925,7 +929,8 @@ class WebSocketHandler:
                 )
                 session.recording_steps.append(step)
 
-            await self._send_assertion_saved(session_id, client_id, mode)
+            # Send back the captured data so frontend can show a preview of what was saved
+            await self._send_assertion_saved(session_id, client_id, mode, captured_data=assertion_data)
             return {}
 
         except Exception as e:

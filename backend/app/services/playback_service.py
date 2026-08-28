@@ -166,18 +166,23 @@ class PlaybackService:
 
             # ── Execute steps ───────────────────────────────────────────────
             failed_steps: list[dict] = []   # accumulate per-step failures
+            last_step_id: int | None = None
+            last_step_type: str | None = None
 
             for idx, step in enumerate(all_steps):
                 step_id   = step.get("id", idx + 1)
                 step_type = step.get("type", "UNKNOWN")
                 should_run = step.get("shouldRun", True)
                 pause      = step.get("pause", False)
+                last_step_id   = step_id
+                last_step_type = step_type
 
                 # Skip check
                 if not should_run:
                     logger.info(f"[PLAY:{play_id}] step {step_id} ({step_type}) SKIPPED")
                     await self._send(play_id, client_id, PLAY_STEP_SKIPPED, {
                         "stepId": step_id, "index": idx, "total": total,
+                        "reason": "shouldRun=false",
                     })
                     continue
 
@@ -197,10 +202,25 @@ class PlaybackService:
                     step_failed = True
                     err_msg = str(step_err)
                     logger.warning(f"[PLAY:{play_id}] step {step_id} ({step_type}) FAILED: {err_msg}")
-                    failed_steps.append({"stepId": step_id, "type": step_type, "error": err_msg})
+                    # Extract side-by-side comparison if assertion failure
+                    comparison = None
+                    display_err = err_msg
+                    if "||COMPARISON:" in err_msg:
+                        parts = err_msg.split("||COMPARISON:", 1)
+                        display_err = parts[0]
+                        try:
+                            comparison = json.loads(parts[1])
+                        except Exception:
+                            pass
+                    if step_type == "ASSERTION" and not hasattr(self, '_assertion_results'):
+                        self._assertion_results = []
+                    if step_type == "ASSERTION":
+                        self._assertion_results.append({"assertionType": step.get("assertionType", ""), "passed": False, "reason": display_err})
+                    failed_steps.append({"stepId": step_id, "type": step_type, "error": display_err})
                     await self._send(play_id, client_id, PLAY_STEP_ERROR, {
                         "stepId": step_id, "index": idx, "type": step_type,
-                        "error": err_msg,
+                        "error": display_err,
+                        "comparison": comparison,
                     })
                     # Capture failure state so frontend shows what went wrong
                     try:
@@ -238,6 +258,16 @@ class PlaybackService:
                         await cap_mgr.request(page, CaptureReason.STEP_DONE, settle=_settle)
                     except Exception as ss_err:
                         logger.warning(f"[PLAY:{play_id}] screenshot after step {step_id} failed (continuing): {ss_err}")
+                    # Send explicit PASS event for assertions so frontend can show ✅
+                    if not step_failed and step_type == "ASSERTION":
+                        assertion_results = getattr(self, '_assertion_results', [])
+                        last_result = assertion_results[-1] if assertion_results else {}
+                        await self._send(play_id, client_id, "PLAY_ASSERTION_PASSED", {
+                            "stepId": step_id, "index": idx,
+                            "assertionType": step.get("assertionType", ""),
+                            "expected": last_result.get("expected", {}),
+                            "actual": last_result.get("actual", {}),
+                        })
 
                 # Pause check — block until PLAY_RESUME received
                 if pause:
@@ -255,11 +285,20 @@ class PlaybackService:
             failed_count = len(failed_steps)
             session.status = PlayStatus.DONE
             session.mark_finished()
-            logger.info(f"[PLAY:{play_id}] DONE — {total} steps, {failed_count} failed")
+            # Build assertion summary
+            assertion_results = getattr(self, '_assertion_results', [])
+            assertion_passed = sum(1 for r in assertion_results if r.get("passed"))
+            assertion_failed = sum(1 for r in assertion_results if not r.get("passed"))
+            assertion_total  = len(assertion_results)
+            self._assertion_results = []  # reset for next run
+            logger.info(f"[PLAY:{play_id}] DONE — {total} steps, {failed_count} failed, assertions {assertion_passed}/{assertion_total} passed")
             await self._send(play_id, client_id, PLAY_DONE, {
                 "stepCount": total,
                 "failedCount": failed_count,
                 "failedSteps": failed_steps,
+                "assertionTotal": assertion_total,
+                "assertionPassed": assertion_passed,
+                "assertionFailed": assertion_failed,
                 "message": "Playback complete" if failed_count == 0 else f"Playback done with {failed_count} step error(s)",
             })
 
@@ -274,6 +313,8 @@ class PlaybackService:
             logger.error(f"[PLAY:{play_id}] ERROR: {e}", exc_info=True)
             await self._send(play_id, client_id, PLAY_ERROR, {
                 "error": str(e),
+                "lastStepId": last_step_id,
+                "lastStepType": last_step_type,
             })
 
         finally:
@@ -328,7 +369,7 @@ class PlaybackService:
             # Retry lookup/click to allow SPA/React DOM settle before declaring mismatch.
             for attempt in range(CLICK_RETRY_ATTEMPTS):
                 try:
-                    await self._wait_for_selector_visible(page, pw_selector, timeout_ms=3000)
+                    await self._wait_for_selector_visible(page, pw_selector, timeout_ms=10000)
                 except Exception as exc:
                     wait_timed_out = True
                     wait_error = str(exc)
@@ -338,7 +379,16 @@ class PlaybackService:
 
                 if occurrence_index < match_count:
                     try:
-                        await matches[occurrence_index].click(button=button)
+                        # Listbox containers must use recorded coords — clicking their center
+                        # picks a different option than what was recorded.
+                        if coords and self._is_listbox_container(pw_selector, step):
+                            # Wait for options to populate (async autocomplete API may still be in-flight)
+                            await self._wait_for_listbox_options(page, matches[occurrence_index])
+                            await self._browser_service.perform_click(
+                                page, int(coords["x"]), int(coords["y"]), button
+                            )
+                        else:
+                            await matches[occurrence_index].click(button=button)
                         return
                     except Exception as exc:
                         click_error = exc
@@ -412,11 +462,16 @@ class PlaybackService:
         if selector:
             pw_selector = self._resolve_pw_selector(selector)
             if pw_selector:
-                # Wait up to 5s for the element before typing.
-                try:
-                    match = await self._wait_for_selector_visible(page, pw_selector, timeout_ms=5000)
-                except Exception as exc:
-                    match = None
+                # Retry up to 3x for slow MUI pages where the element mounts late
+                match = None
+                for attempt in range(3):
+                    try:
+                        match = await self._wait_for_selector_visible(page, pw_selector, timeout_ms=5000)
+                        if match:
+                            break
+                    except Exception:
+                        if attempt < 2:
+                            await asyncio.sleep(1.0)
                 if match is None:
                     raise Exception(
                         f"Expected element '{pw_selector}' not found on page "
@@ -476,7 +531,13 @@ class PlaybackService:
 
         passed, reason = self._compare_assertion(assertion_type, expected, actual)
         if not passed:
-            raise Exception(f"ASSERTION ({assertion_type}) failed: {reason}")
+            # Build side-by-side comparison details for frontend display
+            comparison = {"assertionType": assertion_type, "expected": expected, "actual": actual, "reason": reason}
+            raise Exception(f"ASSERTION ({assertion_type}) failed: {reason}||COMPARISON:{json.dumps(comparison)}")
+        # Store passed assertion result for summary tracking
+        if not hasattr(self, '_assertion_results'):
+            self._assertion_results = []
+        self._assertion_results.append({"assertionType": assertion_type, "passed": True, "expected": expected, "actual": actual})
 
     async def _resolve_assertion_element(self, step: dict, page):
         """
@@ -490,7 +551,7 @@ class PlaybackService:
             return None
 
         try:
-            await self._wait_for_selector_visible(page, pw_selector, timeout_ms=3000)
+            await self._wait_for_selector_visible(page, pw_selector, timeout_ms=10000)
             matches = await page.query_selector_all(pw_selector)
             occurrence_index = self._get_occurrence_index(selector)
             if occurrence_index < len(matches):
@@ -506,12 +567,57 @@ class PlaybackService:
             exp_visible, act_visible = bool(expected.get("visible")), bool(actual.get("visible"))
             if exp_visible != act_visible:
                 return False, f"expected visible={exp_visible}, got visible={act_visible}"
+            # Also compare display and opacity when element is expected visible
+            if exp_visible:
+                exp_display, act_display = expected.get("display"), actual.get("display")
+                if exp_display and act_display and exp_display != act_display:
+                    return False, f"expected display={exp_display!r}, got display={act_display!r}"
+                exp_opacity = expected.get("opacity")
+                act_opacity = actual.get("opacity")
+                if exp_opacity is not None and act_opacity is not None:
+                    if abs(float(exp_opacity) - float(act_opacity)) > 0.05:
+                        return False, f"expected opacity={exp_opacity}, got opacity={act_opacity}"
             return True, ""
 
-        if assertion_type in ("text", "value"):
-            exp_val, act_val = expected.get(assertion_type), actual.get(assertion_type)
+        if assertion_type == "text":
+            exp_val, act_val = expected.get("text"), actual.get("text")
             if self._normalize_text(exp_val) != self._normalize_text(act_val):
-                return False, f"expected {assertion_type}={exp_val!r}, got {act_val!r}"
+                return False, f"expected text={exp_val!r}, got {act_val!r}"
+            # Compare accessibleName when recorded
+            exp_name, act_name = expected.get("accessibleName"), actual.get("accessibleName")
+            if exp_name and act_name and self._normalize_text(exp_name) != self._normalize_text(act_name):
+                return False, f"expected accessibleName={exp_name!r}, got {act_name!r}"
+            return True, ""
+
+        if assertion_type == "value":
+            exp_val, act_val = expected.get("value"), actual.get("value")
+            if self._normalize_text(exp_val) != self._normalize_text(act_val):
+                return False, f"expected value={exp_val!r}, got {act_val!r}"
+            # Compare selectedOption for dropdowns when recorded
+            exp_selected = expected.get("selectedOption")
+            act_selected = actual.get("selectedOption")
+            if exp_selected and act_selected and self._normalize_text(exp_selected) != self._normalize_text(act_selected):
+                return False, f"expected selectedOption={exp_selected!r}, got {act_selected!r}"
+            # Compare option count when recorded (catches missing/added options in dropdown)
+            exp_count = expected.get("optionCount")
+            act_count = actual.get("optionCount")
+            if exp_count and act_count and int(exp_count) != int(act_count):
+                return False, f"expected optionCount={exp_count}, got optionCount={act_count}"
+            # Compare dropdown options list when recorded (catches renamed or reordered options)
+            exp_options = expected.get("dropdownOptions") or []
+            act_options = actual.get("dropdownOptions") or []
+            if exp_options and act_options:
+                exp_norm = [self._normalize_text(o) for o in exp_options]
+                act_norm = [self._normalize_text(o) for o in act_options]
+                if exp_norm != act_norm:
+                    added   = [o for o in act_norm if o not in exp_norm]
+                    removed = [o for o in exp_norm if o not in act_norm]
+                    parts = []
+                    if removed:
+                        parts.append(f"removed={removed}")
+                    if added:
+                        parts.append(f"added={added}")
+                    return False, f"dropdownOptions changed: {', '.join(parts)}"
             return True, ""
 
         if assertion_type == "snapshot":
@@ -660,6 +766,43 @@ class PlaybackService:
                 except Exception:
                     continue
         return ""
+
+    def _is_listbox_container(self, pw_selector: str, step: dict | None = None) -> bool:
+        """Return True when the selector targets a listbox/autocomplete container (not a specific option)."""
+        lower = pw_selector.lower()
+        if "listbox" in lower or "autocomplete-list" in lower:
+            return True
+        # Also check targetMeta role — CSS selectors like `ul` won't contain "listbox" but the element has role="listbox"
+        if step:
+            target_meta = step.get("targetMeta") or {}
+            role = (target_meta.get("role") or "").lower()
+            if role == "listbox":
+                return True
+        return False
+
+    async def _wait_for_listbox_options(self, page, listbox_element, timeout_ms: int = 5000) -> None:
+        """Wait until the listbox has at least one visible, non-loading option."""
+        import time
+        deadline = time.monotonic() + timeout_ms / 1000
+        found = False
+        while time.monotonic() < deadline:
+            try:
+                options = await listbox_element.query_selector_all('[role="option"]')
+                if options:
+                    # Verify at least one option is visible (not a loading placeholder)
+                    for opt in options:
+                        visible = await opt.is_visible()
+                        text = (await opt.text_content() or "").strip()
+                        if visible and text:
+                            found = True
+                            break
+                if found:
+                    break
+            except Exception:
+                pass
+            await asyncio.sleep(0.15)
+        # Brief stabilization delay so options are fully rendered before clicking
+        await asyncio.sleep(0.3)
 
     def _is_dropdown_value_step(self, step: dict[str, Any]) -> bool:
         target_meta = step.get("targetMeta") or {}

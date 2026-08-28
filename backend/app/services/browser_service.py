@@ -73,13 +73,18 @@ class BrowserService:
             import time as _time
             t_cdp = _time.perf_counter()
             logger.debug(f"[SCREENSHOT] → sending CDP screenshot request to browser")
-            png_bytes = await page.screenshot(
+            screenshot_args = dict(
                 type="jpeg",
                 quality=60,
                 full_page=False,
                 clip={"x": 0, "y": 0, "width": VIEWPORT_WIDTH, "height": VIEWPORT_HEIGHT},
-                timeout=5000,  # 5-second cap — never hang on a navigating/loading page
+                timeout=5000,
             )
+            try:
+                png_bytes = await page.screenshot(**screenshot_args)
+            except Exception:
+                # Retry once immediately without waiting for animations (Azure pages block on font load)
+                png_bytes = await page.screenshot(**screenshot_args, animations="disabled")
             t_cdp_done = _time.perf_counter()
             logger.debug(
                 f"[SCREENSHOT] ← browser returned {len(png_bytes):,} bytes "

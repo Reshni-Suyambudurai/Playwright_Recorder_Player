@@ -1,4 +1,3 @@
-/* ── Scroll container ──────────────────────────────────────── */
 .runs-step-scroll {
   height: calc(100vh - 380px);
   overflow-y: scroll;
