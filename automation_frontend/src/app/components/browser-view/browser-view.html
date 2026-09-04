@@ -15,10 +15,6 @@
           (click)="onImageClick($event)"
           (wheel)="onImageWheel($event)"
           (mousemove)="onImageHover($event)"
-          (mousedown)="onImageMouseDown($event)"
-          (mousemove)="onImageMouseMove($event)"
-          (mouseup)="onImageMouseUp($event)"
-          (mouseleave)="onImageMouseLeave()"
           draggable="false"
         />
         <!-- Loading overlay shown while waiting for next frame after navigation -->
@@ -61,10 +57,14 @@
             [style.top.px]="assertionClickY()"
           ></div>
         }
-        <!-- Rectangle drawer for snapshot assertion region selection -->
-        <app-rectangle-drawer
-          [isActive]="showRectangleDrawer()"
-          [rect]="snapshotDrawing()"
+        <!-- Snapshot confirmation dialog -->
+        <app-snapshot-confirm-dialog
+          [isOpen]="snapshotConfirmDialogOpen()"
+          message="Capture full-page accessibility snapshot?"
+          confirmLabel="Capture"
+          cancelLabel="Cancel"
+          (confirm)="onSnapshotConfirmDialogConfirm()"
+          (cancel)="onSnapshotConfirmDialogCancel()"
         />
       </div>
     </div>

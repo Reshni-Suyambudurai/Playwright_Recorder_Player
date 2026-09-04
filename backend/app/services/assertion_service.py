@@ -137,3 +137,50 @@ class AssertionService:
             "optionCount": len(options) if options else 0,
             "selector": raw.get("selector"),
         }
+
+    def compare_aria_snapshots(self, expected_yaml: str, actual_yaml: str) -> tuple[bool, str]:
+        """
+        Compare two ARIA snapshots (both in JSON format from page.accessibility.snapshot()).
+        
+        Uses line-by-line normalized comparison:
+        - Strips whitespace from each line
+        - Ignores empty lines
+        - Counts differences
+        
+        Args:
+            expected_yaml: JSON string captured at record time
+            actual_yaml: JSON string captured during playback
+            
+        Returns:
+            (passed: bool, reason: str)
+            - passed=True if snapshots match (reason="")
+            - passed=False with reason describing differences
+        """
+        def normalize_json(json_str: str) -> list[str]:
+            """Normalize JSON by stripping each line and removing blanks."""
+            if not json_str:
+                return []
+            return [line.strip() for line in json_str.strip().split('\n') if line.strip()]
+
+        expected_lines = normalize_json(expected_yaml)
+        actual_lines = normalize_json(actual_yaml)
+
+        # Check if snapshots are identical
+        if expected_lines == actual_lines:
+            return True, ""
+
+        # Count differences for error message
+        diff_count = 0
+        
+        # Count line differences in overlapping range
+        for exp, act in zip(expected_lines, actual_lines):
+            if exp != act:
+                diff_count += 1
+        
+        # Add difference if line counts differ
+        diff_count += abs(len(expected_lines) - len(actual_lines))
+
+        reason = f"ARIA snapshot mismatch: {diff_count} line(s) differ. " \
+                 f"Expected {len(expected_lines)} lines, got {len(actual_lines)} lines."
+        
+        return False, reason

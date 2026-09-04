@@ -5,7 +5,6 @@ streaming FRAME events and playback lifecycle events to the frontend.
 Reuses: BrowserService, ScreenshotService, DomWatcher from the recording stack.
 """
 import asyncio
-import difflib
 import json
 import logging
 import re
@@ -621,39 +620,15 @@ class PlaybackService:
             return True, ""
 
         if assertion_type == "snapshot":
-            # Exact word-by-word match — playback never exits on a mismatch (it pauses for
-            # review, same as any other step failure), so there's no need to tolerate drift;
-            # any difference is worth surfacing to the user.
-            exp_words = str(expected.get("ariaSnapshot") or "").split()
-            act_words = str(actual.get("ariaSnapshot") or "").split()
-            if exp_words != act_words:
-                diff_excerpt = self._snapshot_diff_excerpt(exp_words, act_words)
-                return False, f"snapshot content changed:\n{diff_excerpt}"
+            # Use the new YAML-based line-by-line comparison
+            expected_yaml = str(expected.get("ariaSnapshot") or "")
+            actual_yaml = str(actual.get("ariaSnapshot") or "")
+            passed, reason = self._assertion_service.compare_aria_snapshots(expected_yaml, actual_yaml)
+            if not passed:
+                return False, f"snapshot content changed: {reason}"
             return True, ""
 
         return False, f"unknown assertion type: {assertion_type!r}"
-
-    def _snapshot_diff_excerpt(self, expected_words: list[str], actual_words: list[str], max_diffs: int = 6) -> str:
-        """
-        Word-by-word diff excerpt of exactly what changed, for the failure message sent to
-        the frontend. Reports each mismatched run as "word N: expected 'X', got 'Y'".
-        """
-        matcher = difflib.SequenceMatcher(None, expected_words, actual_words)
-        mismatches = [
-            (i1, expected_words[i1:i2], actual_words[j1:j2])
-            for tag, i1, i2, j1, j2 in matcher.get_opcodes()
-            if tag != "equal"
-        ]
-        if not mismatches:
-            return "(content differs but no word-level diff available)"
-
-        lines = [
-            f"word {i1 + 1}: expected {' '.join(exp) or '(nothing)'!r}, got {' '.join(act) or '(nothing)'!r}"
-            for i1, exp, act in mismatches[:max_diffs]
-        ]
-        if len(mismatches) > max_diffs:
-            lines.append(f"... ({len(mismatches) - max_diffs} more mismatch(es))")
-        return "\n".join(lines)
 
     # ─── Selector resolver — maps recorded strategy/value to Playwright selector ───
     def _resolve_pw_selector(self, recorded_selector: dict | None) -> str | None:

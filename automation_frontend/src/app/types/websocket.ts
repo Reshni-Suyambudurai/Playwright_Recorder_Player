@@ -30,6 +30,9 @@ export type EventType =
   | 'ASSERTION_DISCOVERED'
   | 'ASSERTION_STEP_RECORDED'
   | 'SNAPSHOT_CAPTURE_REQUEST'
+  | 'SNAPSHOT_CAPTURE_REQUESTED'
+  | 'SNAPSHOT_CONFIRM_DIALOG_SHOWN'
+  | 'SNAPSHOT_CAPTURED'
   | 'SNAPSHOT_PREVIEW'
   | 'SNAPSHOT_SAVE_ASSERTION';
 
@@ -238,6 +241,37 @@ export interface RecordingListItem {
   updatedAt: number | null;
 }
 
+export interface TargetMeta {
+  tag?: string | null;
+  role?: string | null;
+  text?: string | null;
+  normalizedText?: string | null;
+  ariaLabel?: string | null;
+  title?: string | null;
+  name?: string | null;
+  id?: string | null;
+  dataTestId?: string | null;
+  dataId?: string | null;
+  dataCy?: string | null;
+  dataQa?: string | null;
+  classHints?: string[] | null;
+}
+
+/**
+ * Complete snapshot assertion data captured from the full page.
+ * Contains the ARIA accessibility tree as YAML for semantic snapshot validation.
+ */
+export interface SnapshotData {
+  label: string;                // Human-readable description (page title or main heading)
+  ariaSnapshot: string;         // YAML representation of the accessibility tree
+  elementCount: number;         // Estimated number of accessible elements
+  capturedAt: number;           // Unix timestamp (milliseconds)
+  captureMode: 'full-page';     // Always full-page for ARIA snapshots
+  ariaTree?: object;            // Optional parsed tree structure for programmatic comparison
+  error?: string;               // Error message if capture failed
+}
+
+
 export interface RecordingStep {
   id: number;
   type: string;
@@ -258,6 +292,7 @@ export interface RecordingStep {
   inputValidation?: InputValidation | null;
   // Present when type === 'ASSERTION'
   assertionType?: 'visibility' | 'text' | 'value' | 'snapshot';
+  targetMeta?: TargetMeta | null;
   discoveredData?: Record<string, unknown> | null;
 }
 

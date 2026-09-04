@@ -4,9 +4,9 @@ import { WebsocketApi } from '../../services/websocket.api';
 import { AssertionModeApi } from '../../services/assertion-mode.api';
 import { InputDetectedData, TabInfo } from '../../types/websocket';
 import { InputOverlay, InputOverlayConfirmPayload } from '../input-overlay/input-overlay';
-import { RectangleDrawerComponent } from '../rectangle-drawer/rectangle-drawer';
 import { TabBar } from '../tab-bar/tab-bar';
 import { Spinner } from '../spinner/spinner';
+import { SnapshotConfirmDialog } from '../snapshot-confirm-dialog/snapshot-confirm-dialog';
 
 const VIEWPORT_WIDTH = 1280;
 const VIEWPORT_HEIGHT = 720;
@@ -14,7 +14,7 @@ const VIEWPORT_HEIGHT = 720;
 @Component({
   selector: 'app-browser-view',
   standalone: true,
-  imports: [InputOverlay, RectangleDrawerComponent, TabBar, Spinner],
+  imports: [InputOverlay, TabBar, Spinner, SnapshotConfirmDialog],
   templateUrl: './browser-view.html',
   styleUrl: './browser-view.css',
 })
@@ -46,11 +46,8 @@ export class BrowserView implements OnInit, OnDestroy {
   readonly assertionClickX = signal(0);
   readonly assertionClickY = signal(0);
 
-  // Snapshot rectangle drawing state
-  private snapshotStart = signal({ x: 0, y: 0 });
-  readonly snapshotDrawing = signal({ x: 0, y: 0, width: 0, height: 0 });
-  readonly showRectangleDrawer = signal(false);
-  private isDrawing = false;
+  // Snapshot confirmation dialog state
+  readonly snapshotConfirmDialogOpen = signal(false);
 
   private imgRef = viewChild<ElementRef<HTMLImageElement>>('frameImg');
   // These template refs point at component tags, so `read: ElementRef` is required —
@@ -74,10 +71,13 @@ export class BrowserView implements OnInit, OnDestroy {
     effect(() => {
       const mode = this.assertionModeApi.activeMode();
       if (!mode) {
-        // When assertion mode is deactivated, clear the rectangle drawer and cursor dot
-        this.showRectangleDrawer.set(false);
+        // When assertion mode is deactivated, close dialog and clear state
+        this.snapshotConfirmDialogOpen.set(false);
         this.assertionModeApi.clearDetectedAssertion();
         this.assertionCursorVisible.set(false);
+      } else if (mode === 'snapshot') {
+        // When snapshot mode is activated, immediately show confirmation dialog
+        this.snapshotConfirmDialogOpen.set(true);
       }
     });
   }
@@ -188,14 +188,30 @@ export class BrowserView implements OnInit, OnDestroy {
   }
 
   onImageClick(event: MouseEvent): void {
-    // Guard: don't allow clicks while drawing rectangle
-    if (this.showRectangleDrawer()) return;
-
     const mode = this.assertionModeApi.activeMode();
 
-    // Snapshot mode uses drag-to-select instead of click; ignore plain clicks
-    if (mode === 'snapshot') return;
+    // Ignore all clicks when in assertion mode (snapshot shows dialog on activation, others lock on click)
+    if (mode) {
+      // For non-snapshot modes: Pin the assertion at this exact point
+      if (mode !== 'snapshot') {
+        const img = this.imgRef()?.nativeElement;
+        if (!img) return;
+        const rect = img.getBoundingClientRect();
+        const scaleX = VIEWPORT_WIDTH / rect.width;
+        const scaleY = VIEWPORT_HEIGHT / rect.height;
+        const x = Math.round((event.clientX - rect.left) * scaleX);
+        const y = Math.round((event.clientY - rect.top) * scaleY);
 
+        this.assertionClickX.set(Math.round(event.clientX - rect.left));
+        this.assertionClickY.set(Math.round(event.clientY - rect.top));
+        this.assertionCursorVisible.set(false);
+        this.assertionModeApi.lock();
+        this.wsApi.sendAssertionHover(x, y);
+      }
+      return;
+    }
+
+    // Normal click action when no assertion mode is active
     const img = this.imgRef()?.nativeElement;
     if (!img) return;
     const rect = img.getBoundingClientRect();
@@ -204,92 +220,24 @@ export class BrowserView implements OnInit, OnDestroy {
     const x = Math.round((event.clientX - rect.left) * scaleX);
     const y = Math.round((event.clientY - rect.top) * scaleY);
 
-    if (mode) {
-      // Pin the assertion at this exact point: one last hover request, then stop
-      // reacting to further mouse movement until the user Saves or Dismisses it.
-      this.assertionClickX.set(Math.round(event.clientX - rect.left));
-      this.assertionClickY.set(Math.round(event.clientY - rect.top));
-      this.assertionCursorVisible.set(false);
-      this.assertionModeApi.lock();
-      this.wsApi.sendAssertionHover(x, y);
-      return;
-    }
-
     this.wsApi.sendClickAction(x, y);
   }
 
-  onImageMouseDown(event: MouseEvent): void {
-    // Only handle mouse down if in snapshot mode
-    if (this.assertionModeApi.activeMode() !== 'snapshot') return;
-
-    const img = this.imgRef()?.nativeElement;
-    if (!img) return;
-    
-    event.preventDefault();
-    this.isDrawing = true;
-    const rect = img.getBoundingClientRect();
-    const x = event.clientX - rect.left;
-    const y = event.clientY - rect.top;
-    this.snapshotStart.set({ x, y });
-    this.showRectangleDrawer.set(true);
+  onSnapshotConfirmDialogConfirm(): void {
+    // Capture full-page snapshot (zero coordinates = full page)
+    this.wsApi.sendSnapshotCaptureRequest({
+      x: 0,
+      y: 0,
+      width: 0,
+      height: 0,
+    });
+    this.snapshotConfirmDialogOpen.set(false);
   }
 
-  onImageMouseMove(event: MouseEvent): void {
-    if (!this.isDrawing || !this.showRectangleDrawer()) return;
-
-    const img = this.imgRef()?.nativeElement;
-    if (!img) return;
-
-    const rect = img.getBoundingClientRect();
-    const start = this.snapshotStart();
-    const x = event.clientX - rect.left;
-    const y = event.clientY - rect.top;
-
-    const width = Math.abs(x - start.x);
-    const height = Math.abs(y - start.y);
-    const drawX = Math.min(start.x, x);
-    const drawY = Math.min(start.y, y);
-
-    this.snapshotDrawing.set({ x: drawX, y: drawY, width, height });
-  }
-
-  onImageMouseUp(event: MouseEvent): void {
-    if (!this.isDrawing) return;
-
-    this.isDrawing = false;
-    const drawing = this.snapshotDrawing();
-
-    // Ignore clicks/invalid rectangles (too small)
-    if (drawing.width < 10 || drawing.height < 10) {
-      this.showRectangleDrawer.set(false);
-      return;
-    }
-
-    const img = this.imgRef()?.nativeElement;
-    if (!img) return;
-
-    const rect = img.getBoundingClientRect();
-    const scaleX = VIEWPORT_WIDTH / rect.width;
-    const scaleY = VIEWPORT_HEIGHT / rect.height;
-
-    // Convert display coordinates to viewport coordinates
-    const vpCoords = {
-      x: Math.round(drawing.x * scaleX),
-      y: Math.round(drawing.y * scaleY),
-      width: Math.round(drawing.width * scaleX),
-      height: Math.round(drawing.height * scaleY),
-    };
-
-    // Send snapshot capture request to backend
-    this.wsApi.sendSnapshotCaptureRequest(vpCoords);
-  }
-
-  onImageMouseLeave(): void {
-    if (this.isDrawing) {
-      this.isDrawing = false;
-      this.showRectangleDrawer.set(false);
-    }
-    this.assertionCursorVisible.set(false);
+  onSnapshotConfirmDialogCancel(): void {
+    // Close dialog and deactivate snapshot mode
+    this.snapshotConfirmDialogOpen.set(false);
+    this.assertionModeApi.setMode(null);
   }
 
   onImageHover(event: MouseEvent): void {

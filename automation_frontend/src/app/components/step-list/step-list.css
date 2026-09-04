@@ -244,6 +244,36 @@
   max-width: 100%;
 }
 
+.step-dropdown-value {
+  font-size: 0.75rem;
+  color: var(--color-primary-600);
+  background: color-mix(in srgb, var(--color-primary-500) 10%, transparent);
+  border-radius: var(--rounded-sm);
+  padding: 0.3rem 0.5rem;
+  display: inline-block;
+  font-weight: 500;
+  max-height: 2.4em;
+  overflow-y: auto;
+  word-break: break-word;
+  max-width: 300px;
+  line-height: 1.2;
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-primary-300) transparent;
+}
+
+.step-dropdown-value::-webkit-scrollbar {
+  width: 4px;
+}
+
+.step-dropdown-value::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.step-dropdown-value::-webkit-scrollbar-thumb {
+  background: var(--color-primary-300);
+  border-radius: 99px;
+}
+
 .step-val-url {
   font-size: 0.73rem;
   font-family: monospace;

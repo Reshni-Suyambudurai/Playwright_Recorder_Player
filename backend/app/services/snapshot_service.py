@@ -1,137 +1,116 @@
 """
 Snapshot Service for ARIA snapshot assertions.
 
-Captures ARIA information from DOM elements within a specified rectangular region
-and generates a descriptive ARIA snapshot for assertion validation.
+Uses Playwright's built-in page.accessibility.snapshot() to capture the accessibility tree
+as a JSON-formatted string representing the page's DOM from an accessibility perspective.
+
+Benefits:
+- Clean, semantic tree structure (AXNode format)
+- Follows W3C accessibility standards
+- File size ~10-15KB (vs 50KB+ for HTML snapshots)
+- Stable across CSS/visual changes
 """
-from typing import Any, Dict, Optional
+import json
+import time
+from typing import Any, Dict
 from playwright.async_api import Page
 
 
 class SnapshotService:
-    """Service for capturing ARIA snapshots of DOM regions."""
+    """Service for capturing full-page ARIA snapshots using Playwright's native method."""
 
     async def capture_aria_snapshot(
         self,
         page: Page,
-        x: int,
-        y: int,
-        width: int,
-        height: int,
+        x: int = 0,
+        y: int = 0,
+        width: int = 0,
+        height: int = 0,
     ) -> Dict[str, Any]:
         """
-        Capture ARIA snapshot of DOM elements within the specified rectangle.
+        Capture the full-page accessibility tree using Playwright's accessibility.snapshot().
+
+        NOTE: x, y, width, height parameters are ignored. Full page is always captured.
+              Region-based snapshots will be added in future versions.
 
         Args:
             page: Playwright page object
-            x: Top-left x coordinate in viewport
-            y: Top-left y coordinate in viewport
-            width: Rectangle width in pixels
-            height: Rectangle height in pixels
+            x, y, width, height: (Deprecated - kept for backward compatibility)
 
         Returns:
-            Dictionary with snapshot data:
             {
-                'label': 'element label or description',
-                'ariaSnapshot': 'formatted ARIA dump',
-                'locator': 'best locator for the element',
-                'elements': [{...}, ...]  # elements found in rectangle
+                'label': 'Descriptive label extracted from page title or main heading',
+                'ariaSnapshot': 'JSON string representing the accessibility tree',
+                'elementCount': Number of accessible nodes in the tree,
+                'capturedAt': Unix timestamp,
+                'captureMode': 'full-page'
             }
         """
         try:
-            # Get all elements within the rectangle
-            result = await page.evaluate(
-                """
-                ({ x, y, width, height }) => {
-                    const elements = [];
-                    const rect = { x, y, x2: x + width, y2: y + height };
-                    
-                    // Find all elements that intersect with the rectangle
-                    const allElements = document.querySelectorAll('*');
-                    for (const el of allElements) {
-                        const bounds = el.getBoundingClientRect();
-                        
-                        // Check intersection
-                        if (bounds.left < rect.x2 && bounds.right > rect.x &&
-                            bounds.top < rect.y2 && bounds.bottom > rect.y) {
-                            
-                            const ariaLabel = el.getAttribute('aria-label');
-                            const ariaDescribed = el.getAttribute('aria-describedby');
-                            const role = el.getAttribute('role') || el.tagName.toLowerCase();
-                            const text = el.textContent?.trim().substring(0, 100) || '';
-                            
-                            elements.push({
-                                tag: el.tagName.toLowerCase(),
-                                text: text,
-                                role: role,
-                                ariaLabel: ariaLabel,
-                                ariaDescribed: ariaDescribed,
-                                id: el.id || '',
-                                className: el.className || '',
-                            });
-                        }
-                    }
-                    
-                    return {
-                        count: elements.length,
-                        elements: elements.slice(0, 5),  // Top 5 elements
-                    };
-                }
-                """,
-                {"x": x, "y": y, "width": width, "height": height},
-            )
+            # Capture full-page accessibility tree using Playwright's accessibility API
+            accessibility_tree = await page.accessibility.snapshot()
 
-            # Find the best/largest element for the label
-            label = "Selected region"
-            aria_snapshot = self._generate_aria_snapshot(result["elements"])
+            # Convert tree to JSON string for storage and comparison
+            aria_snapshot = json.dumps(accessibility_tree, indent=2)
 
-            if result["elements"]:
-                best_elem = result["elements"][0]
-                if best_elem["text"]:
-                    label = best_elem["text"][:50]
-                elif best_elem["ariaLabel"]:
-                    label = best_elem["ariaLabel"][:50]
-                elif best_elem["role"]:
-                    label = f"{best_elem['role']} element"
+            # Generate descriptive label from page title or first heading
+            label = await self._generate_label(page)
+
+            # Count accessible nodes (estimate from tree structure)
+            element_count = self._count_nodes_from_tree(accessibility_tree)
+
+            # Get current timestamp
+            captured_at = int(time.time() * 1000)  # milliseconds
 
             return {
                 "label": label,
                 "ariaSnapshot": aria_snapshot,
-                "elementCount": result["count"],
-                "topElements": result["elements"],
+                "elementCount": element_count,
+                "capturedAt": captured_at,
+                "captureMode": "full-page",
             }
 
         except Exception as e:
             return {
-                "label": "Error capturing snapshot",
-                "ariaSnapshot": f"Failed to capture snapshot: {str(e)}",
+                "label": "Error",
+                "ariaSnapshot": f"Error capturing ARIA snapshot: {str(e)}",
+                "elementCount": 0,
+                "capturedAt": int(time.time() * 1000),
+                "captureMode": "full-page",
                 "error": str(e),
             }
 
-    def _generate_aria_snapshot(self, elements: list) -> str:
-        """
-        Generate a formatted ARIA snapshot string from elements.
+    async def _generate_label(self, page: Page) -> str:
+        """Generate a descriptive label from page title or main heading."""
+        try:
+            # Try to get page title
+            title = await page.title()
+            if title and title.strip():
+                return title[:100]
 
-        Args:
-            elements: List of element data dictionaries
+            # Fall back to first h1 if available
+            h1_text = await page.locator("h1").first.text_content()
+            if h1_text and h1_text.strip():
+                return h1_text.strip()[:100]
 
-        Returns:
-            Formatted ARIA snapshot string
-        """
-        lines = ["ARIA Snapshot:", "=" * 40]
+            # Fall back to generic label
+            return "Full-page ARIA snapshot"
 
-        if not elements:
-            lines.append("No elements found in selected region")
-        else:
-            for i, elem in enumerate(elements, 1):
-                lines.append(f"\n[{i}] {elem['tag'].upper()}")
-                lines.append(f"    Role: {elem['role']}")
-                if elem["text"]:
-                    lines.append(f"    Text: {elem['text']}")
-                if elem["ariaLabel"]:
-                    lines.append(f"    Aria-Label: {elem['ariaLabel']}")
-                if elem["id"]:
-                    lines.append(f"    ID: {elem['id']}")
+        except Exception:
+            return "ARIA snapshot"
 
-        lines.append("\n" + "=" * 40)
-        return "\n".join(lines)
+    def _count_nodes_from_tree(self, tree: Any) -> int:
+        """Count accessible nodes in the accessibility tree (AXNode structure)."""
+        if not tree:
+            return 0
+        
+        count = 1  # Count the root node
+        
+        # Recursively count child nodes
+        if isinstance(tree, dict):
+            children = tree.get('children', [])
+            if isinstance(children, list):
+                for child in children:
+                    count += self._count_nodes_from_tree(child)
+        
+        return count

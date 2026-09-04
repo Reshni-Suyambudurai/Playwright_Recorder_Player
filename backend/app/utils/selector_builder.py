@@ -305,8 +305,63 @@ _INSPECT_JS = r"""
     } catch(_) {}
     sel.occurrence_index = occurrenceIndex;
 
-    const metaTextTarget = findBestTextTarget(target);
-    const textValue = (metaTextTarget?.textContent || target.textContent || '').trim().replace(/\s+/g, ' ');
+    // For dropdown containers, extract ONLY the selected option text (not all options)
+    function getDropdownSelectedText(container) {
+        const role = (container.getAttribute('role') || '').toLowerCase();
+        const tag = container.tagName.toLowerCase();
+        const isDropdown = tag === 'select' || role === 'listbox' || role === 'combobox';
+        
+        if (!isDropdown) return null;
+        
+        // Native <select>
+        if (tag === 'select') {
+            const selected = container.options[container.selectedIndex];
+            if (selected) return (selected.textContent || selected.value || '').trim();
+            return null;
+        }
+        
+        // ARIA dropdown - find selected option by various indicators
+        const selectedOption = 
+            container.querySelector('[aria-selected="true"]') ||
+            container.querySelector('[data-selected="true"]') ||
+            container.querySelector('[selected]') ||
+            container.querySelector('.selected');
+        
+        if (selectedOption) {
+            return (selectedOption.textContent || selectedOption.getAttribute('value') || '').trim();
+        }
+        
+        return null;
+    }
+
+    // For dropdown containers, only use the selected option value; don't include all option text
+    const isDropdownRole = (target.getAttribute('role') || '').toLowerCase();
+    const isDropdownTag = target.tagName.toLowerCase() === 'select';
+    const isDropdownElement = isDropdownRole === 'listbox' || isDropdownRole === 'combobox' || isDropdownTag === 'select';
+    
+    let textValue = '';
+    let currentValue = '';
+    
+    if (isDropdownElement) {
+        // For dropdowns: extract selected value only, NEVER use textContent (which includes all options)
+        const selectedText = getDropdownSelectedText(target);
+        textValue = selectedText || (target.getAttribute('aria-label') || target.getAttribute('title') || target.getAttribute('placeholder') || '').trim();
+        currentValue = selectedText || '';
+    } else {
+        // For non-dropdown elements: use normal text extraction
+        const selectedText = getDropdownSelectedText(target);
+        textValue = selectedText || (() => {
+            const metaTextTarget = findBestTextTarget(target);
+            return (metaTextTarget?.textContent || target.textContent || '').trim().replace(/\s+/g, ' ');
+        })();
+        
+        if (target.value !== undefined) {
+            currentValue = target.value;
+        }
+    }
+    
+    textValue = textValue.replace(/\s+/g, ' ');
+    
     const role = target.getAttribute('role');
     const targetMeta = {
         tag,
@@ -330,7 +385,7 @@ _INSPECT_JS = r"""
         is_input: isTextInput,
         label: label || null,
         placeholder: target.getAttribute('placeholder') || null,
-        current_value: target.value !== undefined ? target.value : (target.textContent || ''),
+        current_value: currentValue || '',
         is_password: inputType === 'password',
         selector: sel,
         target_meta: targetMeta,

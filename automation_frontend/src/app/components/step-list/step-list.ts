@@ -72,4 +72,9 @@ export class StepList {
   getValidationError(step: RecordingStep): string | null {
     return this.validationErrors().get(step.id) ?? null;
   }
+
+  isDropdownSelection(targetMeta: any): boolean {
+    const role = (targetMeta?.role || '').toLowerCase();
+    return ['combobox', 'listbox', 'option'].includes(role);
+  }
 }
