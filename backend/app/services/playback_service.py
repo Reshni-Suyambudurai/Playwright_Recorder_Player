@@ -8,7 +8,8 @@ import asyncio
 import json
 import logging
 import re
-from typing import Any
+import time
+from typing import Any, Optional
 
 from app.models.playback import PlaySession, PlayStatus
 from app.services.browser_service import BrowserService
@@ -17,6 +18,7 @@ from app.services.dom_watcher import DomWatcher
 from app.services.capture_manager import CaptureManager, CaptureReason, SettleStrategy
 from app.services.assertion_service import AssertionService
 from app.services.snapshot_service import SnapshotService
+from app.services.playback_event_emitter import PlaybackEventEmitter
 from app.utils.selector_builder import build_selector
 from app.websocket.connection_manager import ConnectionManager
 
@@ -41,11 +43,13 @@ class PlaybackService:
         self,
         browser_service: BrowserService,
         screenshot_service: ScreenshotService,
-        connection_manager: ConnectionManager,
+        connection_manager: Optional[ConnectionManager] = None,
+        event_emitter: Optional[PlaybackEventEmitter] = None,
     ):
         self._browser_service   = browser_service
         self._screenshot_service = screenshot_service
         self._connection_manager = connection_manager
+        self._event_emitter = event_emitter
         # Stateless — one shared instance reused across every ASSERTION step in a playback run
         self._assertion_service = AssertionService()
         self._snapshot_service  = SnapshotService()
@@ -142,12 +146,18 @@ class PlaybackService:
                     all_steps.append(step)
 
         total = len(all_steps)
+        
+        # ✨ Initialize playback tracking for MCP event enrichment
+        session.total_steps = total
+        session.current_step_index = 0
+        session.current_step_id = 0
+        session.playback_start_time = time.time()
 
         try:
             # ── Launch browser ──────────────────────────────────────────────
-            logger.info(f"[PLAY:{play_id}] launching browser {vp_width}×{vp_height}")
+            logger.info(f"[PLAY:{play_id}] launching browser {vp_width}×{vp_height} headless={session.headless}")
             browser, context, page = await self._browser_service.launch_browser(
-                viewport_width=vp_width, viewport_height=vp_height, headless=True
+                viewport_width=vp_width, viewport_height=vp_height, headless=session.headless
             )
 
             # Viewport is already set at context creation — no set_viewport_size needed
@@ -185,11 +195,30 @@ class PlaybackService:
                     })
                     continue
 
-                # Announce step start
-                await self._send(play_id, client_id, PLAY_STEP_START, {
-                    "stepId": step_id, "index": idx, "total": total, "type": step_type,
-                })
-                logger.info(f"[PLAY:{play_id}] step {idx+1}/{total} — {step_type}")
+                # ✨ Announce step start with full metadata for live streaming
+                step_metadata = {
+                    "stepId": step_id,
+                    "index": idx,
+                    "total": total,
+                    "type": step_type,
+                    # Step details for MCP live streaming
+                    "pageTitle": step.get("pageTitle"),
+                    "pageUrl": step.get("pageUrl"),
+                    "coords": step.get("coords"),
+                    "selector": step.get("selector"),
+                    "text": step.get("text"),
+                    "url": step.get("url"),
+                    "button": step.get("button"),
+                    "key": step.get("key"),
+                    "assertionType": step.get("assertionType"),
+                }
+                await self._send(play_id, client_id, PLAY_STEP_START, step_metadata)
+                
+                # ✨ Log live streaming event with progress
+                progress_pct = int((idx / total) * 100) if total > 0 else 0
+                page_info = f" ({step.get('pageTitle', 'unknown')})" if step.get("pageTitle") else ""
+                logger.info(f"[PLAY:{play_id}] [STREAM] step {idx+1}/{total} ({progress_pct}%) — {step_type}{page_info}")
+                logger.debug(f"[PLAY:{play_id}] [EVENT] PLAY_STEP_START: {step_metadata}")
 
                 # Execute
                 step_failed = False
@@ -222,10 +251,12 @@ class PlaybackService:
                         "comparison": comparison,
                     })
                     # Capture failure state so frontend shows what went wrong
-                    try:
-                        await cap_mgr.request(page, CaptureReason.ERROR)
-                    except Exception:
-                        pass
+                    # (only if capture_frames is enabled, to save bandwidth for MCP)
+                    if session.capture_frames:
+                        try:
+                            await cap_mgr.request(page, CaptureReason.ERROR)
+                        except Exception:
+                            pass
 
                     # Reuse normal pause flow for manual intervention on failures.
                     session.status = PlayStatus.PAUSED
@@ -251,7 +282,8 @@ class PlaybackService:
                 # Opt 1: waitAfterMs removed — CaptureManager's FIXED_DELAY owns settle timing.
                 # Opt 2: SCROLL/KEY use NONE settle (instant capture, no 300ms delay).
                 # Opt 3: NAVIGATE skips STEP_DONE — DomWatcher streams the initial page frames.
-                if not step_failed and step_type != "NAVIGATE":
+                # ✨ Skip frame capture for MCP clients to save bandwidth
+                if not step_failed and step_type != "NAVIGATE" and session.capture_frames:
                     _settle = SettleStrategy.NONE if step_type in ("SCROLL", "KEY") else None
                     try:
                         await cap_mgr.request(page, CaptureReason.STEP_DONE, settle=_settle)
@@ -290,7 +322,12 @@ class PlaybackService:
             assertion_failed = sum(1 for r in assertion_results if not r.get("passed"))
             assertion_total  = len(assertion_results)
             self._assertion_results = []  # reset for next run
+            
+            # ✨ Log completion for live streaming
+            completion_msg = "✅ Playback complete" if failed_count == 0 else f"⚠️ Playback done with {failed_count} step error(s)"
+            logger.info(f"[PLAY:{play_id}] [STREAM] {completion_msg}")
             logger.info(f"[PLAY:{play_id}] DONE — {total} steps, {failed_count} failed, assertions {assertion_passed}/{assertion_total} passed")
+            
             await self._send(play_id, client_id, PLAY_DONE, {
                 "stepCount": total,
                 "failedCount": failed_count,
@@ -300,6 +337,7 @@ class PlaybackService:
                 "assertionFailed": assertion_failed,
                 "message": "Playback complete" if failed_count == 0 else f"Playback done with {failed_count} step error(s)",
             })
+            logger.debug(f"[PLAY:{play_id}] [EVENT] PLAY_DONE sent to client")
 
         except asyncio.CancelledError:
             session.status = PlayStatus.STOPPED
@@ -309,12 +347,14 @@ class PlaybackService:
         except Exception as e:
             session.status = PlayStatus.ERROR
             session.mark_finished()
+            logger.error(f"[PLAY:{play_id}] [STREAM] ❌ Playback error: {e}")
             logger.error(f"[PLAY:{play_id}] ERROR: {e}", exc_info=True)
             await self._send(play_id, client_id, PLAY_ERROR, {
                 "error": str(e),
                 "lastStepId": last_step_id,
                 "lastStepType": last_step_type,
             })
+            logger.debug(f"[PLAY:{play_id}] [EVENT] PLAY_ERROR sent to client")
 
         finally:
             # Always detach watcher and close browser
@@ -894,11 +934,40 @@ class PlaybackService:
             pass  # no navigation detected — CaptureManager's FIXED_DELAY owns settle
 
     # ─── Helper: send WS event to client ──────────────────────────────────
-    async def _send(self, play_id: str, client_id: str, event_type: str, data: dict) -> None:
+    async def _send(
+        self,
+        play_id: str,
+        client_id: str,
+        event_type: str,
+        data: dict,
+        session: Optional[PlaySession] = None,
+        step_index: int = 0,
+        total_steps: int = 0,
+        step_id: int = 0
+    ) -> None:
+        """
+        Send event to client. Routes to event_emitter (MCP) or connection_manager (FastAPI).
+        
+        If event_emitter is configured, uses it (emits to all listeners).
+        Otherwise falls back to connection_manager (FastAPI WebSocket).
+        """
         try:
-            await self._connection_manager.send_to_client(play_id, client_id, {
-                "event_type": event_type,
-                "data": data,
-            })
+            if self._event_emitter:
+                # Use event emitter for MCP and any listeners
+                await self._event_emitter.emit(
+                    event_type=event_type,
+                    payload=data,
+                    session=session,
+                    step_index=step_index,
+                    total_steps=total_steps,
+                    step_id=step_id
+                )
+            
+            # Also send via FastAPI connection manager for backward compatibility
+            if self._connection_manager:
+                await self._connection_manager.send_to_client(play_id, client_id, {
+                    "event_type": event_type,
+                    "data": data,
+                })
         except Exception as e:
             logger.warning(f"[PLAY:{play_id}] send failed ({event_type}): {e}")

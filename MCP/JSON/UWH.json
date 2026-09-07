@@ -1,0 +1,1339 @@
+{
+  "version": "1.0",
+  "meta": {
+    "id": "a40b8f9a-bd97-45bc-bc47-55a1997aee24",
+    "title": "uwh upd 90",
+    "description": "",
+    "createdAt": 1788421702207,
+    "updatedAt": 1788421702207,
+    "intent": "",
+    "viewport": {
+      "width": 1280,
+      "height": 720,
+      "deviceScaleFactor": 1.0
+    }
+  },
+  "steps": {
+    "tab-1": [
+      [
+        {
+          "id": 1,
+          "type": "NAVIGATE",
+          "url": "https://uwh-ui-qa.azurewebsites.net/providers/book?logoutFail=true&careType=1&patientType=1&reason=12&provider=-1&practiceId=&departmentId=&city=All&insuranceProvider=&date=2026-09-03&mileage=10000&page=1",
+          "pageUrl": "https://uwh-ui-qa.azurewebsites.net/providers/book?logoutFail=true&careType=1&patientType=1&reason=12&provider=-1&practiceId=&departmentId=&city=All&insuranceProvider=&date=2026-09-03&mileage=10000&page=1",
+          "pageTitle": "",
+          "coords": null,
+          "button": null,
+          "text": null,
+          "deltaX": null,
+          "deltaY": null,
+          "pressEnter": null,
+          "waitAfterMs": 100,
+          "timestamp": 1788421551832,
+          "label": null,
+          "description": null,
+          "isPassword": false,
+          "storeValue": false,
+          "selector": null,
+          "targetMeta": null,
+          "inputValidation": null,
+          "isTriggerNewTab": null,
+          "shouldRun": true,
+          "pause": false,
+          "frameIndex": 0
+        }
+      ],
+      [
+        {
+          "id": 2,
+          "type": "CLICK",
+          "url": null,
+          "pageUrl": "https://uwh-ui-qa.azurewebsites.net/providers/book?logoutFail=true&careType=1&patientType=1&reason=12&provider=-1&practiceId=&departmentId=&city=All&insuranceProvider=&date=2026-09-03&mileage=10000&page=1",
+          "pageTitle": "Find a provider ::: UFY",
+          "coords": {
+            "x": 977,
+            "y": 177
+          },
+          "button": "left",
+          "text": null,
+          "deltaX": null,
+          "deltaY": null,
+          "pressEnter": null,
+          "waitAfterMs": 300,
+          "timestamp": 1788421559965,
+          "label": null,
+          "description": null,
+          "isPassword": false,
+          "storeValue": false,
+          "selector": {
+            "strategy": "css",
+            "value": "body > div:nth-of-type(2) > div:nth-of-type(3) > div > button:nth-of-type(1) > svg",
+            "frame_selector": null,
+            "occurrence_index": 0
+          },
+          "targetMeta": {
+            "tag": "svg",
+            "role": null,
+            "text": null,
+            "normalizedText": null,
+            "ariaLabel": null,
+            "title": null,
+            "name": null,
+            "id": null,
+            "dataTestId": "CloseIcon",
+            "dataId": null,
+            "dataCy": null,
+            "dataQa": null,
+            "classHints": []
+          },
+          "inputValidation": null,
+          "isTriggerNewTab": null,
+          "shouldRun": true,
+          "pause": false,
+          "frameIndex": 0
+        }
+      ],
+      [
+        {
+          "id": 3,
+          "type": "CLICK",
+          "url": null,
+          "pageUrl": "https://uwh-ui-qa.azurewebsites.net/providers/book?logoutFail=true&careType=1&patientType=1&reason=12&provider=-1&practiceId=&departmentId=&city=All&insuranceProvider=&date=2026-09-03&mileage=10000&page=1",
+          "pageTitle": "Find a provider ::: UFY",
+          "coords": {
+            "x": 368,
+            "y": 204
+          },
+          "button": "left",
+          "text": null,
+          "deltaX": null,
+          "deltaY": null,
+          "pressEnter": null,
+          "waitAfterMs": 300,
+          "timestamp": 1788421572093,
+          "label": null,
+          "description": null,
+          "isPassword": false,
+          "storeValue": false,
+          "selector": {
+            "strategy": "id",
+            "value": "patient-type-select",
+            "frame_selector": null,
+            "occurrence_index": 0
+          },
+          "targetMeta": {
+            "tag": "div",
+            "role": "button",
+            "text": "New Patient",
+            "normalizedText": "new patient",
+            "ariaLabel": null,
+            "title": null,
+            "name": null,
+            "id": "patient-type-select",
+            "dataTestId": null,
+            "dataId": null,
+            "dataCy": null,
+            "dataQa": null,
+            "classHints": []
+          },
+          "inputValidation": null,
+          "isTriggerNewTab": null,
+          "shouldRun": true,
+          "pause": false,
+          "frameIndex": 0
+        }
+      ],
+      [
+        {
+          "id": 4,
+          "type": "CLICK",
+          "url": null,
+          "pageUrl": "https://uwh-ui-qa.azurewebsites.net/providers/book?logoutFail=true&careType=1&patientType=1&reason=12&provider=-1&practiceId=&departmentId=&city=All&insuranceProvider=&date=2026-09-03&mileage=10000&page=1",
+          "pageTitle": "Find a provider ::: UFY",
+          "coords": {
+            "x": 273,
+            "y": 277
+          },
+          "button": "left",
+          "text": null,
+          "deltaX": null,
+          "deltaY": null,
+          "pressEnter": null,
+          "waitAfterMs": 300,
+          "timestamp": 1788421575676,
+          "label": null,
+          "description": null,
+          "isPassword": false,
+          "storeValue": false,
+          "selector": {
+            "strategy": "css",
+            "value": "body > div:nth-of-type(2) > div:nth-of-type(3) > ul",
+            "frame_selector": null,
+            "occurrence_index": 0
+          },
+          "targetMeta": {
+            "tag": "ul",
+            "role": "listbox",
+            "text": "New Patient",
+            "normalizedText": "new patient",
+            "ariaLabel": null,
+            "title": null,
+            "name": null,
+            "id": null,
+            "dataTestId": null,
+            "dataId": null,
+            "dataCy": null,
+            "dataQa": null,
+            "classHints": []
+          },
+          "inputValidation": null,
+          "isTriggerNewTab": null,
+          "shouldRun": true,
+          "pause": true,
+          "frameIndex": 0
+        }
+      ],
+      [
+        {
+          "id": 5,
+          "type": "CLICK",
+          "url": null,
+          "pageUrl": "https://uwh-ui-qa.azurewebsites.net/providers/book?logoutFail=true&careType=1&patientType=1&reason=12&provider=-1&practiceId=&departmentId=&city=All&insuranceProvider=&date=2026-09-03&mileage=10000&page=1",
+          "pageTitle": "Find a provider ::: UFY",
+          "coords": {
+            "x": 618,
+            "y": 229
+          },
+          "button": "left",
+          "text": null,
+          "deltaX": null,
+          "deltaY": null,
+          "pressEnter": null,
+          "waitAfterMs": 300,
+          "timestamp": 1788421580124,
+          "label": null,
+          "description": null,
+          "isPassword": false,
+          "storeValue": false,
+          "selector": {
+            "strategy": "id",
+            "value": "reason-select",
+            "frame_selector": null,
+            "occurrence_index": 0
+          },
+          "targetMeta": {
+            "tag": "div",
+            "role": "button",
+            "text": "​Reason for visit *",
+            "normalizedText": "​reason for visit *",
+            "ariaLabel": null,
+            "title": null,
+            "name": null,
+            "id": "reason-select",
+            "dataTestId": null,
+            "dataId": null,
+            "dataCy": null,
+            "dataQa": null,
+            "classHints": []
+          },
+          "inputValidation": null,
+          "isTriggerNewTab": null,
+          "shouldRun": true,
+          "pause": false,
+          "frameIndex": 0
+        }
+      ],
+      [
+        {
+          "id": 6,
+          "type": "CLICK",
+          "url": null,
+          "pageUrl": "https://uwh-ui-qa.azurewebsites.net/providers/book?logoutFail=true&careType=1&patientType=1&reason=12&provider=-1&practiceId=&departmentId=&city=All&insuranceProvider=&date=2026-09-03&mileage=10000&page=1",
+          "pageTitle": "Find a provider ::: UFY",
+          "coords": {
+            "x": 431,
+            "y": 386
+          },
+          "button": "left",
+          "text": null,
+          "deltaX": null,
+          "deltaY": null,
+          "pressEnter": null,
+          "waitAfterMs": 300,
+          "timestamp": 1788421585028,
+          "label": null,
+          "description": null,
+          "isPassword": false,
+          "storeValue": false,
+          "selector": {
+            "strategy": "css",
+            "value": "body > div:nth-of-type(2) > div:nth-of-type(3) > ul",
+            "frame_selector": null,
+            "occurrence_index": 0
+          },
+          "targetMeta": {
+            "tag": "ul",
+            "role": "listbox",
+            "text": null,
+            "normalizedText": null,
+            "ariaLabel": null,
+            "title": null,
+            "name": null,
+            "id": null,
+            "dataTestId": null,
+            "dataId": null,
+            "dataCy": null,
+            "dataQa": null,
+            "classHints": []
+          },
+          "inputValidation": null,
+          "isTriggerNewTab": null,
+          "shouldRun": true,
+          "pause": true,
+          "frameIndex": 0
+        }
+      ],
+      [
+        {
+          "id": 7,
+          "type": "CLICK",
+          "url": null,
+          "pageUrl": "https://uwh-ui-qa.azurewebsites.net/providers/book?logoutFail=true&careType=1&patientType=1&reason=12&provider=-1&practiceId=&departmentId=&city=All&insuranceProvider=&date=2026-09-03&mileage=10000&page=1",
+          "pageTitle": "Find a provider ::: UFY",
+          "coords": {
+            "x": 605,
+            "y": 386
+          },
+          "button": "left",
+          "text": null,
+          "deltaX": null,
+          "deltaY": null,
+          "pressEnter": null,
+          "waitAfterMs": 300,
+          "timestamp": 1788421588801,
+          "label": null,
+          "description": null,
+          "isPassword": false,
+          "storeValue": false,
+          "selector": {
+            "strategy": "css",
+            "value": "body > div > div:nth-of-type(3) > div:nth-of-type(1) > div:nth-of-type(5) > div:nth-of-type(1) > div > div > div > div > button > svg",
+            "frame_selector": null,
+            "occurrence_index": 0
+          },
+          "targetMeta": {
+            "tag": "svg",
+            "role": null,
+            "text": "Zip code/City *",
+            "normalizedText": "zip code/city *",
+            "ariaLabel": null,
+            "title": null,
+            "name": null,
+            "id": null,
+            "dataTestId": "ArrowDropDownIcon",
+            "dataId": null,
+            "dataCy": null,
+            "dataQa": null,
+            "classHints": []
+          },
+          "inputValidation": null,
+          "isTriggerNewTab": null,
+          "shouldRun": true,
+          "pause": false,
+          "frameIndex": 0
+        }
+      ],
+      [
+        {
+          "id": 8,
+          "type": "TYPE",
+          "url": null,
+          "pageUrl": "https://uwh-ui-qa.azurewebsites.net/providers/book?logoutFail=true&careType=1&patientType=1&reason=12&provider=-1&practiceId=&departmentId=&city=All&insuranceProvider=&date=2026-09-03&mileage=10000&page=1",
+          "pageTitle": "Find a provider ::: UFY",
+          "coords": {
+            "x": 540,
+            "y": 395
+          },
+          "button": null,
+          "text": "641",
+          "deltaX": null,
+          "deltaY": null,
+          "pressEnter": null,
+          "waitAfterMs": null,
+          "timestamp": 1788421598267,
+          "label": "Zip code/City",
+          "description": null,
+          "isPassword": false,
+          "storeValue": true,
+          "selector": {
+            "strategy": "id",
+            "value": "zipcode-autocomplete",
+            "frame_selector": null,
+            "occurrence_index": 0
+          },
+          "targetMeta": null,
+          "inputValidation": null,
+          "isTriggerNewTab": null,
+          "shouldRun": true,
+          "pause": false,
+          "frameIndex": 0
+        }
+      ],
+      [
+        {
+          "id": 9,
+          "type": "CLICK",
+          "url": null,
+          "pageUrl": "https://uwh-ui-qa.azurewebsites.net/providers/book?logoutFail=true&careType=1&patientType=1&reason=12&provider=-1&practiceId=&departmentId=&city=All&insuranceProvider=&date=2026-09-03&mileage=10000&page=1",
+          "pageTitle": "Find a provider ::: UFY",
+          "coords": {
+            "x": 284,
+            "y": 547
+          },
+          "button": "left",
+          "text": null,
+          "deltaX": null,
+          "deltaY": null,
+          "pressEnter": null,
+          "waitAfterMs": 300,
+          "timestamp": 1788421602799,
+          "label": null,
+          "description": null,
+          "isPassword": false,
+          "storeValue": false,
+          "selector": {
+            "strategy": "id",
+            "value": "zipcode-autocomplete-listbox",
+            "frame_selector": null,
+            "occurrence_index": 0
+          },
+          "targetMeta": {
+            "tag": "ul",
+            "role": "listbox",
+            "text": null,
+            "normalizedText": null,
+            "ariaLabel": null,
+            "title": null,
+            "name": null,
+            "id": "zipcode-autocomplete-listbox",
+            "dataTestId": null,
+            "dataId": null,
+            "dataCy": null,
+            "dataQa": null,
+            "classHints": []
+          },
+          "inputValidation": null,
+          "isTriggerNewTab": null,
+          "shouldRun": true,
+          "pause": false,
+          "frameIndex": 0
+        }
+      ],
+      [
+        {
+          "id": 10,
+          "type": "CLICK",
+          "url": null,
+          "pageUrl": "https://uwh-ui-qa.azurewebsites.net/providers/book?logoutFail=true&careType=1&patientType=1&reason=12&provider=-1&practiceId=&departmentId=&city=All&insuranceProvider=&date=2026-09-03&mileage=10000&page=1",
+          "pageTitle": "Find a provider ::: UFY",
+          "coords": {
+            "x": 1199,
+            "y": 597
+          },
+          "button": "left",
+          "text": null,
+          "deltaX": null,
+          "deltaY": null,
+          "pressEnter": null,
+          "waitAfterMs": 300,
+          "timestamp": 1788421606178,
+          "label": null,
+          "description": null,
+          "isPassword": false,
+          "storeValue": false,
+          "selector": {
+            "strategy": "xpath",
+            "value": "//button[normalize-space(.)=\"Accept\"]",
+            "frame_selector": null,
+            "occurrence_index": 0
+          },
+          "targetMeta": {
+            "tag": "button",
+            "role": null,
+            "text": "Accept",
+            "normalizedText": "accept",
+            "ariaLabel": null,
+            "title": null,
+            "name": null,
+            "id": null,
+            "dataTestId": null,
+            "dataId": null,
+            "dataCy": null,
+            "dataQa": null,
+            "classHints": []
+          },
+          "inputValidation": null,
+          "isTriggerNewTab": null,
+          "shouldRun": true,
+          "pause": true,
+          "frameIndex": 0
+        }
+      ],
+      [
+        {
+          "id": 11,
+          "type": "CLICK",
+          "url": null,
+          "pageUrl": "https://uwh-ui-qa.azurewebsites.net/providers/book?logoutFail=true&careType=1&patientType=1&reason=12&provider=-1&practiceId=&departmentId=&city=All&insuranceProvider=&date=2026-09-03&mileage=10000&page=1",
+          "pageTitle": "Find a provider ::: UFY",
+          "coords": {
+            "x": 1100,
+            "y": 385
+          },
+          "button": "left",
+          "text": null,
+          "deltaX": null,
+          "deltaY": null,
+          "pressEnter": null,
+          "waitAfterMs": 300,
+          "timestamp": 1788421608943,
+          "label": null,
+          "description": null,
+          "isPassword": false,
+          "storeValue": false,
+          "selector": {
+            "strategy": "css",
+            "value": "body > div > div:nth-of-type(3) > div:nth-of-type(1) > div:nth-of-type(5) > div:nth-of-type(2) > div:nth-of-type(2) > div > div > div > div > button:nth-of-type(2) > svg",
+            "frame_selector": null,
+            "occurrence_index": 0
+          },
+          "targetMeta": {
+            "tag": "svg",
+            "role": null,
+            "text": "Care Center *",
+            "normalizedText": "care center *",
+            "ariaLabel": null,
+            "title": null,
+            "name": null,
+            "id": null,
+            "dataTestId": "ArrowDropDownIcon",
+            "dataId": null,
+            "dataCy": null,
+            "dataQa": null,
+            "classHints": []
+          },
+          "inputValidation": null,
+          "isTriggerNewTab": null,
+          "shouldRun": true,
+          "pause": false,
+          "frameIndex": 0
+        }
+      ],
+      [
+        {
+          "id": 12,
+          "type": "CLICK",
+          "url": null,
+          "pageUrl": "https://uwh-ui-qa.azurewebsites.net/providers/book?logoutFail=true&careType=1&patientType=1&reason=12&provider=-1&practiceId=&departmentId=&city=All&insuranceProvider=&date=2026-09-03&mileage=10000&page=1",
+          "pageTitle": "Find a provider ::: UFY",
+          "coords": {
+            "x": 935,
+            "y": 586
+          },
+          "button": "left",
+          "text": null,
+          "deltaX": null,
+          "deltaY": null,
+          "pressEnter": null,
+          "waitAfterMs": 300,
+          "timestamp": 1788421611775,
+          "label": null,
+          "description": null,
+          "isPassword": false,
+          "storeValue": false,
+          "selector": {
+            "strategy": "id",
+            "value": "carecenter-listbox",
+            "frame_selector": null,
+            "occurrence_index": 0
+          },
+          "targetMeta": {
+            "tag": "ul",
+            "role": "listbox",
+            "text": "All",
+            "normalizedText": "all",
+            "ariaLabel": null,
+            "title": null,
+            "name": null,
+            "id": "carecenter-listbox",
+            "dataTestId": null,
+            "dataId": null,
+            "dataCy": null,
+            "dataQa": null,
+            "classHints": []
+          },
+          "inputValidation": null,
+          "isTriggerNewTab": null,
+          "shouldRun": true,
+          "pause": false,
+          "frameIndex": 0
+        }
+      ],
+      [
+        {
+          "id": 13,
+          "type": "CLICK",
+          "url": null,
+          "pageUrl": "https://uwh-ui-qa.azurewebsites.net/providers/book?logoutFail=true&careType=1&patientType=1&reason=12&provider=-1&practiceId=&departmentId=&city=All&insuranceProvider=&date=2026-09-03&mileage=10000&page=1",
+          "pageTitle": "Find a provider ::: UFY",
+          "coords": {
+            "x": 607,
+            "y": 408
+          },
+          "button": "left",
+          "text": null,
+          "deltaX": null,
+          "deltaY": null,
+          "pressEnter": null,
+          "waitAfterMs": 300,
+          "timestamp": 1788421622680,
+          "label": null,
+          "description": null,
+          "isPassword": false,
+          "storeValue": false,
+          "selector": {
+            "strategy": "xpath",
+            "value": "//div[normalize-space(.)=\"Provider Name\"]",
+            "frame_selector": null,
+            "occurrence_index": 0
+          },
+          "targetMeta": {
+            "tag": "svg",
+            "role": null,
+            "text": "Provider Name",
+            "normalizedText": "provider name",
+            "ariaLabel": null,
+            "title": null,
+            "name": null,
+            "id": null,
+            "dataTestId": "ArrowDropDownIcon",
+            "dataId": null,
+            "dataCy": null,
+            "dataQa": null,
+            "classHints": []
+          },
+          "inputValidation": null,
+          "isTriggerNewTab": null,
+          "shouldRun": true,
+          "pause": false,
+          "frameIndex": 0
+        }
+      ],
+      [
+        {
+          "id": 14,
+          "type": "CLICK",
+          "url": null,
+          "pageUrl": "https://uwh-ui-qa.azurewebsites.net/providers/book?logoutFail=true&careType=1&patientType=1&reason=12&provider=-1&practiceId=&departmentId=&city=All&insuranceProvider=&date=2026-09-03&mileage=10000&page=1",
+          "pageTitle": "Find a provider ::: UFY",
+          "coords": {
+            "x": 302,
+            "y": 568
+          },
+          "button": "left",
+          "text": null,
+          "deltaX": null,
+          "deltaY": null,
+          "pressEnter": null,
+          "waitAfterMs": 300,
+          "timestamp": 1788421625949,
+          "label": null,
+          "description": null,
+          "isPassword": false,
+          "storeValue": false,
+          "selector": {
+            "strategy": "id",
+            "value": "providerData-listbox",
+            "frame_selector": null,
+            "occurrence_index": 0
+          },
+          "targetMeta": {
+            "tag": "ul",
+            "role": "listbox",
+            "text": "All Providers",
+            "normalizedText": "all providers",
+            "ariaLabel": null,
+            "title": null,
+            "name": null,
+            "id": "providerData-listbox",
+            "dataTestId": null,
+            "dataId": null,
+            "dataCy": null,
+            "dataQa": null,
+            "classHints": []
+          },
+          "inputValidation": null,
+          "isTriggerNewTab": null,
+          "shouldRun": true,
+          "pause": false,
+          "frameIndex": 0
+        }
+      ],
+      [
+        {
+          "id": 15,
+          "type": "CLICK",
+          "url": null,
+          "pageUrl": "https://uwh-ui-qa.azurewebsites.net/providers/book?logoutFail=true&careType=1&patientType=1&reason=12&provider=-1&practiceId=&departmentId=&city=All&insuranceProvider=&date=2026-09-03&mileage=10000&page=1",
+          "pageTitle": "Find a provider ::: UFY",
+          "coords": {
+            "x": 1098,
+            "y": 412
+          },
+          "button": "left",
+          "text": null,
+          "deltaX": null,
+          "deltaY": null,
+          "pressEnter": null,
+          "waitAfterMs": 300,
+          "timestamp": 1788421628741,
+          "label": null,
+          "description": null,
+          "isPassword": false,
+          "storeValue": false,
+          "selector": {
+            "strategy": "xpath",
+            "value": "//div[normalize-space(.)=\"Insurance\"]",
+            "frame_selector": null,
+            "occurrence_index": 0
+          },
+          "targetMeta": {
+            "tag": "svg",
+            "role": null,
+            "text": "Insurance",
+            "normalizedText": "insurance",
+            "ariaLabel": null,
+            "title": null,
+            "name": null,
+            "id": null,
+            "dataTestId": "ArrowDropDownIcon",
+            "dataId": null,
+            "dataCy": null,
+            "dataQa": null,
+            "classHints": []
+          },
+          "inputValidation": null,
+          "isTriggerNewTab": null,
+          "shouldRun": true,
+          "pause": false,
+          "frameIndex": 0
+        }
+      ],
+      [
+        {
+          "id": 16,
+          "type": "CLICK",
+          "url": null,
+          "pageUrl": "https://uwh-ui-qa.azurewebsites.net/providers/book?logoutFail=true&careType=1&patientType=1&reason=12&provider=-1&practiceId=&departmentId=&city=All&insuranceProvider=&date=2026-09-03&mileage=10000&page=1",
+          "pageTitle": "Find a provider ::: UFY",
+          "coords": {
+            "x": 729,
+            "y": 640
+          },
+          "button": "left",
+          "text": null,
+          "deltaX": null,
+          "deltaY": null,
+          "pressEnter": null,
+          "waitAfterMs": 300,
+          "timestamp": 1788421632160,
+          "label": null,
+          "description": null,
+          "isPassword": false,
+          "storeValue": false,
+          "selector": {
+            "strategy": "id",
+            "value": "select-insurance-listbox",
+            "frame_selector": null,
+            "occurrence_index": 0
+          },
+          "targetMeta": {
+            "tag": "ul",
+            "role": "listbox",
+            "text": null,
+            "normalizedText": null,
+            "ariaLabel": null,
+            "title": null,
+            "name": null,
+            "id": "select-insurance-listbox",
+            "dataTestId": null,
+            "dataId": null,
+            "dataCy": null,
+            "dataQa": null,
+            "classHints": []
+          },
+          "inputValidation": null,
+          "isTriggerNewTab": null,
+          "shouldRun": true,
+          "pause": false,
+          "frameIndex": 0
+        }
+      ],
+      [
+        {
+          "id": 17,
+          "type": "SCROLL",
+          "url": null,
+          "pageUrl": "https://uwh-ui-qa.azurewebsites.net/providers/book?logoutFail=true&careType=1&patientType=1&reason=12&provider=-1&practiceId=&departmentId=&city=All&insuranceProvider=&date=2026-09-03&mileage=10000&page=1",
+          "pageTitle": null,
+          "coords": {
+            "x": 550,
+            "y": 526
+          },
+          "button": null,
+          "text": null,
+          "deltaX": 0.0,
+          "deltaY": 100.0,
+          "pressEnter": null,
+          "waitAfterMs": 100,
+          "timestamp": 1788421636902,
+          "label": null,
+          "description": null,
+          "isPassword": false,
+          "storeValue": false,
+          "selector": null,
+          "targetMeta": null,
+          "inputValidation": null,
+          "isTriggerNewTab": null,
+          "shouldRun": true,
+          "pause": false,
+          "frameIndex": 0
+        }
+      ],
+      [
+        {
+          "id": 18,
+          "type": "SCROLL",
+          "url": null,
+          "pageUrl": "https://uwh-ui-qa.azurewebsites.net/providers/book?logoutFail=true&careType=1&patientType=1&reason=12&provider=-1&practiceId=&departmentId=&city=All&insuranceProvider=&date=2026-09-03&mileage=10000&page=1",
+          "pageTitle": null,
+          "coords": {
+            "x": 550,
+            "y": 526
+          },
+          "button": null,
+          "text": null,
+          "deltaX": 0.0,
+          "deltaY": 100.0,
+          "pressEnter": null,
+          "waitAfterMs": 100,
+          "timestamp": 1788421637852,
+          "label": null,
+          "description": null,
+          "isPassword": false,
+          "storeValue": false,
+          "selector": null,
+          "targetMeta": null,
+          "inputValidation": null,
+          "isTriggerNewTab": null,
+          "shouldRun": true,
+          "pause": false,
+          "frameIndex": 0
+        }
+      ],
+      [
+        {
+          "id": 19,
+          "type": "SCROLL",
+          "url": null,
+          "pageUrl": "https://uwh-ui-qa.azurewebsites.net/providers/book?logoutFail=true&careType=1&patientType=1&reason=12&provider=-1&practiceId=&departmentId=&city=All&insuranceProvider=&date=2026-09-03&mileage=10000&page=1",
+          "pageTitle": null,
+          "coords": {
+            "x": 550,
+            "y": 526
+          },
+          "button": null,
+          "text": null,
+          "deltaX": 0.0,
+          "deltaY": 100.0,
+          "pressEnter": null,
+          "waitAfterMs": 100,
+          "timestamp": 1788421638923,
+          "label": null,
+          "description": null,
+          "isPassword": false,
+          "storeValue": false,
+          "selector": null,
+          "targetMeta": null,
+          "inputValidation": null,
+          "isTriggerNewTab": null,
+          "shouldRun": true,
+          "pause": false,
+          "frameIndex": 0
+        }
+      ],
+      [
+        {
+          "id": 20,
+          "type": "CLICK",
+          "url": null,
+          "pageUrl": "https://uwh-ui-qa.azurewebsites.net/providers/book?logoutFail=true&careType=1&patientType=1&reason=12&provider=-1&practiceId=&departmentId=&city=All&insuranceProvider=&date=2026-09-03&mileage=10000&page=1",
+          "pageTitle": "Find a provider ::: UFY",
+          "coords": {
+            "x": 363,
+            "y": 542
+          },
+          "button": "left",
+          "text": null,
+          "deltaX": null,
+          "deltaY": null,
+          "pressEnter": null,
+          "waitAfterMs": 300,
+          "timestamp": 1788421643852,
+          "label": null,
+          "description": null,
+          "isPassword": false,
+          "storeValue": false,
+          "selector": {
+            "strategy": "xpath",
+            "value": "//a[normalize-space(.)=\"Emily Clements, Doctor of Osteopathic Medicine\"]",
+            "frame_selector": null,
+            "occurrence_index": 0
+          },
+          "targetMeta": {
+            "tag": "a",
+            "role": null,
+            "text": "Emily Clements, Doctor of Osteopathic Medicine",
+            "normalizedText": "emily clements, doctor of osteopathic medicine",
+            "ariaLabel": null,
+            "title": null,
+            "name": null,
+            "id": null,
+            "dataTestId": null,
+            "dataId": null,
+            "dataCy": null,
+            "dataQa": null,
+            "classHints": []
+          },
+          "inputValidation": null,
+          "isTriggerNewTab": null,
+          "shouldRun": true,
+          "pause": false,
+          "frameIndex": 0
+        }
+      ],
+      [
+        {
+          "id": 21,
+          "type": "CLICK",
+          "url": null,
+          "pageUrl": "https://uwh-ui-qa.azurewebsites.net/providers/book?logoutFail=true&careType=1&patientType=1&reason=12&provider=-1&practiceId=&departmentId=&city=All&insuranceProvider=&date=2026-09-03&mileage=10000&page=1",
+          "pageTitle": "Provider Profile ::: UFY",
+          "coords": {
+            "x": 608,
+            "y": 349
+          },
+          "button": "left",
+          "text": null,
+          "deltaX": null,
+          "deltaY": null,
+          "pressEnter": null,
+          "waitAfterMs": 300,
+          "timestamp": 1788421661839,
+          "label": null,
+          "description": null,
+          "isPassword": false,
+          "storeValue": false,
+          "selector": {
+            "strategy": "id",
+            "value": "reason-for-visit-select",
+            "frame_selector": null,
+            "occurrence_index": 0
+          },
+          "targetMeta": {
+            "tag": "div",
+            "role": "button",
+            "text": "Consult",
+            "normalizedText": "consult",
+            "ariaLabel": null,
+            "title": null,
+            "name": null,
+            "id": "reason-for-visit-select",
+            "dataTestId": null,
+            "dataId": null,
+            "dataCy": null,
+            "dataQa": null,
+            "classHints": []
+          },
+          "inputValidation": null,
+          "isTriggerNewTab": null,
+          "shouldRun": true,
+          "pause": false,
+          "frameIndex": 0
+        }
+      ],
+      [
+        {
+          "id": 22,
+          "type": "CLICK",
+          "url": null,
+          "pageUrl": "https://uwh-ui-qa.azurewebsites.net/providers/book?logoutFail=true&careType=1&patientType=1&reason=12&provider=-1&practiceId=&departmentId=&city=All&insuranceProvider=&date=2026-09-03&mileage=10000&page=1",
+          "pageTitle": "Provider Profile ::: UFY",
+          "coords": {
+            "x": 441,
+            "y": 572
+          },
+          "button": "left",
+          "text": null,
+          "deltaX": null,
+          "deltaY": null,
+          "pressEnter": null,
+          "waitAfterMs": 300,
+          "timestamp": 1788421666023,
+          "label": null,
+          "description": null,
+          "isPassword": false,
+          "storeValue": false,
+          "selector": {
+            "strategy": "css",
+            "value": "body > div:nth-of-type(2) > div:nth-of-type(3) > ul",
+            "frame_selector": null,
+            "occurrence_index": 0
+          },
+          "targetMeta": {
+            "tag": "ul",
+            "role": "listbox",
+            "text": "Consult",
+            "normalizedText": "consult",
+            "ariaLabel": null,
+            "title": null,
+            "name": null,
+            "id": null,
+            "dataTestId": null,
+            "dataId": null,
+            "dataCy": null,
+            "dataQa": null,
+            "classHints": []
+          },
+          "inputValidation": null,
+          "isTriggerNewTab": null,
+          "shouldRun": true,
+          "pause": false,
+          "frameIndex": 0
+        }
+      ],
+      [
+        {
+          "id": 23,
+          "type": "CLICK",
+          "url": null,
+          "pageUrl": "https://uwh-ui-qa.azurewebsites.net/providers/book?logoutFail=true&careType=1&patientType=1&reason=12&provider=-1&practiceId=&departmentId=&city=All&insuranceProvider=&date=2026-09-03&mileage=10000&page=1",
+          "pageTitle": "Provider Profile ::: UFY",
+          "coords": {
+            "x": 582,
+            "y": 417
+          },
+          "button": "left",
+          "text": null,
+          "deltaX": null,
+          "deltaY": null,
+          "pressEnter": null,
+          "waitAfterMs": 300,
+          "timestamp": 1788421669196,
+          "label": null,
+          "description": null,
+          "isPassword": false,
+          "storeValue": false,
+          "selector": {
+            "strategy": "css",
+            "value": "#schedule > div:nth-of-type(1)",
+            "frame_selector": null,
+            "occurrence_index": 0
+          },
+          "targetMeta": {
+            "tag": "div",
+            "role": null,
+            "text": "Select Date",
+            "normalizedText": "select date",
+            "ariaLabel": null,
+            "title": null,
+            "name": null,
+            "id": null,
+            "dataTestId": null,
+            "dataId": null,
+            "dataCy": null,
+            "dataQa": null,
+            "classHints": []
+          },
+          "inputValidation": null,
+          "isTriggerNewTab": null,
+          "shouldRun": true,
+          "pause": false,
+          "frameIndex": 0
+        }
+      ],
+      [
+        {
+          "id": 24,
+          "type": "CLICK",
+          "url": null,
+          "pageUrl": "https://uwh-ui-qa.azurewebsites.net/providers/book?logoutFail=true&careType=1&patientType=1&reason=12&provider=-1&practiceId=&departmentId=&city=All&insuranceProvider=&date=2026-09-03&mileage=10000&page=1",
+          "pageTitle": "Provider Profile ::: UFY",
+          "coords": {
+            "x": 582,
+            "y": 521
+          },
+          "button": "left",
+          "text": null,
+          "deltaX": null,
+          "deltaY": null,
+          "pressEnter": null,
+          "waitAfterMs": 300,
+          "timestamp": 1788421672003,
+          "label": null,
+          "description": null,
+          "isPassword": false,
+          "storeValue": false,
+          "selector": {
+            "strategy": "id",
+            "value": "location",
+            "frame_selector": null,
+            "occurrence_index": 0
+          },
+          "targetMeta": {
+            "tag": "div",
+            "role": "button",
+            "text": "All",
+            "normalizedText": "all",
+            "ariaLabel": null,
+            "title": null,
+            "name": null,
+            "id": "location",
+            "dataTestId": null,
+            "dataId": null,
+            "dataCy": null,
+            "dataQa": null,
+            "classHints": []
+          },
+          "inputValidation": null,
+          "isTriggerNewTab": null,
+          "shouldRun": true,
+          "pause": false,
+          "frameIndex": 0
+        }
+      ],
+      [
+        {
+          "id": 25,
+          "type": "CLICK",
+          "url": null,
+          "pageUrl": "https://uwh-ui-qa.azurewebsites.net/providers/book?logoutFail=true&careType=1&patientType=1&reason=12&provider=-1&practiceId=&departmentId=&city=All&insuranceProvider=&date=2026-09-03&mileage=10000&page=1",
+          "pageTitle": "Provider Profile ::: UFY",
+          "coords": {
+            "x": 393,
+            "y": 509
+          },
+          "button": "left",
+          "text": null,
+          "deltaX": null,
+          "deltaY": null,
+          "pressEnter": null,
+          "waitAfterMs": 300,
+          "timestamp": 1788421674176,
+          "label": null,
+          "description": null,
+          "isPassword": false,
+          "storeValue": false,
+          "selector": {
+            "strategy": "css",
+            "value": "[role=\"presentation\"]",
+            "frame_selector": null,
+            "occurrence_index": 0
+          },
+          "targetMeta": {
+            "tag": "div",
+            "role": "presentation",
+            "text": "Medical Blvd. - 1660 Medical Blvd Ste 300, Naples, FL 34110Cypress Way - 90 Cypress Way E, Naples, FL 34110",
+            "normalizedText": "medical blvd. - 1660 medical blvd ste 300, naples, fl 34110cypress way - 90 cypress way e, naples, fl 34110",
+            "ariaLabel": null,
+            "title": null,
+            "name": null,
+            "id": null,
+            "dataTestId": null,
+            "dataId": null,
+            "dataCy": null,
+            "dataQa": null,
+            "classHints": []
+          },
+          "inputValidation": null,
+          "isTriggerNewTab": null,
+          "shouldRun": true,
+          "pause": false,
+          "frameIndex": 0
+        }
+      ],
+      [
+        {
+          "id": 26,
+          "type": "CLICK",
+          "url": null,
+          "pageUrl": "https://uwh-ui-qa.azurewebsites.net/providers/book?logoutFail=true&careType=1&patientType=1&reason=12&provider=-1&practiceId=&departmentId=&city=All&insuranceProvider=&date=2026-09-03&mileage=10000&page=1",
+          "pageTitle": "Provider Profile ::: UFY",
+          "coords": {
+            "x": 1193,
+            "y": 32
+          },
+          "button": "left",
+          "text": null,
+          "deltaX": null,
+          "deltaY": null,
+          "pressEnter": null,
+          "waitAfterMs": 300,
+          "timestamp": 1788421676968,
+          "label": null,
+          "description": null,
+          "isPassword": false,
+          "storeValue": false,
+          "selector": {
+            "strategy": "css",
+            "value": "body > div > div:nth-of-type(1) > header > div > div > div:nth-of-type(5) > div:nth-of-type(2) > button",
+            "frame_selector": null,
+            "occurrence_index": 0
+          },
+          "targetMeta": {
+            "tag": "button",
+            "role": null,
+            "text": "Log in",
+            "normalizedText": "log in",
+            "ariaLabel": null,
+            "title": null,
+            "name": null,
+            "id": "login_button",
+            "dataTestId": null,
+            "dataId": null,
+            "dataCy": null,
+            "dataQa": null,
+            "classHints": []
+          },
+          "inputValidation": null,
+          "isTriggerNewTab": null,
+          "shouldRun": true,
+          "pause": false,
+          "frameIndex": 0
+        }
+      ],
+      [
+        {
+          "id": 27,
+          "type": "CLICK",
+          "url": null,
+          "pageUrl": "https://uwh-ui-qa.azurewebsites.net/providers/book?logoutFail=true&careType=1&patientType=1&reason=12&provider=-1&practiceId=&departmentId=&city=All&insuranceProvider=&date=2026-09-03&mileage=10000&page=1",
+          "pageTitle": "Provider Profile ::: UFY",
+          "coords": {
+            "x": 617,
+            "y": 407
+          },
+          "button": "left",
+          "text": null,
+          "deltaX": null,
+          "deltaY": null,
+          "pressEnter": null,
+          "waitAfterMs": 300,
+          "timestamp": 1788421679209,
+          "label": null,
+          "description": null,
+          "isPassword": false,
+          "storeValue": false,
+          "selector": {
+            "strategy": "xpath",
+            "value": "//button[normalize-space(.)=\"Log in with\"]",
+            "frame_selector": null,
+            "occurrence_index": 0
+          },
+          "targetMeta": {
+            "tag": "button",
+            "role": null,
+            "text": "Log in with",
+            "normalizedText": "log in with",
+            "ariaLabel": null,
+            "title": null,
+            "name": null,
+            "id": null,
+            "dataTestId": null,
+            "dataId": null,
+            "dataCy": null,
+            "dataQa": null,
+            "classHints": []
+          },
+          "inputValidation": null,
+          "isTriggerNewTab": null,
+          "shouldRun": true,
+          "pause": false,
+          "frameIndex": 0
+        }
+      ],
+      [
+        {
+          "id": 28,
+          "type": "CLICK",
+          "url": null,
+          "pageUrl": "https://uwh-ui-qa.azurewebsites.net/providers/book?logoutFail=true&careType=1&patientType=1&reason=12&provider=-1&practiceId=&departmentId=&city=All&insuranceProvider=&date=2026-09-03&mileage=10000&page=1",
+          "pageTitle": "Athenahealth Inc. - Sign In",
+          "coords": {
+            "x": 635,
+            "y": 409
+          },
+          "button": "left",
+          "text": null,
+          "deltaX": null,
+          "deltaY": null,
+          "pressEnter": null,
+          "waitAfterMs": 300,
+          "timestamp": 1788421688110,
+          "label": null,
+          "description": null,
+          "isPassword": false,
+          "storeValue": false,
+          "selector": null,
+          "targetMeta": null,
+          "inputValidation": null,
+          "isTriggerNewTab": null,
+          "shouldRun": true,
+          "pause": false,
+          "frameIndex": 0
+        }
+      ],
+      [
+        {
+          "id": 29,
+          "type": "SCROLL",
+          "url": null,
+          "pageUrl": "https://uwh-ui-qa.azurewebsites.net/providers/book?logoutFail=true&careType=1&patientType=1&reason=12&provider=-1&practiceId=&departmentId=&city=All&insuranceProvider=&date=2026-09-03&mileage=10000&page=1",
+          "pageTitle": null,
+          "coords": {
+            "x": 635,
+            "y": 409
+          },
+          "button": null,
+          "text": null,
+          "deltaX": 0.0,
+          "deltaY": -100.0,
+          "pressEnter": null,
+          "waitAfterMs": 100,
+          "timestamp": 1788421694399,
+          "label": null,
+          "description": null,
+          "isPassword": false,
+          "storeValue": false,
+          "selector": null,
+          "targetMeta": null,
+          "inputValidation": null,
+          "isTriggerNewTab": null,
+          "shouldRun": true,
+          "pause": false,
+          "frameIndex": 0
+        }
+      ]
+    ]
+  }
+}

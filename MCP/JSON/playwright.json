@@ -1,0 +1,1419 @@
+{
+  "version": "1.0",
+  "meta": {
+    "id": "30684811-f483-4d5a-bfeb-66e837266623",
+    "title": "Playwright web docs",
+    "description": "Testing MCP",
+    "createdAt": 1788780031195,
+    "updatedAt": 1788780031195,
+    "intent": "",
+    "viewport": {
+      "width": 1280,
+      "height": 720,
+      "deviceScaleFactor": 1.0
+    }
+  },
+  "steps": {
+    "tab-1": [
+      [
+        {
+          "id": 1,
+          "type": "NAVIGATE",
+          "url": "https://playwright.dev/agent-cli/introduction",
+          "pageUrl": "https://playwright.dev/agent-cli/introduction",
+          "pageTitle": "Introduction | Playwright",
+          "coords": null,
+          "button": null,
+          "text": null,
+          "deltaX": null,
+          "deltaY": null,
+          "pressEnter": null,
+          "waitAfterMs": 100,
+          "timestamp": 1788779960813,
+          "label": null,
+          "description": null,
+          "isPassword": false,
+          "storeValue": false,
+          "selector": null,
+          "targetMeta": null,
+          "inputValidation": null,
+          "isTriggerNewTab": null,
+          "shouldRun": true,
+          "pause": false,
+          "frameIndex": 0
+        }
+      ],
+      [
+        {
+          "id": 2,
+          "type": "CLICK",
+          "url": null,
+          "pageUrl": "https://playwright.dev/agent-cli/introduction",
+          "pageTitle": "Introduction | Playwright",
+          "coords": {
+            "x": 186,
+            "y": 31
+          },
+          "button": "left",
+          "text": null,
+          "deltaX": null,
+          "deltaY": null,
+          "pressEnter": null,
+          "waitAfterMs": 300,
+          "timestamp": 1788779966053,
+          "label": null,
+          "description": null,
+          "isPassword": false,
+          "storeValue": false,
+          "selector": {
+            "strategy": "xpath",
+            "value": "//a[normalize-space(.)=\"Docs\"]",
+            "frame_selector": null,
+            "occurrence_index": 0
+          },
+          "targetMeta": {
+            "tag": "a",
+            "role": null,
+            "text": "Docs",
+            "normalizedText": "docs",
+            "ariaLabel": null,
+            "title": null,
+            "name": null,
+            "id": null,
+            "dataTestId": null,
+            "dataId": null,
+            "dataCy": null,
+            "dataQa": null,
+            "classHints": [
+              "navbar__item",
+              "navbar__link"
+            ]
+          },
+          "inputValidation": null,
+          "isTriggerNewTab": null,
+          "shouldRun": true,
+          "pause": false,
+          "frameIndex": 0
+        }
+      ],
+      [
+        {
+          "id": 3,
+          "type": "CLICK",
+          "url": null,
+          "pageUrl": "https://playwright.dev/agent-cli/introduction",
+          "pageTitle": "Installation | Playwright",
+          "coords": {
+            "x": 68,
+            "y": 157
+          },
+          "button": "left",
+          "text": null,
+          "deltaX": null,
+          "deltaY": null,
+          "pressEnter": null,
+          "waitAfterMs": 300,
+          "timestamp": 1788779968109,
+          "label": "Writing tests",
+          "description": null,
+          "isPassword": false,
+          "storeValue": false,
+          "selector": {
+            "strategy": "css",
+            "value": "[title=\"Writing\\ tests\"]",
+            "frame_selector": null,
+            "occurrence_index": 0
+          },
+          "targetMeta": {
+            "tag": "span",
+            "role": null,
+            "text": "Writing tests",
+            "normalizedText": "writing tests",
+            "ariaLabel": null,
+            "title": "Writing tests",
+            "name": null,
+            "id": null,
+            "dataTestId": null,
+            "dataId": null,
+            "dataCy": null,
+            "dataQa": null,
+            "classHints": [
+              "linkLabel_WmDU"
+            ]
+          },
+          "inputValidation": null,
+          "isTriggerNewTab": null,
+          "shouldRun": true,
+          "pause": false,
+          "frameIndex": 0
+        }
+      ],
+      [
+        {
+          "id": 4,
+          "type": "CLICK",
+          "url": null,
+          "pageUrl": "https://playwright.dev/agent-cli/introduction",
+          "pageTitle": "Writing tests | Playwright",
+          "coords": {
+            "x": 87,
+            "y": 193
+          },
+          "button": "left",
+          "text": null,
+          "deltaX": null,
+          "deltaY": null,
+          "pressEnter": null,
+          "waitAfterMs": 300,
+          "timestamp": 1788779971302,
+          "label": "Generating tests",
+          "description": null,
+          "isPassword": false,
+          "storeValue": false,
+          "selector": {
+            "strategy": "css",
+            "value": "[title=\"Generating\\ tests\"]",
+            "frame_selector": null,
+            "occurrence_index": 0
+          },
+          "targetMeta": {
+            "tag": "span",
+            "role": null,
+            "text": "Generating tests",
+            "normalizedText": "generating tests",
+            "ariaLabel": null,
+            "title": "Generating tests",
+            "name": null,
+            "id": null,
+            "dataTestId": null,
+            "dataId": null,
+            "dataCy": null,
+            "dataQa": null,
+            "classHints": [
+              "linkLabel_WmDU"
+            ]
+          },
+          "inputValidation": null,
+          "isTriggerNewTab": null,
+          "shouldRun": true,
+          "pause": false,
+          "frameIndex": 0
+        }
+      ],
+      [
+        {
+          "id": 5,
+          "type": "SCROLL",
+          "url": null,
+          "pageUrl": "https://playwright.dev/agent-cli/introduction",
+          "pageTitle": null,
+          "coords": {
+            "x": 512,
+            "y": 258
+          },
+          "button": null,
+          "text": null,
+          "deltaX": 0.0,
+          "deltaY": 200.0,
+          "pressEnter": null,
+          "waitAfterMs": 100,
+          "timestamp": 1788779973287,
+          "label": null,
+          "description": null,
+          "isPassword": false,
+          "storeValue": false,
+          "selector": null,
+          "targetMeta": null,
+          "inputValidation": null,
+          "isTriggerNewTab": null,
+          "shouldRun": true,
+          "pause": false,
+          "frameIndex": 0
+        }
+      ],
+      [
+        {
+          "id": 6,
+          "type": "SCROLL",
+          "url": null,
+          "pageUrl": "https://playwright.dev/agent-cli/introduction",
+          "pageTitle": null,
+          "coords": {
+            "x": 512,
+            "y": 261
+          },
+          "button": null,
+          "text": null,
+          "deltaX": 0.0,
+          "deltaY": 200.0,
+          "pressEnter": null,
+          "waitAfterMs": 100,
+          "timestamp": 1788779974345,
+          "label": null,
+          "description": null,
+          "isPassword": false,
+          "storeValue": false,
+          "selector": null,
+          "targetMeta": null,
+          "inputValidation": null,
+          "isTriggerNewTab": null,
+          "shouldRun": true,
+          "pause": false,
+          "frameIndex": 0
+        }
+      ],
+      [
+        {
+          "id": 7,
+          "type": "CLICK",
+          "url": null,
+          "pageUrl": "https://playwright.dev/agent-cli/introduction",
+          "pageTitle": "Generating tests | Playwright",
+          "coords": {
+            "x": 1111,
+            "y": 220
+          },
+          "button": "left",
+          "text": null,
+          "deltaX": null,
+          "deltaY": null,
+          "pressEnter": null,
+          "waitAfterMs": 300,
+          "timestamp": 1788779976287,
+          "label": null,
+          "description": null,
+          "isPassword": false,
+          "storeValue": false,
+          "selector": {
+            "strategy": "css",
+            "value": "#__docusaurus_skipToContent_fallback > div > div > main > div > div > div:nth-of-type(2) > div > ul > li:nth-of-type(2) > ul > li:nth-of-type(3) > a",
+            "frame_selector": null,
+            "occurrence_index": 0
+          },
+          "targetMeta": {
+            "tag": "a",
+            "role": null,
+            "text": "Emulation",
+            "normalizedText": "emulation",
+            "ariaLabel": null,
+            "title": null,
+            "name": null,
+            "id": null,
+            "dataTestId": null,
+            "dataId": null,
+            "dataCy": null,
+            "dataQa": null,
+            "classHints": [
+              "table-of-contents__link",
+              "toc-highlight"
+            ]
+          },
+          "inputValidation": null,
+          "isTriggerNewTab": null,
+          "shouldRun": true,
+          "pause": false,
+          "frameIndex": 0
+        }
+      ],
+      [
+        {
+          "id": 8,
+          "type": "CLICK",
+          "url": null,
+          "pageUrl": "https://playwright.dev/agent-cli/introduction",
+          "pageTitle": "Generating tests | Playwright",
+          "coords": {
+            "x": 242,
+            "y": 35
+          },
+          "button": "left",
+          "text": null,
+          "deltaX": null,
+          "deltaY": null,
+          "pressEnter": null,
+          "waitAfterMs": 300,
+          "timestamp": 1788779979837,
+          "label": null,
+          "description": null,
+          "isPassword": false,
+          "storeValue": false,
+          "selector": {
+            "strategy": "xpath",
+            "value": "//a[normalize-space(.)=\"MCP\"]",
+            "frame_selector": null,
+            "occurrence_index": 0
+          },
+          "targetMeta": {
+            "tag": "a",
+            "role": null,
+            "text": "MCP",
+            "normalizedText": "mcp",
+            "ariaLabel": null,
+            "title": null,
+            "name": null,
+            "id": null,
+            "dataTestId": null,
+            "dataId": null,
+            "dataCy": null,
+            "dataQa": null,
+            "classHints": [
+              "navbar__item",
+              "navbar__link"
+            ]
+          },
+          "inputValidation": null,
+          "isTriggerNewTab": null,
+          "shouldRun": true,
+          "pause": false,
+          "frameIndex": 0
+        }
+      ],
+      [
+        {
+          "id": 9,
+          "type": "CLICK",
+          "url": null,
+          "pageUrl": "https://playwright.dev/agent-cli/introduction",
+          "pageTitle": "Introduction | Playwright",
+          "coords": {
+            "x": 69,
+            "y": 446
+          },
+          "button": "left",
+          "text": null,
+          "deltaX": null,
+          "deltaY": null,
+          "pressEnter": null,
+          "waitAfterMs": 300,
+          "timestamp": 1788779982316,
+          "label": "Interaction",
+          "description": null,
+          "isPassword": false,
+          "storeValue": false,
+          "selector": {
+            "strategy": "css",
+            "value": "[title=\"Interaction\"]",
+            "frame_selector": null,
+            "occurrence_index": 0
+          },
+          "targetMeta": {
+            "tag": "span",
+            "role": null,
+            "text": "Interaction",
+            "normalizedText": "interaction",
+            "ariaLabel": null,
+            "title": "Interaction",
+            "name": null,
+            "id": null,
+            "dataTestId": null,
+            "dataId": null,
+            "dataCy": null,
+            "dataQa": null,
+            "classHints": [
+              "linkLabel_WmDU"
+            ]
+          },
+          "inputValidation": null,
+          "isTriggerNewTab": null,
+          "shouldRun": true,
+          "pause": false,
+          "frameIndex": 0
+        }
+      ],
+      [
+        {
+          "id": 10,
+          "type": "CLICK",
+          "url": null,
+          "pageUrl": "https://playwright.dev/agent-cli/introduction",
+          "pageTitle": "Interaction | Playwright",
+          "coords": {
+            "x": 293,
+            "y": 36
+          },
+          "button": "left",
+          "text": null,
+          "deltaX": null,
+          "deltaY": null,
+          "pressEnter": null,
+          "waitAfterMs": 300,
+          "timestamp": 1788779984896,
+          "label": null,
+          "description": null,
+          "isPassword": false,
+          "storeValue": false,
+          "selector": {
+            "strategy": "xpath",
+            "value": "//a[normalize-space(.)=\"CLI\"]",
+            "frame_selector": null,
+            "occurrence_index": 0
+          },
+          "targetMeta": {
+            "tag": "a",
+            "role": null,
+            "text": "CLI",
+            "normalizedText": "cli",
+            "ariaLabel": null,
+            "title": null,
+            "name": null,
+            "id": null,
+            "dataTestId": null,
+            "dataId": null,
+            "dataCy": null,
+            "dataQa": null,
+            "classHints": [
+              "navbar__item",
+              "navbar__link"
+            ]
+          },
+          "inputValidation": null,
+          "isTriggerNewTab": null,
+          "shouldRun": true,
+          "pause": false,
+          "frameIndex": 0
+        }
+      ],
+      [
+        {
+          "id": 11,
+          "type": "CLICK",
+          "url": null,
+          "pageUrl": "https://playwright.dev/agent-cli/introduction",
+          "pageTitle": "Introduction | Playwright",
+          "coords": {
+            "x": 71,
+            "y": 378
+          },
+          "button": "left",
+          "text": null,
+          "deltaX": null,
+          "deltaY": null,
+          "pressEnter": null,
+          "waitAfterMs": 300,
+          "timestamp": 1788779986981,
+          "label": "Vision Mode",
+          "description": null,
+          "isPassword": false,
+          "storeValue": false,
+          "selector": {
+            "strategy": "css",
+            "value": "[title=\"Vision\\ Mode\"]",
+            "frame_selector": null,
+            "occurrence_index": 0
+          },
+          "targetMeta": {
+            "tag": "span",
+            "role": null,
+            "text": "Vision Mode",
+            "normalizedText": "vision mode",
+            "ariaLabel": null,
+            "title": "Vision Mode",
+            "name": null,
+            "id": null,
+            "dataTestId": null,
+            "dataId": null,
+            "dataCy": null,
+            "dataQa": null,
+            "classHints": [
+              "linkLabel_WmDU"
+            ]
+          },
+          "inputValidation": null,
+          "isTriggerNewTab": null,
+          "shouldRun": true,
+          "pause": false,
+          "frameIndex": 0
+        }
+      ],
+      [
+        {
+          "id": 12,
+          "type": "CLICK",
+          "url": null,
+          "pageUrl": "https://playwright.dev/agent-cli/introduction",
+          "pageTitle": "Vision Mode | Playwright",
+          "coords": {
+            "x": 346,
+            "y": 32
+          },
+          "button": "left",
+          "text": null,
+          "deltaX": null,
+          "deltaY": null,
+          "pressEnter": null,
+          "waitAfterMs": 300,
+          "timestamp": 1788779989266,
+          "label": null,
+          "description": null,
+          "isPassword": false,
+          "storeValue": false,
+          "selector": {
+            "strategy": "xpath",
+            "value": "//a[normalize-space(.)=\"API\"]",
+            "frame_selector": null,
+            "occurrence_index": 0
+          },
+          "targetMeta": {
+            "tag": "a",
+            "role": null,
+            "text": "API",
+            "normalizedText": "api",
+            "ariaLabel": null,
+            "title": null,
+            "name": null,
+            "id": null,
+            "dataTestId": null,
+            "dataId": null,
+            "dataCy": null,
+            "dataQa": null,
+            "classHints": [
+              "navbar__item",
+              "navbar__link"
+            ]
+          },
+          "inputValidation": null,
+          "isTriggerNewTab": null,
+          "shouldRun": true,
+          "pause": false,
+          "frameIndex": 0
+        }
+      ],
+      [
+        {
+          "id": 13,
+          "type": "CLICK",
+          "url": null,
+          "pageUrl": "https://playwright.dev/agent-cli/introduction",
+          "pageTitle": "Playwright Library | Playwright",
+          "coords": {
+            "x": 91,
+            "y": 223
+          },
+          "button": "left",
+          "text": null,
+          "deltaX": null,
+          "deltaY": null,
+          "pressEnter": null,
+          "waitAfterMs": 300,
+          "timestamp": 1788779991256,
+          "label": "APIRequest",
+          "description": null,
+          "isPassword": false,
+          "storeValue": false,
+          "selector": {
+            "strategy": "css",
+            "value": "span[title=\"APIRequest\"]",
+            "frame_selector": null,
+            "occurrence_index": 0
+          },
+          "targetMeta": {
+            "tag": "span",
+            "role": null,
+            "text": "APIRequest",
+            "normalizedText": "apirequest",
+            "ariaLabel": null,
+            "title": "APIRequest",
+            "name": null,
+            "id": null,
+            "dataTestId": null,
+            "dataId": null,
+            "dataCy": null,
+            "dataQa": null,
+            "classHints": [
+              "linkLabel_WmDU"
+            ]
+          },
+          "inputValidation": null,
+          "isTriggerNewTab": null,
+          "shouldRun": true,
+          "pause": false,
+          "frameIndex": 0
+        }
+      ],
+      [
+        {
+          "id": 14,
+          "type": "CLICK",
+          "url": null,
+          "pageUrl": "https://playwright.dev/agent-cli/introduction",
+          "pageTitle": "APIRequest | Playwright",
+          "coords": {
+            "x": 73,
+            "y": 411
+          },
+          "button": "left",
+          "text": null,
+          "deltaX": null,
+          "deltaY": null,
+          "pressEnter": null,
+          "waitAfterMs": 300,
+          "timestamp": 1788779992650,
+          "label": "BrowserServer",
+          "description": null,
+          "isPassword": false,
+          "storeValue": false,
+          "selector": {
+            "strategy": "css",
+            "value": "[title=\"BrowserServer\"]",
+            "frame_selector": null,
+            "occurrence_index": 0
+          },
+          "targetMeta": {
+            "tag": "span",
+            "role": null,
+            "text": "BrowserServer",
+            "normalizedText": "browserserver",
+            "ariaLabel": null,
+            "title": "BrowserServer",
+            "name": null,
+            "id": null,
+            "dataTestId": null,
+            "dataId": null,
+            "dataCy": null,
+            "dataQa": null,
+            "classHints": [
+              "linkLabel_WmDU"
+            ]
+          },
+          "inputValidation": null,
+          "isTriggerNewTab": null,
+          "shouldRun": true,
+          "pause": false,
+          "frameIndex": 0
+        }
+      ],
+      [
+        {
+          "id": 15,
+          "type": "CLICK",
+          "url": null,
+          "pageUrl": "https://playwright.dev/agent-cli/introduction",
+          "pageTitle": "BrowserServer | Playwright",
+          "coords": {
+            "x": 1110,
+            "y": 222
+          },
+          "button": "left",
+          "text": null,
+          "deltaX": null,
+          "deltaY": null,
+          "pressEnter": null,
+          "waitAfterMs": 300,
+          "timestamp": 1788779995207,
+          "label": null,
+          "description": null,
+          "isPassword": false,
+          "storeValue": false,
+          "selector": {
+            "strategy": "xpath",
+            "value": "//a[normalize-space(.)=\"wsEndpoint\"]",
+            "frame_selector": null,
+            "occurrence_index": 0
+          },
+          "targetMeta": {
+            "tag": "a",
+            "role": null,
+            "text": "wsEndpoint",
+            "normalizedText": "wsendpoint",
+            "ariaLabel": null,
+            "title": null,
+            "name": null,
+            "id": null,
+            "dataTestId": null,
+            "dataId": null,
+            "dataCy": null,
+            "dataQa": null,
+            "classHints": [
+              "table-of-contents__link",
+              "toc-highlight"
+            ]
+          },
+          "inputValidation": null,
+          "isTriggerNewTab": null,
+          "shouldRun": true,
+          "pause": false,
+          "frameIndex": 0
+        }
+      ],
+      [
+        {
+          "id": 16,
+          "type": "CLICK",
+          "url": null,
+          "pageUrl": "https://playwright.dev/agent-cli/introduction",
+          "pageTitle": "BrowserServer | Playwright",
+          "coords": {
+            "x": 437,
+            "y": 32
+          },
+          "button": "left",
+          "text": null,
+          "deltaX": null,
+          "deltaY": null,
+          "pressEnter": null,
+          "waitAfterMs": 300,
+          "timestamp": 1788779998410,
+          "label": null,
+          "description": null,
+          "isPassword": false,
+          "storeValue": false,
+          "selector": {
+            "strategy": "css",
+            "value": "#__docusaurus > nav > div:nth-of-type(1) > div:nth-of-type(1) > div > a",
+            "frame_selector": null,
+            "occurrence_index": 0
+          },
+          "targetMeta": {
+            "tag": "a",
+            "role": "button",
+            "text": "Node.js",
+            "normalizedText": "node.js",
+            "ariaLabel": null,
+            "title": null,
+            "name": null,
+            "id": null,
+            "dataTestId": null,
+            "dataId": null,
+            "dataCy": null,
+            "dataQa": null,
+            "classHints": [
+              "navbar__link"
+            ]
+          },
+          "inputValidation": null,
+          "isTriggerNewTab": null,
+          "shouldRun": true,
+          "pause": false,
+          "frameIndex": 0
+        }
+      ],
+      [
+        {
+          "id": 17,
+          "type": "CLICK",
+          "url": null,
+          "pageUrl": "https://playwright.dev/agent-cli/introduction",
+          "pageTitle": "BrowserServer | Playwright",
+          "coords": {
+            "x": 408,
+            "y": 112
+          },
+          "button": "left",
+          "text": null,
+          "deltaX": null,
+          "deltaY": null,
+          "pressEnter": null,
+          "waitAfterMs": 300,
+          "timestamp": 1788780000130,
+          "label": null,
+          "description": null,
+          "isPassword": false,
+          "storeValue": false,
+          "selector": {
+            "strategy": "xpath",
+            "value": "//a[normalize-space(.)=\"Python\"]",
+            "frame_selector": null,
+            "occurrence_index": 0
+          },
+          "targetMeta": {
+            "tag": "a",
+            "role": null,
+            "text": "Python",
+            "normalizedText": "python",
+            "ariaLabel": null,
+            "title": null,
+            "name": null,
+            "id": null,
+            "dataTestId": null,
+            "dataId": null,
+            "dataCy": null,
+            "dataQa": null,
+            "classHints": [
+              "dropdown__link"
+            ]
+          },
+          "inputValidation": null,
+          "isTriggerNewTab": null,
+          "shouldRun": true,
+          "pause": false,
+          "frameIndex": 0
+        }
+      ],
+      [
+        {
+          "id": 18,
+          "type": "CLICK",
+          "url": null,
+          "pageUrl": "https://playwright.dev/agent-cli/introduction",
+          "pageTitle": "Page Not Found | Playwright",
+          "coords": {
+            "x": 425,
+            "y": 33
+          },
+          "button": "left",
+          "text": null,
+          "deltaX": null,
+          "deltaY": null,
+          "pressEnter": null,
+          "waitAfterMs": 300,
+          "timestamp": 1788780002112,
+          "label": null,
+          "description": null,
+          "isPassword": false,
+          "storeValue": false,
+          "selector": {
+            "strategy": "css",
+            "value": "[role=\"button\"]",
+            "frame_selector": null,
+            "occurrence_index": 0
+          },
+          "targetMeta": {
+            "tag": "a",
+            "role": "button",
+            "text": "Node.js",
+            "normalizedText": "node.js",
+            "ariaLabel": null,
+            "title": null,
+            "name": null,
+            "id": null,
+            "dataTestId": null,
+            "dataId": null,
+            "dataCy": null,
+            "dataQa": null,
+            "classHints": [
+              "navbar__link"
+            ]
+          },
+          "inputValidation": null,
+          "isTriggerNewTab": null,
+          "shouldRun": true,
+          "pause": false,
+          "frameIndex": 0
+        }
+      ],
+      [
+        {
+          "id": 19,
+          "type": "CLICK",
+          "url": null,
+          "pageUrl": "https://playwright.dev/agent-cli/introduction",
+          "pageTitle": "Page Not Found | Playwright",
+          "coords": {
+            "x": 405,
+            "y": 143
+          },
+          "button": "left",
+          "text": null,
+          "deltaX": null,
+          "deltaY": null,
+          "pressEnter": null,
+          "waitAfterMs": 300,
+          "timestamp": 1788780004147,
+          "label": null,
+          "description": null,
+          "isPassword": false,
+          "storeValue": false,
+          "selector": {
+            "strategy": "xpath",
+            "value": "//a[normalize-space(.)=\"Java\"]",
+            "frame_selector": null,
+            "occurrence_index": 0
+          },
+          "targetMeta": {
+            "tag": "a",
+            "role": null,
+            "text": "Java",
+            "normalizedText": "java",
+            "ariaLabel": null,
+            "title": null,
+            "name": null,
+            "id": null,
+            "dataTestId": null,
+            "dataId": null,
+            "dataCy": null,
+            "dataQa": null,
+            "classHints": [
+              "dropdown__link"
+            ]
+          },
+          "inputValidation": null,
+          "isTriggerNewTab": null,
+          "shouldRun": true,
+          "pause": false,
+          "frameIndex": 0
+        }
+      ],
+      [
+        {
+          "id": 20,
+          "type": "CLICK",
+          "url": null,
+          "pageUrl": "https://playwright.dev/agent-cli/introduction",
+          "pageTitle": "Page Not Found | Playwright",
+          "coords": {
+            "x": 411,
+            "y": 30
+          },
+          "button": "left",
+          "text": null,
+          "deltaX": null,
+          "deltaY": null,
+          "pressEnter": null,
+          "waitAfterMs": 300,
+          "timestamp": 1788780006111,
+          "label": null,
+          "description": null,
+          "isPassword": false,
+          "storeValue": false,
+          "selector": {
+            "strategy": "css",
+            "value": "[role=\"button\"]",
+            "frame_selector": null,
+            "occurrence_index": 0
+          },
+          "targetMeta": {
+            "tag": "a",
+            "role": "button",
+            "text": "Node.js",
+            "normalizedText": "node.js",
+            "ariaLabel": null,
+            "title": null,
+            "name": null,
+            "id": null,
+            "dataTestId": null,
+            "dataId": null,
+            "dataCy": null,
+            "dataQa": null,
+            "classHints": [
+              "navbar__link"
+            ]
+          },
+          "inputValidation": null,
+          "isTriggerNewTab": null,
+          "shouldRun": true,
+          "pause": false,
+          "frameIndex": 0
+        }
+      ],
+      [
+        {
+          "id": 21,
+          "type": "CLICK",
+          "url": null,
+          "pageUrl": "https://playwright.dev/agent-cli/introduction",
+          "pageTitle": "Page Not Found | Playwright",
+          "coords": {
+            "x": 408,
+            "y": 74
+          },
+          "button": "left",
+          "text": null,
+          "deltaX": null,
+          "deltaY": null,
+          "pressEnter": null,
+          "waitAfterMs": 300,
+          "timestamp": 1788780007114,
+          "label": null,
+          "description": null,
+          "isPassword": false,
+          "storeValue": false,
+          "selector": {
+            "strategy": "css",
+            "value": "#__docusaurus > nav > div:nth-of-type(1) > div:nth-of-type(1) > div > ul > li:nth-of-type(1) > a",
+            "frame_selector": null,
+            "occurrence_index": 0
+          },
+          "targetMeta": {
+            "tag": "a",
+            "role": null,
+            "text": "Node.js",
+            "normalizedText": "node.js",
+            "ariaLabel": null,
+            "title": null,
+            "name": null,
+            "id": null,
+            "dataTestId": null,
+            "dataId": null,
+            "dataCy": null,
+            "dataQa": null,
+            "classHints": [
+              "dropdown__link"
+            ]
+          },
+          "inputValidation": null,
+          "isTriggerNewTab": null,
+          "shouldRun": true,
+          "pause": false,
+          "frameIndex": 0
+        }
+      ],
+      [
+        {
+          "id": 22,
+          "type": "CLICK",
+          "url": null,
+          "pageUrl": "https://playwright.dev/agent-cli/introduction",
+          "pageTitle": "BrowserServer | Playwright",
+          "coords": {
+            "x": 1159,
+            "y": 26
+          },
+          "button": "left",
+          "text": null,
+          "deltaX": null,
+          "deltaY": null,
+          "pressEnter": null,
+          "waitAfterMs": 300,
+          "timestamp": 1788780009100,
+          "label": null,
+          "description": null,
+          "isPassword": false,
+          "storeValue": false,
+          "selector": {
+            "strategy": "css",
+            "value": "#__docusaurus > nav > div:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(2) > button > span:nth-of-type(1) > span",
+            "frame_selector": null,
+            "occurrence_index": 0
+          },
+          "targetMeta": {
+            "tag": "span",
+            "role": null,
+            "text": "Search",
+            "normalizedText": "search",
+            "ariaLabel": null,
+            "title": null,
+            "name": null,
+            "id": null,
+            "dataTestId": null,
+            "dataId": null,
+            "dataCy": null,
+            "dataQa": null,
+            "classHints": [
+              "DocSearch-Button-Placeholder"
+            ]
+          },
+          "inputValidation": null,
+          "isTriggerNewTab": null,
+          "shouldRun": true,
+          "pause": false,
+          "frameIndex": 0
+        }
+      ],
+      [
+        {
+          "id": 23,
+          "type": "TYPE",
+          "url": null,
+          "pageUrl": "https://playwright.dev/agent-cli/introduction",
+          "pageTitle": "BrowserServer | Playwright",
+          "coords": {
+            "x": 384,
+            "y": 93
+          },
+          "button": null,
+          "text": "trace",
+          "deltaX": null,
+          "deltaY": null,
+          "pressEnter": null,
+          "waitAfterMs": null,
+          "timestamp": 1788780014831,
+          "label": "Search docs",
+          "description": null,
+          "isPassword": false,
+          "storeValue": true,
+          "selector": {
+            "strategy": "id",
+            "value": "docsearch-input",
+            "frame_selector": null,
+            "occurrence_index": 0
+          },
+          "targetMeta": null,
+          "inputValidation": null,
+          "isTriggerNewTab": null,
+          "shouldRun": true,
+          "pause": false,
+          "frameIndex": 0
+        }
+      ],
+      [
+        {
+          "id": 24,
+          "type": "CLICK",
+          "url": null,
+          "pageUrl": "https://playwright.dev/agent-cli/introduction",
+          "pageTitle": "BrowserServer | Playwright",
+          "coords": {
+            "x": 449,
+            "y": 261
+          },
+          "button": "left",
+          "text": null,
+          "deltaX": null,
+          "deltaY": null,
+          "pressEnter": null,
+          "waitAfterMs": 300,
+          "timestamp": 1788780017171,
+          "label": null,
+          "description": null,
+          "isPassword": false,
+          "storeValue": false,
+          "selector": {
+            "strategy": "id",
+            "value": "docsearch-hits_playwright-nodejs_0-list",
+            "frame_selector": null,
+            "occurrence_index": 0
+          },
+          "targetMeta": {
+            "tag": "ul",
+            "role": "listbox",
+            "text": "Trace viewer",
+            "normalizedText": "trace viewer",
+            "ariaLabel": null,
+            "title": null,
+            "name": null,
+            "id": "docsearch-hits_playwright-nodejs_0-list",
+            "dataTestId": null,
+            "dataId": null,
+            "dataCy": null,
+            "dataQa": null,
+            "classHints": []
+          },
+          "inputValidation": null,
+          "isTriggerNewTab": null,
+          "shouldRun": true,
+          "pause": false,
+          "frameIndex": 0
+        }
+      ],
+      [
+        {
+          "id": 25,
+          "type": "CLICK",
+          "url": null,
+          "pageUrl": "https://playwright.dev/agent-cli/introduction",
+          "pageTitle": "Trace viewer | Playwright",
+          "coords": {
+            "x": 63,
+            "y": 337
+          },
+          "button": "left",
+          "text": null,
+          "deltaX": null,
+          "deltaY": null,
+          "pressEnter": null,
+          "waitAfterMs": 300,
+          "timestamp": 1788780020116,
+          "label": "VS Code",
+          "description": null,
+          "isPassword": false,
+          "storeValue": false,
+          "selector": {
+            "strategy": "css",
+            "value": "[title=\"VS\\ Code\"]",
+            "frame_selector": null,
+            "occurrence_index": 0
+          },
+          "targetMeta": {
+            "tag": "span",
+            "role": null,
+            "text": "VS Code",
+            "normalizedText": "vs code",
+            "ariaLabel": null,
+            "title": "VS Code",
+            "name": null,
+            "id": null,
+            "dataTestId": null,
+            "dataId": null,
+            "dataCy": null,
+            "dataQa": null,
+            "classHints": [
+              "linkLabel_WmDU"
+            ]
+          },
+          "inputValidation": null,
+          "isTriggerNewTab": null,
+          "shouldRun": true,
+          "pause": false,
+          "frameIndex": 0
+        }
+      ],
+      [
+        {
+          "id": 26,
+          "type": "SCROLL",
+          "url": null,
+          "pageUrl": "https://playwright.dev/agent-cli/introduction",
+          "pageTitle": null,
+          "coords": {
+            "x": 702,
+            "y": 329
+          },
+          "button": null,
+          "text": null,
+          "deltaX": 0.0,
+          "deltaY": 300.0,
+          "pressEnter": null,
+          "waitAfterMs": 100,
+          "timestamp": 1788780021432,
+          "label": null,
+          "description": null,
+          "isPassword": false,
+          "storeValue": false,
+          "selector": null,
+          "targetMeta": null,
+          "inputValidation": null,
+          "isTriggerNewTab": null,
+          "shouldRun": true,
+          "pause": false,
+          "frameIndex": 0
+        }
+      ],
+      [
+        {
+          "id": 27,
+          "type": "SCROLL",
+          "url": null,
+          "pageUrl": "https://playwright.dev/agent-cli/introduction",
+          "pageTitle": null,
+          "coords": {
+            "x": 702,
+            "y": 329
+          },
+          "button": null,
+          "text": null,
+          "deltaX": 0.0,
+          "deltaY": 100.0,
+          "pressEnter": null,
+          "waitAfterMs": 100,
+          "timestamp": 1788780022861,
+          "label": null,
+          "description": null,
+          "isPassword": false,
+          "storeValue": false,
+          "selector": null,
+          "targetMeta": null,
+          "inputValidation": null,
+          "isTriggerNewTab": null,
+          "shouldRun": true,
+          "pause": false,
+          "frameIndex": 0
+        }
+      ],
+      [
+        {
+          "id": 28,
+          "type": "CLICK",
+          "url": null,
+          "pageUrl": "https://playwright.dev/agent-cli/introduction",
+          "pageTitle": "VS Code | Playwright",
+          "coords": {
+            "x": 1068,
+            "y": 31
+          },
+          "button": "left",
+          "text": null,
+          "deltaX": null,
+          "deltaY": null,
+          "pressEnter": null,
+          "waitAfterMs": 300,
+          "timestamp": 1788780024968,
+          "label": "Switch between dark and light mode (currently system mode)",
+          "description": null,
+          "isPassword": false,
+          "storeValue": false,
+          "selector": {
+            "strategy": "css",
+            "value": "[aria-label=\"Switch\\ between\\ dark\\ and\\ light\\ mode\\ \\(currently\\ system\\ mode\\)\"]",
+            "frame_selector": null,
+            "occurrence_index": 0
+          },
+          "targetMeta": {
+            "tag": "button",
+            "role": null,
+            "text": "SearchCtrlK",
+            "normalizedText": "searchctrlk",
+            "ariaLabel": "Switch between dark and light mode (currently system mode)",
+            "title": "system mode",
+            "name": null,
+            "id": null,
+            "dataTestId": null,
+            "dataId": null,
+            "dataCy": null,
+            "dataQa": null,
+            "classHints": [
+              "clean-btn",
+              "toggleButton_gllP"
+            ]
+          },
+          "inputValidation": null,
+          "isTriggerNewTab": null,
+          "shouldRun": true,
+          "pause": false,
+          "frameIndex": 0
+        }
+      ],
+      [
+        {
+          "id": 29,
+          "type": "SCROLL",
+          "url": null,
+          "pageUrl": "https://playwright.dev/agent-cli/introduction",
+          "pageTitle": null,
+          "coords": {
+            "x": 537,
+            "y": 336
+          },
+          "button": null,
+          "text": null,
+          "deltaX": 0.0,
+          "deltaY": 100.0,
+          "pressEnter": null,
+          "waitAfterMs": 100,
+          "timestamp": 1788780026724,
+          "label": null,
+          "description": null,
+          "isPassword": false,
+          "storeValue": false,
+          "selector": null,
+          "targetMeta": null,
+          "inputValidation": null,
+          "isTriggerNewTab": null,
+          "shouldRun": true,
+          "pause": false,
+          "frameIndex": 0
+        }
+      ],
+      [
+        {
+          "id": 30,
+          "type": "SCROLL",
+          "url": null,
+          "pageUrl": "https://playwright.dev/agent-cli/introduction",
+          "pageTitle": null,
+          "coords": {
+            "x": 537,
+            "y": 336
+          },
+          "button": null,
+          "text": null,
+          "deltaX": 0.0,
+          "deltaY": 200.0,
+          "pressEnter": null,
+          "waitAfterMs": 100,
+          "timestamp": 1788780027731,
+          "label": null,
+          "description": null,
+          "isPassword": false,
+          "storeValue": false,
+          "selector": null,
+          "targetMeta": null,
+          "inputValidation": null,
+          "isTriggerNewTab": null,
+          "shouldRun": true,
+          "pause": false,
+          "frameIndex": 0
+        }
+      ]
+    ]
+  }
+}

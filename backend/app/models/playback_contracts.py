@@ -9,7 +9,11 @@ from pydantic import BaseModel, ConfigDict, Field
 class StartPlaybackRequest(BaseModel):
     model_config = ConfigDict(extra="allow")
 
-    steps: dict[str, list[list[dict[str, Any]]]]
+    recording_json: dict[str, Any] | None = None  # Full recording JSON from MCP
+    steps: dict[str, list[list[dict[str, Any]]]] | None = None  # Recording steps (backward compat)
+    source: str = "fastapi"                       # "fastapi" or "mcp"
+    headless: bool = True                         # Browser headless mode
+    capture_frames: bool = True                   # Capture frames for frontend
 
 
 class StartPlaybackResponse(BaseModel):

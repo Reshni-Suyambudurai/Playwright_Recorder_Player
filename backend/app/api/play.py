@@ -85,29 +85,79 @@ async def play_session_cleanup_worker(stop_event: asyncio.Event) -> None:
         break
 
 
+def _count_steps(recording_json: dict) -> int:
+    """Count total steps from nested structure"""
+    count = 0
+    steps_data = recording_json.get("steps", {})
+    
+    if isinstance(steps_data, dict):
+        # Tab-based structure: {"tab-1": [[...], [...]], "tab-2": [...]}
+        for tab_steps in steps_data.values():
+            if isinstance(tab_steps, list):
+                for step_array in tab_steps:
+                    if isinstance(step_array, list):
+                        for step in step_array:
+                            if isinstance(step, dict) and step.get("type"):
+                                count += 1
+                    elif isinstance(step_array, dict) and step_array.get("type"):
+                        count += 1
+    elif isinstance(steps_data, list):
+        # Flat list structure
+        for step in steps_data:
+            if isinstance(step, dict) and step.get("type"):
+                count += 1
+    
+    return count
+
+
 def create_play_router() -> APIRouter:
     router = APIRouter()
 
-    @router.post("/start", response_model=StartPlaybackResponse)
+    @router.post("/start")
     async def start_playback(body: StartPlaybackRequest):
         """
         Accepts full recording JSON (with user-edited values merged in).
         Creates a PlaySession and returns play_session_id.
-        The client then opens WS /ws/play/{play_session_id} to stream frames.
+        
+        Returns minimal response - live streaming will provide step details via WebSocket.
         """
-        if not body.steps:
+        # Support both MCP format (recording_json) and legacy format (steps)
+        recording_json = body.recording_json or {"steps": body.steps}
+        
+        if not recording_json.get("steps"):
             return JSONResponse(
                 status_code=400,
                 content={"detail": "Recording JSON must contain 'steps'"}
             )
 
         play_id = str(uuid.uuid4())
-        session = PlaySession(play_id=play_id, recording_json=body.model_dump())
+        session = PlaySession(play_id=play_id, recording_json=recording_json)
+        
+        # ✨ Use source and flags from request (MCP vs FastAPI)
+        session.source = body.source
+        session.capture_frames = body.capture_frames
+        session.headless = body.headless
+        
+        logger.info(f"[PLAY] source={session.source}, capture_frames={session.capture_frames}, headless={session.headless}")
+        
         async with _play_sessions_lock:
             _play_sessions[play_id] = session
 
         logger.info(f"[PLAY] session created: {play_id}")
-        return StartPlaybackResponse(play_session_id=play_id)
+        
+        # ✨ LIVE STREAMING ONLY: Return minimal response
+        # Step details will stream via WebSocket events
+        total_steps = _count_steps(recording_json)
+        
+        if body.source == "mcp":
+            logger.info(f"[PLAY] MCP response: play_session_id={play_id}, total_steps={total_steps}")
+            return {
+                "play_session_id": play_id,
+                "total_steps": total_steps
+            }
+        else:
+            # Web/FastAPI clients get standard response
+            return StartPlaybackResponse(play_session_id=play_id)
 
     @router.delete("/{play_id}", response_model=StopPlaybackResponse)
     async def stop_playback(play_id: str):
