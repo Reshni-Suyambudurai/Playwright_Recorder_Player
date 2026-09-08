@@ -1,0 +1,379 @@
+[2026-09-07 22:27:44] [INFO] stream_events - 
+================================================================================
+[2026-09-07 22:27:44] [INFO] stream_events -   PLAYBACK STREAMING - START
+[2026-09-07 22:27:44] [INFO] stream_events - ================================================================================
+
+[2026-09-07 22:27:44] [INFO] stream_events - Process started at 2026-09-07 22:27:44.976066
+[2026-09-07 22:27:44] [INFO] stream_events - Log file: D:\KANINI_INTERN\My_Projects\Agent_TS\Automation_Agent\MCP\stream_events.log
+[2026-09-07 22:27:44] [INFO] stream_events - 
+================================================================================
+[2026-09-07 22:27:44] [INFO] stream_events -   STEP 1: LOADING RECORDING
+[2026-09-07 22:27:44] [INFO] stream_events - ================================================================================
+
+[2026-09-07 22:27:44] [INFO] stream_events - [LOAD] Attempting to load recording from: D:\KANINI_INTERN\My_Projects\Agent_TS\Automation_Agent\MCP\JSON\playwright.json
+[2026-09-07 22:27:44] [DEBUG] stream_events - [LOAD] File size: 39444 bytes
+[2026-09-07 22:27:44] [INFO] stream_events - [LOAD] ✓ Successfully parsed JSON
+[2026-09-07 22:27:44] [DEBUG] stream_events - [LOAD] Recording keys: ['version', 'meta', 'steps']
+[2026-09-07 22:27:44] [DEBUG] stream_events - [LOAD] Steps is dict with keys: ['tab-1']
+[2026-09-07 22:27:44] [INFO] stream_events - [LOAD] Total steps found: 30
+[2026-09-07 22:27:44] [INFO] stream_events - 
+================================================================================
+[2026-09-07 22:27:44] [INFO] stream_events -   STEP 2: START PLAYBACK
+[2026-09-07 22:27:44] [INFO] stream_events - ================================================================================
+
+[2026-09-07 22:27:44] [INFO] stream_events - 
+================================================================================
+[2026-09-07 22:27:44] [INFO] stream_events -   STARTING PLAYBACK VIA BACKEND
+[2026-09-07 22:27:44] [INFO] stream_events - ================================================================================
+
+[2026-09-07 22:27:44] [INFO] stream_events - [HTTP] Backend URL: http://localhost:8001
+[2026-09-07 22:27:44] [INFO] stream_events - [HTTP] Endpoint: POST /play/start
+[2026-09-07 22:27:44] [DEBUG] stream_events - [HTTP] Request body keys: ['recording_json', 'source', 'headless', 'capture_frames']
+[2026-09-07 22:27:44] [DEBUG] stream_events - [HTTP] Request timeout: 30s
+[2026-09-07 22:27:45] [DEBUG] stream_events - [HTTP] Creating POST request...
+[2026-09-07 22:27:45] [INFO] stream_events - [HTTP] ✓ Response received (status: 200)
+[2026-09-07 22:27:45] [DEBUG] stream_events - [HTTP] Response headers: {'date': 'Mon, 07 Sep 2026 16:57:45 GMT', 'server': 'uvicorn', 'content-length': '58', 'content-type': 'application/json'}
+[2026-09-07 22:27:45] [DEBUG] stream_events - [HTTP] Response body size: 58 bytes
+[2026-09-07 22:27:45] [INFO] stream_events - [HTTP] ✓ Response parsed successfully
+[2026-09-07 22:27:45] [DEBUG] stream_events - [HTTP] Response keys: ['play_session_id']
+[2026-09-07 22:27:45] [INFO] stream_events - [HTTP] ✓ Response: {
+  "play_session_id": "c6f6f161-e542-4cf1-bd02-63b286636443"
+}
+[2026-09-07 22:27:45] [INFO] stream_events - [HTTP] ✓ play_session_id: c6f6f161-e542-4cf1-bd02-63b286636443
+[2026-09-07 22:27:45] [INFO] stream_events - [HTTP] ✓ Playback started successfully
+[2026-09-07 22:27:45] [INFO] stream_events - 
+================================================================================
+[2026-09-07 22:27:45] [INFO] stream_events -   STEP 3: STREAM WEBSOCKET EVENTS
+[2026-09-07 22:27:45] [INFO] stream_events - ================================================================================
+
+[2026-09-07 22:27:45] [INFO] stream_events - 
+================================================================================
+[2026-09-07 22:27:45] [INFO] stream_events -   WEBSOCKET CONNECTION & EVENT STREAMING
+[2026-09-07 22:27:45] [INFO] stream_events - ================================================================================
+
+[2026-09-07 22:27:45] [INFO] stream_events - [WS] WebSocket URI: ws://localhost:8001/ws/play/c6f6f161-e542-4cf1-bd02-63b286636443
+[2026-09-07 22:27:45] [INFO] stream_events - [WS] Timeout per event: 60s
+[2026-09-07 22:27:45] [DEBUG] stream_events - [WS] Initiating WebSocket connection...
+[2026-09-07 22:27:47] [INFO] stream_events - [WS] ✓ WebSocket connection established
+[2026-09-07 22:27:47] [DEBUG] stream_events - [WS] Connection state: OPEN
+[2026-09-07 22:27:47] [INFO] stream_events - [WS] Sending HELLO message to start playback...
+[2026-09-07 22:27:47] [DEBUG] stream_events - [WS] HELLO payload: {'event_type': 'HELLO', 'data': {'client_id': 'ea25f07b-a594-4ea1-a267-b04fe215ad21'}}
+[2026-09-07 22:27:47] [INFO] stream_events - [WS] ✓ HELLO message sent (client_id: ea25f07b-a594-4ea1-a267-b04fe215ad21)
+[2026-09-07 22:27:47] [INFO] stream_events - [WS] Waiting for events...
+[2026-09-07 22:27:47] [DEBUG] stream_events - [WS] Waiting for next event (timeout: 60s)...
+[2026-09-07 22:27:47] [DEBUG] stream_events - [WS] Event #1 received at 0.00s
+[2026-09-07 22:27:47] [DEBUG] stream_events - [WS] Message size: 186 bytes
+[2026-09-07 22:27:47] [DEBUG] stream_events - [WS] ✓ Event parsed as JSON
+[2026-09-07 22:27:47] [DEBUG] stream_events - [WS] Event type: WELCOME
+[2026-09-07 22:27:47] [DEBUG] stream_events - [WS] Event keys: ['event_type', 'data']
+[2026-09-07 22:27:47] [DEBUG] stream_events - [WS] Event data keys: ['play_session_id', 'message', 'timestamp']
+[2026-09-07 22:27:47] [INFO] stream_events - [EVENT] WELCOME: Playback session ready
+[2026-09-07 22:27:47] [DEBUG] stream_events - [WS] Waiting for next event (timeout: 60s)...
+[2026-09-07 22:27:50] [DEBUG] stream_events - [WS] Event #2 received at 2.25s
+[2026-09-07 22:27:50] [DEBUG] stream_events - [WS] Message size: 91 bytes
+[2026-09-07 22:27:50] [DEBUG] stream_events - [WS] ✓ Event parsed as JSON
+[2026-09-07 22:27:50] [DEBUG] stream_events - [WS] Event type: PLAY_STEP_START
+[2026-09-07 22:27:50] [DEBUG] stream_events - [WS] Event keys: ['event_type', 'data']
+[2026-09-07 22:27:50] [DEBUG] stream_events - [WS] Event data keys: ['stepId', 'index', 'total', 'type']
+[2026-09-07 22:27:50] [INFO] stream_events - [STREAM] step 1/30 — type=NAVIGATE
+[2026-09-07 22:27:50] [DEBUG] stream_events - [WS] Waiting for next event (timeout: 60s)...
+[2026-09-07 22:27:51] [DEBUG] stream_events - [WS] Event #3 received at 3.73s
+[2026-09-07 22:27:51] [DEBUG] stream_events - [WS] Message size: 88 bytes
+[2026-09-07 22:27:51] [DEBUG] stream_events - [WS] ✓ Event parsed as JSON
+[2026-09-07 22:27:51] [DEBUG] stream_events - [WS] Event type: PLAY_STEP_START
+[2026-09-07 22:27:51] [DEBUG] stream_events - [WS] Event keys: ['event_type', 'data']
+[2026-09-07 22:27:51] [DEBUG] stream_events - [WS] Event data keys: ['stepId', 'index', 'total', 'type']
+[2026-09-07 22:27:51] [INFO] stream_events - [STREAM] step 2/30 — type=CLICK
+[2026-09-07 22:27:51] [DEBUG] stream_events - [WS] Waiting for next event (timeout: 60s)...
+[2026-09-07 22:27:52] [DEBUG] stream_events - [WS] Event #4 received at 4.22s
+[2026-09-07 22:27:52] [DEBUG] stream_events - [WS] Message size: 91971 bytes
+[2026-09-07 22:27:52] [DEBUG] stream_events - [WS] ✓ Event parsed as JSON
+[2026-09-07 22:27:52] [DEBUG] stream_events - [WS] Event type: FRAME
+[2026-09-07 22:27:52] [DEBUG] stream_events - [WS] Event keys: ['event_type', 'data']
+[2026-09-07 22:27:52] [DEBUG] stream_events - [WS] Event data keys: ['image', 'width', 'height', 'timestamp', 'source']
+[2026-09-07 22:27:52] [DEBUG] stream_events - [WS] Waiting for next event (timeout: 60s)...
+[2026-09-07 22:27:52] [DEBUG] stream_events - [WS] Event #5 received at 4.45s
+[2026-09-07 22:27:52] [DEBUG] stream_events - [WS] Message size: 88 bytes
+[2026-09-07 22:27:52] [DEBUG] stream_events - [WS] ✓ Event parsed as JSON
+[2026-09-07 22:27:52] [DEBUG] stream_events - [WS] Event type: PLAY_STEP_START
+[2026-09-07 22:27:52] [DEBUG] stream_events - [WS] Event keys: ['event_type', 'data']
+[2026-09-07 22:27:52] [DEBUG] stream_events - [WS] Event data keys: ['stepId', 'index', 'total', 'type']
+[2026-09-07 22:27:52] [INFO] stream_events - [STREAM] step 3/30 — type=CLICK
+[2026-09-07 22:27:52] [DEBUG] stream_events - [WS] Waiting for next event (timeout: 60s)...
+[2026-09-07 22:27:52] [DEBUG] stream_events - [WS] Event #6 received at 4.72s
+[2026-09-07 22:27:52] [DEBUG] stream_events - [WS] Message size: 91931 bytes
+[2026-09-07 22:27:52] [DEBUG] stream_events - [WS] ✓ Event parsed as JSON
+[2026-09-07 22:27:52] [DEBUG] stream_events - [WS] Event type: FRAME
+[2026-09-07 22:27:52] [DEBUG] stream_events - [WS] Event keys: ['event_type', 'data']
+[2026-09-07 22:27:52] [DEBUG] stream_events - [WS] Event data keys: ['image', 'width', 'height', 'timestamp', 'source']
+[2026-09-07 22:27:52] [DEBUG] stream_events - [WS] Waiting for next event (timeout: 60s)...
+[2026-09-07 22:27:52] [DEBUG] stream_events - [WS] Event #7 received at 4.86s
+[2026-09-07 22:27:52] [DEBUG] stream_events - [WS] Message size: 88 bytes
+[2026-09-07 22:27:52] [DEBUG] stream_events - [WS] ✓ Event parsed as JSON
+[2026-09-07 22:27:52] [DEBUG] stream_events - [WS] Event type: PLAY_STEP_START
+[2026-09-07 22:27:52] [DEBUG] stream_events - [WS] Event keys: ['event_type', 'data']
+[2026-09-07 22:27:52] [DEBUG] stream_events - [WS] Event data keys: ['stepId', 'index', 'total', 'type']
+[2026-09-07 22:27:52] [INFO] stream_events - [STREAM] step 4/30 — type=CLICK
+[2026-09-07 22:27:52] [DEBUG] stream_events - [WS] Waiting for next event (timeout: 60s)...
+[2026-09-07 22:27:52] [DEBUG] stream_events - [WS] Event #8 received at 5.10s
+[2026-09-07 22:27:52] [DEBUG] stream_events - [WS] Message size: 89 bytes
+[2026-09-07 22:27:52] [DEBUG] stream_events - [WS] ✓ Event parsed as JSON
+[2026-09-07 22:27:52] [DEBUG] stream_events - [WS] Event type: PLAY_STEP_START
+[2026-09-07 22:27:52] [DEBUG] stream_events - [WS] Event keys: ['event_type', 'data']
+[2026-09-07 22:27:52] [DEBUG] stream_events - [WS] Event data keys: ['stepId', 'index', 'total', 'type']
+[2026-09-07 22:27:52] [INFO] stream_events - [STREAM] step 5/30 — type=SCROLL
+[2026-09-07 22:27:52] [DEBUG] stream_events - [WS] Waiting for next event (timeout: 60s)...
+[2026-09-07 22:27:53] [DEBUG] stream_events - [WS] Event #9 received at 5.18s
+[2026-09-07 22:27:53] [DEBUG] stream_events - [WS] Message size: 89 bytes
+[2026-09-07 22:27:53] [DEBUG] stream_events - [WS] ✓ Event parsed as JSON
+[2026-09-07 22:27:53] [DEBUG] stream_events - [WS] Event type: PLAY_STEP_START
+[2026-09-07 22:27:53] [DEBUG] stream_events - [WS] Event keys: ['event_type', 'data']
+[2026-09-07 22:27:53] [DEBUG] stream_events - [WS] Event data keys: ['stepId', 'index', 'total', 'type']
+[2026-09-07 22:27:53] [INFO] stream_events - [STREAM] step 6/30 — type=SCROLL
+[2026-09-07 22:27:53] [DEBUG] stream_events - [WS] Waiting for next event (timeout: 60s)...
+[2026-09-07 22:27:53] [DEBUG] stream_events - [WS] Event #10 received at 5.30s
+[2026-09-07 22:27:53] [DEBUG] stream_events - [WS] Message size: 88 bytes
+[2026-09-07 22:27:53] [DEBUG] stream_events - [WS] ✓ Event parsed as JSON
+[2026-09-07 22:27:53] [DEBUG] stream_events - [WS] Event type: PLAY_STEP_START
+[2026-09-07 22:27:53] [DEBUG] stream_events - [WS] Event keys: ['event_type', 'data']
+[2026-09-07 22:27:53] [DEBUG] stream_events - [WS] Event data keys: ['stepId', 'index', 'total', 'type']
+[2026-09-07 22:27:53] [INFO] stream_events - [STREAM] step 7/30 — type=CLICK
+[2026-09-07 22:27:53] [DEBUG] stream_events - [WS] Waiting for next event (timeout: 60s)...
+[2026-09-07 22:27:53] [DEBUG] stream_events - [WS] Event #11 received at 5.49s
+[2026-09-07 22:27:53] [DEBUG] stream_events - [WS] Message size: 88 bytes
+[2026-09-07 22:27:53] [DEBUG] stream_events - [WS] ✓ Event parsed as JSON
+[2026-09-07 22:27:53] [DEBUG] stream_events - [WS] Event type: PLAY_STEP_START
+[2026-09-07 22:27:53] [DEBUG] stream_events - [WS] Event keys: ['event_type', 'data']
+[2026-09-07 22:27:53] [DEBUG] stream_events - [WS] Event data keys: ['stepId', 'index', 'total', 'type']
+[2026-09-07 22:27:53] [INFO] stream_events - [STREAM] step 8/30 — type=CLICK
+[2026-09-07 22:27:53] [DEBUG] stream_events - [WS] Waiting for next event (timeout: 60s)...
+[2026-09-07 22:27:55] [DEBUG] stream_events - [WS] Event #12 received at 7.78s
+[2026-09-07 22:27:55] [DEBUG] stream_events - [WS] Message size: 73639 bytes
+[2026-09-07 22:27:55] [DEBUG] stream_events - [WS] ✓ Event parsed as JSON
+[2026-09-07 22:27:55] [DEBUG] stream_events - [WS] Event type: FRAME
+[2026-09-07 22:27:55] [DEBUG] stream_events - [WS] Event keys: ['event_type', 'data']
+[2026-09-07 22:27:55] [DEBUG] stream_events - [WS] Event data keys: ['image', 'width', 'height', 'timestamp', 'source']
+[2026-09-07 22:27:55] [DEBUG] stream_events - [WS] Waiting for next event (timeout: 60s)...
+[2026-09-07 22:27:55] [DEBUG] stream_events - [WS] Event #13 received at 7.84s
+[2026-09-07 22:27:55] [DEBUG] stream_events - [WS] Message size: 88 bytes
+[2026-09-07 22:27:55] [DEBUG] stream_events - [WS] ✓ Event parsed as JSON
+[2026-09-07 22:27:55] [DEBUG] stream_events - [WS] Event type: PLAY_STEP_START
+[2026-09-07 22:27:55] [DEBUG] stream_events - [WS] Event keys: ['event_type', 'data']
+[2026-09-07 22:27:55] [DEBUG] stream_events - [WS] Event data keys: ['stepId', 'index', 'total', 'type']
+[2026-09-07 22:27:55] [INFO] stream_events - [STREAM] step 9/30 — type=CLICK
+[2026-09-07 22:27:55] [DEBUG] stream_events - [WS] Waiting for next event (timeout: 60s)...
+[2026-09-07 22:27:57] [DEBUG] stream_events - [WS] Event #14 received at 9.88s
+[2026-09-07 22:27:57] [DEBUG] stream_events - [WS] Message size: 89 bytes
+[2026-09-07 22:27:57] [DEBUG] stream_events - [WS] ✓ Event parsed as JSON
+[2026-09-07 22:27:57] [DEBUG] stream_events - [WS] Event type: PLAY_STEP_START
+[2026-09-07 22:27:57] [DEBUG] stream_events - [WS] Event keys: ['event_type', 'data']
+[2026-09-07 22:27:57] [DEBUG] stream_events - [WS] Event data keys: ['stepId', 'index', 'total', 'type']
+[2026-09-07 22:27:57] [INFO] stream_events - [STREAM] step 10/30 — type=CLICK
+[2026-09-07 22:27:57] [DEBUG] stream_events - [WS] Waiting for next event (timeout: 60s)...
+[2026-09-07 22:27:59] [DEBUG] stream_events - [WS] Event #15 received at 11.65s
+[2026-09-07 22:27:59] [DEBUG] stream_events - [WS] Message size: 90 bytes
+[2026-09-07 22:27:59] [DEBUG] stream_events - [WS] ✓ Event parsed as JSON
+[2026-09-07 22:27:59] [DEBUG] stream_events - [WS] Event type: PLAY_STEP_START
+[2026-09-07 22:27:59] [DEBUG] stream_events - [WS] Event keys: ['event_type', 'data']
+[2026-09-07 22:27:59] [DEBUG] stream_events - [WS] Event data keys: ['stepId', 'index', 'total', 'type']
+[2026-09-07 22:27:59] [INFO] stream_events - [STREAM] step 11/30 — type=CLICK
+[2026-09-07 22:27:59] [DEBUG] stream_events - [WS] Waiting for next event (timeout: 60s)...
+[2026-09-07 22:27:59] [DEBUG] stream_events - [WS] Event #16 received at 11.84s
+[2026-09-07 22:27:59] [DEBUG] stream_events - [WS] Message size: 90 bytes
+[2026-09-07 22:27:59] [DEBUG] stream_events - [WS] ✓ Event parsed as JSON
+[2026-09-07 22:27:59] [DEBUG] stream_events - [WS] Event type: PLAY_STEP_START
+[2026-09-07 22:27:59] [DEBUG] stream_events - [WS] Event keys: ['event_type', 'data']
+[2026-09-07 22:27:59] [DEBUG] stream_events - [WS] Event data keys: ['stepId', 'index', 'total', 'type']
+[2026-09-07 22:27:59] [INFO] stream_events - [STREAM] step 12/30 — type=CLICK
+[2026-09-07 22:27:59] [DEBUG] stream_events - [WS] Waiting for next event (timeout: 60s)...
+[2026-09-07 22:27:59] [DEBUG] stream_events - [WS] Event #17 received at 11.98s
+[2026-09-07 22:27:59] [DEBUG] stream_events - [WS] Message size: 90 bytes
+[2026-09-07 22:27:59] [DEBUG] stream_events - [WS] ✓ Event parsed as JSON
+[2026-09-07 22:27:59] [DEBUG] stream_events - [WS] Event type: PLAY_STEP_START
+[2026-09-07 22:27:59] [DEBUG] stream_events - [WS] Event keys: ['event_type', 'data']
+[2026-09-07 22:27:59] [DEBUG] stream_events - [WS] Event data keys: ['stepId', 'index', 'total', 'type']
+[2026-09-07 22:27:59] [INFO] stream_events - [STREAM] step 13/30 — type=CLICK
+[2026-09-07 22:27:59] [DEBUG] stream_events - [WS] Waiting for next event (timeout: 60s)...
+[2026-09-07 22:28:00] [DEBUG] stream_events - [WS] Event #18 received at 12.22s
+[2026-09-07 22:28:00] [DEBUG] stream_events - [WS] Message size: 90 bytes
+[2026-09-07 22:28:00] [DEBUG] stream_events - [WS] ✓ Event parsed as JSON
+[2026-09-07 22:28:00] [DEBUG] stream_events - [WS] Event type: PLAY_STEP_START
+[2026-09-07 22:28:00] [DEBUG] stream_events - [WS] Event keys: ['event_type', 'data']
+[2026-09-07 22:28:00] [DEBUG] stream_events - [WS] Event data keys: ['stepId', 'index', 'total', 'type']
+[2026-09-07 22:28:00] [INFO] stream_events - [STREAM] step 14/30 — type=CLICK
+[2026-09-07 22:28:00] [DEBUG] stream_events - [WS] Waiting for next event (timeout: 60s)...
+[2026-09-07 22:28:00] [DEBUG] stream_events - [WS] Event #19 received at 12.37s
+[2026-09-07 22:28:00] [DEBUG] stream_events - [WS] Message size: 90 bytes
+[2026-09-07 22:28:00] [DEBUG] stream_events - [WS] ✓ Event parsed as JSON
+[2026-09-07 22:28:00] [DEBUG] stream_events - [WS] Event type: PLAY_STEP_START
+[2026-09-07 22:28:00] [DEBUG] stream_events - [WS] Event keys: ['event_type', 'data']
+[2026-09-07 22:28:00] [DEBUG] stream_events - [WS] Event data keys: ['stepId', 'index', 'total', 'type']
+[2026-09-07 22:28:00] [INFO] stream_events - [STREAM] step 15/30 — type=CLICK
+[2026-09-07 22:28:00] [DEBUG] stream_events - [WS] Waiting for next event (timeout: 60s)...
+[2026-09-07 22:28:00] [DEBUG] stream_events - [WS] Event #20 received at 12.58s
+[2026-09-07 22:28:00] [DEBUG] stream_events - [WS] Message size: 90 bytes
+[2026-09-07 22:28:00] [DEBUG] stream_events - [WS] ✓ Event parsed as JSON
+[2026-09-07 22:28:00] [DEBUG] stream_events - [WS] Event type: PLAY_STEP_START
+[2026-09-07 22:28:00] [DEBUG] stream_events - [WS] Event keys: ['event_type', 'data']
+[2026-09-07 22:28:00] [DEBUG] stream_events - [WS] Event data keys: ['stepId', 'index', 'total', 'type']
+[2026-09-07 22:28:00] [INFO] stream_events - [STREAM] step 16/30 — type=CLICK
+[2026-09-07 22:28:00] [DEBUG] stream_events - [WS] Waiting for next event (timeout: 60s)...
+[2026-09-07 22:28:00] [DEBUG] stream_events - [WS] Event #21 received at 12.70s
+[2026-09-07 22:28:00] [DEBUG] stream_events - [WS] Message size: 90 bytes
+[2026-09-07 22:28:00] [DEBUG] stream_events - [WS] ✓ Event parsed as JSON
+[2026-09-07 22:28:00] [DEBUG] stream_events - [WS] Event type: PLAY_STEP_START
+[2026-09-07 22:28:00] [DEBUG] stream_events - [WS] Event keys: ['event_type', 'data']
+[2026-09-07 22:28:00] [DEBUG] stream_events - [WS] Event data keys: ['stepId', 'index', 'total', 'type']
+[2026-09-07 22:28:00] [INFO] stream_events - [STREAM] step 17/30 — type=CLICK
+[2026-09-07 22:28:00] [DEBUG] stream_events - [WS] Waiting for next event (timeout: 60s)...
+[2026-09-07 22:28:01] [DEBUG] stream_events - [WS] Event #22 received at 13.39s
+[2026-09-07 22:28:01] [DEBUG] stream_events - [WS] Message size: 90 bytes
+[2026-09-07 22:28:01] [DEBUG] stream_events - [WS] ✓ Event parsed as JSON
+[2026-09-07 22:28:01] [DEBUG] stream_events - [WS] Event type: PLAY_STEP_START
+[2026-09-07 22:28:01] [DEBUG] stream_events - [WS] Event keys: ['event_type', 'data']
+[2026-09-07 22:28:01] [DEBUG] stream_events - [WS] Event data keys: ['stepId', 'index', 'total', 'type']
+[2026-09-07 22:28:01] [INFO] stream_events - [STREAM] step 18/30 — type=CLICK
+[2026-09-07 22:28:01] [DEBUG] stream_events - [WS] Waiting for next event (timeout: 60s)...
+[2026-09-07 22:28:01] [DEBUG] stream_events - [WS] Event #23 received at 13.78s
+[2026-09-07 22:28:01] [DEBUG] stream_events - [WS] Message size: 49475 bytes
+[2026-09-07 22:28:01] [DEBUG] stream_events - [WS] ✓ Event parsed as JSON
+[2026-09-07 22:28:01] [DEBUG] stream_events - [WS] Event type: FRAME
+[2026-09-07 22:28:01] [DEBUG] stream_events - [WS] Event keys: ['event_type', 'data']
+[2026-09-07 22:28:01] [DEBUG] stream_events - [WS] Event data keys: ['image', 'width', 'height', 'timestamp', 'source']
+[2026-09-07 22:28:01] [DEBUG] stream_events - [WS] Waiting for next event (timeout: 60s)...
+[2026-09-07 22:28:01] [DEBUG] stream_events - [WS] Event #24 received at 13.79s
+[2026-09-07 22:28:01] [DEBUG] stream_events - [WS] Message size: 90 bytes
+[2026-09-07 22:28:01] [DEBUG] stream_events - [WS] ✓ Event parsed as JSON
+[2026-09-07 22:28:01] [DEBUG] stream_events - [WS] Event type: PLAY_STEP_START
+[2026-09-07 22:28:01] [DEBUG] stream_events - [WS] Event keys: ['event_type', 'data']
+[2026-09-07 22:28:01] [DEBUG] stream_events - [WS] Event data keys: ['stepId', 'index', 'total', 'type']
+[2026-09-07 22:28:01] [INFO] stream_events - [STREAM] step 19/30 — type=CLICK
+[2026-09-07 22:28:01] [DEBUG] stream_events - [WS] Waiting for next event (timeout: 60s)...
+[2026-09-07 22:28:02] [DEBUG] stream_events - [WS] Event #25 received at 14.30s
+[2026-09-07 22:28:02] [DEBUG] stream_events - [WS] Message size: 90 bytes
+[2026-09-07 22:28:02] [DEBUG] stream_events - [WS] ✓ Event parsed as JSON
+[2026-09-07 22:28:02] [DEBUG] stream_events - [WS] Event type: PLAY_STEP_START
+[2026-09-07 22:28:02] [DEBUG] stream_events - [WS] Event keys: ['event_type', 'data']
+[2026-09-07 22:28:02] [DEBUG] stream_events - [WS] Event data keys: ['stepId', 'index', 'total', 'type']
+[2026-09-07 22:28:02] [INFO] stream_events - [STREAM] step 20/30 — type=CLICK
+[2026-09-07 22:28:02] [DEBUG] stream_events - [WS] Waiting for next event (timeout: 60s)...
+[2026-09-07 22:28:02] [DEBUG] stream_events - [WS] Event #26 received at 14.53s
+[2026-09-07 22:28:02] [DEBUG] stream_events - [WS] Message size: 48335 bytes
+[2026-09-07 22:28:02] [DEBUG] stream_events - [WS] ✓ Event parsed as JSON
+[2026-09-07 22:28:02] [DEBUG] stream_events - [WS] Event type: FRAME
+[2026-09-07 22:28:02] [DEBUG] stream_events - [WS] Event keys: ['event_type', 'data']
+[2026-09-07 22:28:02] [DEBUG] stream_events - [WS] Event data keys: ['image', 'width', 'height', 'timestamp', 'source']
+[2026-09-07 22:28:02] [DEBUG] stream_events - [WS] Waiting for next event (timeout: 60s)...
+[2026-09-07 22:28:02] [DEBUG] stream_events - [WS] Event #27 received at 14.55s
+[2026-09-07 22:28:02] [DEBUG] stream_events - [WS] Message size: 90 bytes
+[2026-09-07 22:28:02] [DEBUG] stream_events - [WS] ✓ Event parsed as JSON
+[2026-09-07 22:28:02] [DEBUG] stream_events - [WS] Event type: PLAY_STEP_START
+[2026-09-07 22:28:02] [DEBUG] stream_events - [WS] Event keys: ['event_type', 'data']
+[2026-09-07 22:28:02] [DEBUG] stream_events - [WS] Event data keys: ['stepId', 'index', 'total', 'type']
+[2026-09-07 22:28:02] [INFO] stream_events - [STREAM] step 21/30 — type=CLICK
+[2026-09-07 22:28:02] [DEBUG] stream_events - [WS] Waiting for next event (timeout: 60s)...
+[2026-09-07 22:28:03] [DEBUG] stream_events - [WS] Event #28 received at 15.22s
+[2026-09-07 22:28:03] [DEBUG] stream_events - [WS] Message size: 90 bytes
+[2026-09-07 22:28:03] [DEBUG] stream_events - [WS] ✓ Event parsed as JSON
+[2026-09-07 22:28:03] [DEBUG] stream_events - [WS] Event type: PLAY_STEP_START
+[2026-09-07 22:28:03] [DEBUG] stream_events - [WS] Event keys: ['event_type', 'data']
+[2026-09-07 22:28:03] [DEBUG] stream_events - [WS] Event data keys: ['stepId', 'index', 'total', 'type']
+[2026-09-07 22:28:03] [INFO] stream_events - [STREAM] step 22/30 — type=CLICK
+[2026-09-07 22:28:03] [DEBUG] stream_events - [WS] Waiting for next event (timeout: 60s)...
+[2026-09-07 22:28:03] [DEBUG] stream_events - [WS] Event #29 received at 15.63s
+[2026-09-07 22:28:03] [DEBUG] stream_events - [WS] Message size: 58163 bytes
+[2026-09-07 22:28:03] [DEBUG] stream_events - [WS] ✓ Event parsed as JSON
+[2026-09-07 22:28:03] [DEBUG] stream_events - [WS] Event type: FRAME
+[2026-09-07 22:28:03] [DEBUG] stream_events - [WS] Event keys: ['event_type', 'data']
+[2026-09-07 22:28:03] [DEBUG] stream_events - [WS] Event data keys: ['image', 'width', 'height', 'timestamp', 'source']
+[2026-09-07 22:28:03] [DEBUG] stream_events - [WS] Waiting for next event (timeout: 60s)...
+[2026-09-07 22:28:03] [DEBUG] stream_events - [WS] Event #30 received at 15.63s
+[2026-09-07 22:28:03] [DEBUG] stream_events - [WS] Message size: 89 bytes
+[2026-09-07 22:28:03] [DEBUG] stream_events - [WS] ✓ Event parsed as JSON
+[2026-09-07 22:28:03] [DEBUG] stream_events - [WS] Event type: PLAY_STEP_START
+[2026-09-07 22:28:03] [DEBUG] stream_events - [WS] Event keys: ['event_type', 'data']
+[2026-09-07 22:28:03] [DEBUG] stream_events - [WS] Event data keys: ['stepId', 'index', 'total', 'type']
+[2026-09-07 22:28:03] [INFO] stream_events - [STREAM] step 23/30 — type=TYPE
+[2026-09-07 22:28:03] [DEBUG] stream_events - [WS] Waiting for next event (timeout: 60s)...
+[2026-09-07 22:28:03] [DEBUG] stream_events - [WS] Event #31 received at 15.72s
+[2026-09-07 22:28:03] [DEBUG] stream_events - [WS] Message size: 90 bytes
+[2026-09-07 22:28:03] [DEBUG] stream_events - [WS] ✓ Event parsed as JSON
+[2026-09-07 22:28:03] [DEBUG] stream_events - [WS] Event type: PLAY_STEP_START
+[2026-09-07 22:28:03] [DEBUG] stream_events - [WS] Event keys: ['event_type', 'data']
+[2026-09-07 22:28:03] [DEBUG] stream_events - [WS] Event data keys: ['stepId', 'index', 'total', 'type']
+[2026-09-07 22:28:03] [INFO] stream_events - [STREAM] step 24/30 — type=CLICK
+[2026-09-07 22:28:03] [DEBUG] stream_events - [WS] Waiting for next event (timeout: 60s)...
+[2026-09-07 22:28:04] [DEBUG] stream_events - [WS] Event #32 received at 16.81s
+[2026-09-07 22:28:04] [DEBUG] stream_events - [WS] Message size: 35039 bytes
+[2026-09-07 22:28:04] [DEBUG] stream_events - [WS] ✓ Event parsed as JSON
+[2026-09-07 22:28:04] [DEBUG] stream_events - [WS] Event type: FRAME
+[2026-09-07 22:28:04] [DEBUG] stream_events - [WS] Event keys: ['event_type', 'data']
+[2026-09-07 22:28:04] [DEBUG] stream_events - [WS] Event data keys: ['image', 'width', 'height', 'timestamp', 'source']
+[2026-09-07 22:28:04] [DEBUG] stream_events - [WS] Waiting for next event (timeout: 60s)...
+[2026-09-07 22:28:04] [DEBUG] stream_events - [WS] Event #33 received at 17.03s
+[2026-09-07 22:28:04] [DEBUG] stream_events - [WS] Message size: 90 bytes
+[2026-09-07 22:28:04] [DEBUG] stream_events - [WS] ✓ Event parsed as JSON
+[2026-09-07 22:28:04] [DEBUG] stream_events - [WS] Event type: PLAY_STEP_START
+[2026-09-07 22:28:04] [DEBUG] stream_events - [WS] Event keys: ['event_type', 'data']
+[2026-09-07 22:28:04] [DEBUG] stream_events - [WS] Event data keys: ['stepId', 'index', 'total', 'type']
+[2026-09-07 22:28:04] [INFO] stream_events - [STREAM] step 25/30 — type=CLICK
+[2026-09-07 22:28:04] [DEBUG] stream_events - [WS] Waiting for next event (timeout: 60s)...
+[2026-09-07 22:28:05] [DEBUG] stream_events - [WS] Event #34 received at 17.30s
+[2026-09-07 22:28:05] [DEBUG] stream_events - [WS] Message size: 91 bytes
+[2026-09-07 22:28:05] [DEBUG] stream_events - [WS] ✓ Event parsed as JSON
+[2026-09-07 22:28:05] [DEBUG] stream_events - [WS] Event type: PLAY_STEP_START
+[2026-09-07 22:28:05] [DEBUG] stream_events - [WS] Event keys: ['event_type', 'data']
+[2026-09-07 22:28:05] [DEBUG] stream_events - [WS] Event data keys: ['stepId', 'index', 'total', 'type']
+[2026-09-07 22:28:05] [INFO] stream_events - [STREAM] step 26/30 — type=SCROLL
+[2026-09-07 22:28:05] [DEBUG] stream_events - [WS] Waiting for next event (timeout: 60s)...
+[2026-09-07 22:28:05] [DEBUG] stream_events - [WS] Event #35 received at 17.35s
+[2026-09-07 22:28:05] [DEBUG] stream_events - [WS] Message size: 91 bytes
+[2026-09-07 22:28:05] [DEBUG] stream_events - [WS] ✓ Event parsed as JSON
+[2026-09-07 22:28:05] [DEBUG] stream_events - [WS] Event type: PLAY_STEP_START
+[2026-09-07 22:28:05] [DEBUG] stream_events - [WS] Event keys: ['event_type', 'data']
+[2026-09-07 22:28:05] [DEBUG] stream_events - [WS] Event data keys: ['stepId', 'index', 'total', 'type']
+[2026-09-07 22:28:05] [INFO] stream_events - [STREAM] step 27/30 — type=SCROLL
+[2026-09-07 22:28:05] [DEBUG] stream_events - [WS] Waiting for next event (timeout: 60s)...
+[2026-09-07 22:28:05] [DEBUG] stream_events - [WS] Event #36 received at 17.43s
+[2026-09-07 22:28:05] [DEBUG] stream_events - [WS] Message size: 90 bytes
+[2026-09-07 22:28:05] [DEBUG] stream_events - [WS] ✓ Event parsed as JSON
+[2026-09-07 22:28:05] [DEBUG] stream_events - [WS] Event type: PLAY_STEP_START
+[2026-09-07 22:28:05] [DEBUG] stream_events - [WS] Event keys: ['event_type', 'data']
+[2026-09-07 22:28:05] [DEBUG] stream_events - [WS] Event data keys: ['stepId', 'index', 'total', 'type']
+[2026-09-07 22:28:05] [INFO] stream_events - [STREAM] step 28/30 — type=CLICK
+[2026-09-07 22:28:05] [DEBUG] stream_events - [WS] Waiting for next event (timeout: 60s)...
+[2026-09-07 22:28:05] [DEBUG] stream_events - [WS] Event #37 received at 17.53s
+[2026-09-07 22:28:05] [DEBUG] stream_events - [WS] Message size: 91 bytes
+[2026-09-07 22:28:05] [DEBUG] stream_events - [WS] ✓ Event parsed as JSON
+[2026-09-07 22:28:05] [DEBUG] stream_events - [WS] Event type: PLAY_STEP_START
+[2026-09-07 22:28:05] [DEBUG] stream_events - [WS] Event keys: ['event_type', 'data']
+[2026-09-07 22:28:05] [DEBUG] stream_events - [WS] Event data keys: ['stepId', 'index', 'total', 'type']
+[2026-09-07 22:28:05] [INFO] stream_events - [STREAM] step 29/30 — type=SCROLL
+[2026-09-07 22:28:05] [DEBUG] stream_events - [WS] Waiting for next event (timeout: 60s)...
+[2026-09-07 22:28:05] [DEBUG] stream_events - [WS] Event #38 received at 17.61s
+[2026-09-07 22:28:05] [DEBUG] stream_events - [WS] Message size: 91 bytes
+[2026-09-07 22:28:05] [DEBUG] stream_events - [WS] ✓ Event parsed as JSON
+[2026-09-07 22:28:05] [DEBUG] stream_events - [WS] Event type: PLAY_STEP_START
+[2026-09-07 22:28:05] [DEBUG] stream_events - [WS] Event keys: ['event_type', 'data']
+[2026-09-07 22:28:05] [DEBUG] stream_events - [WS] Event data keys: ['stepId', 'index', 'total', 'type']
+[2026-09-07 22:28:05] [INFO] stream_events - [STREAM] step 30/30 — type=SCROLL
+[2026-09-07 22:28:05] [DEBUG] stream_events - [WS] Waiting for next event (timeout: 60s)...
+[2026-09-07 22:28:05] [DEBUG] stream_events - [WS] Event #39 received at 17.65s
+[2026-09-07 22:28:05] [DEBUG] stream_events - [WS] Message size: 172 bytes
+[2026-09-07 22:28:05] [DEBUG] stream_events - [WS] ✓ Event parsed as JSON
+[2026-09-07 22:28:05] [DEBUG] stream_events - [WS] Event type: PLAY_DONE
+[2026-09-07 22:28:05] [DEBUG] stream_events - [WS] Event keys: ['event_type', 'data']
+[2026-09-07 22:28:05] [DEBUG] stream_events - [WS] Event data keys: ['stepCount', 'failedCount', 'failedSteps', 'assertionTotal', 'assertionPassed', 'assertionFailed', 'message']
+[2026-09-07 22:28:05] [INFO] stream_events - [STREAM] ✅ Playback completed: 30 steps, 0 failed, assertions 0/0
+[2026-09-07 22:28:05] [INFO] stream_events - 
+================================================================================
+[2026-09-07 22:28:05] [INFO] stream_events -   EXECUTION SUMMARY
+[2026-09-07 22:28:05] [INFO] stream_events - ================================================================================
+
+[2026-09-07 22:28:05] [INFO] stream_events - Recording file: D:\KANINI_INTERN\My_Projects\Agent_TS\Automation_Agent\MCP\JSON\playwright.json
+[2026-09-07 22:28:05] [INFO] stream_events - Backend: http://localhost:8001
+[2026-09-07 22:28:05] [INFO] stream_events - Play session ID: c6f6f161-e542-4cf1-bd02-63b286636443
+[2026-09-07 22:28:05] [INFO] stream_events - WebSocket URI: ws://localhost:8001/ws/play/c6f6f161-e542-4cf1-bd02-63b286636443
+[2026-09-07 22:28:05] [INFO] stream_events - Status: ✅ SUCCESS - Playback completed successfully
+[2026-09-07 22:28:05] [INFO] stream_events - Process ended at 2026-09-07 22:28:05.516968
+
