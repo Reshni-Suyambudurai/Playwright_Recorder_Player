@@ -1,0 +1,140 @@
+:host {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+}
+
+.browser-view-wrapper {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.browser-view-container {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+  overflow: auto;
+  background-color: var(--bg-secondary);
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-color) var(--bg-tertiary);
+}
+
+.browser-view-container::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.browser-view-container::-webkit-scrollbar-track {
+  background: var(--bg-tertiary);
+}
+
+.browser-view-container::-webkit-scrollbar-thumb {
+  background: var(--color-primary-600);
+  border-radius: var(--rounded-full);
+}
+
+.browser-view-container::-webkit-scrollbar-thumb:hover {
+  background: var(--color-primary-500);
+}
+
+/* Wrap holds the image + the marker together */
+.browser-frame-wrap {
+  position: relative;
+  display: inline-block;
+  line-height: 0;
+  overflow: hidden;
+}
+
+.browser-frame {
+  width: 1280px;
+  height: auto;
+  display: block;
+  cursor: crosshair;
+  user-select: none;
+}
+
+/* Yellow dot at the clicked coordinate */
+.input-marker {
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: rgba(250, 204, 21, 0.85);
+  border: 2px solid #ca8a04;
+  box-shadow: 0 0 0 4px rgba(250, 204, 21, 0.25);
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  animation: pulse-marker 1.2s ease-in-out infinite;
+}
+
+@keyframes pulse-marker {
+  0%, 100% { box-shadow: 0 0 0 4px rgba(250, 204, 21, 0.25); }
+  50%       { box-shadow: 0 0 0 8px rgba(250, 204, 21, 0.1); }
+}
+
+/* Yellow dot indicator when assertion mode is active (amber-toned to stand out from the default marker) */
+.input-marker.assertion-mode {
+  background: rgba(245, 158, 11, 0.9);
+  border-color: #b45309;
+  box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.3);
+  animation: pulse-marker-assertion 1.2s ease-in-out infinite;
+}
+
+@keyframes pulse-marker-assertion {
+  0%, 100% { box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.3), 0 0 8px rgba(245, 158, 11, 0.5); }
+  50%       { box-shadow: 0 0 0 8px rgba(245, 158, 11, 0.1), 0 0 12px rgba(245, 158, 11, 0.3); }
+}
+
+.browser-input-overlay {
+  position: absolute;
+  z-index: 30;
+  pointer-events: auto;
+}
+
+/* Small yellow dot that tracks the cursor while any assertion mode is active */
+.assertion-cursor-dot {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #f59e0b;
+  border: 2px solid #b45309;
+  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.35);
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  z-index: 25;
+}
+
+/* Pinned variant: marks the exact clicked point once an assertion is locked */
+.assertion-cursor-dot--pinned {
+  width: 14px;
+  height: 14px;
+  z-index: 26;
+  animation: pulse-marker-assertion 1.2s ease-in-out infinite;
+}
+
+.browser-view-placeholder,
+.browser-view-loading {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  background-color: var(--bg-secondary);
+}
+
+.browser-view-loading-text {
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+}
+
+.placeholder-text {
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+}

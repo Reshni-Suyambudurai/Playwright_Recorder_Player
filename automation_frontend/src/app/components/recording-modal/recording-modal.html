@@ -1,0 +1,51 @@
+<div class="modal-backdrop">
+  <div class="modal-card">
+    <h2 class="modal-title">Start Recording</h2>
+
+    <div class="modal-field">
+      <label class="modal-label" for="recordingName">Recording Name *</label>
+      <input
+        id="recordingName"
+        class="modal-input"
+        type="text"
+        placeholder="e.g. Login flow"
+        [value]="recordingName()"
+        (input)="recordingName.set($any($event.target).value)"
+        (keydown.enter)="onConfirm()"
+      />
+      @if (nameError()) {
+        <span class="modal-error">{{ nameError() }}</span>
+      }
+    </div>
+
+    <div class="modal-field">
+      <label class="modal-label" for="description">Description</label>
+      <input
+        id="description"
+        class="modal-input"
+        type="text"
+        placeholder="What does this recording do?"
+        [value]="description()"
+        (input)="description.set($any($event.target).value)"
+      />
+    </div>
+
+    <div class="modal-field">
+      <label class="modal-label" for="intent">Intent</label>
+      <input
+        id="intent"
+        class="modal-input"
+        type="text"
+        placeholder="e.g. Verify login without password"
+        [value]="intent()"
+        (input)="intent.set($any($event.target).value)"
+        (keydown.enter)="onConfirm()"
+      />
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn btn-secondary" (click)="onCancel()">Cancel</button>
+      <button class="btn btn-primary" (click)="onConfirm()">Start</button>
+    </div>
+  </div>
+</div>

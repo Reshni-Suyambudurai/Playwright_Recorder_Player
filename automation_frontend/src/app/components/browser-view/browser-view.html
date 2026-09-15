@@ -1,0 +1,83 @@
+@if (frameUrl()) {
+  <div class="browser-view-wrapper">
+
+    <!-- Tab bar — shown only when multiple tabs are open -->
+    <app-tab-bar />
+
+    <!-- Scrollable screenshot area -->
+    <div class="browser-view-container">
+      <div class="browser-frame-wrap">
+        <img
+          #frameImg
+          class="browser-frame"
+          [src]="frameUrl()"
+          alt="Live browser view"
+          (click)="onImageClick($event)"
+          (wheel)="onImageWheel($event)"
+          (mousemove)="onImageHover($event)"
+          draggable="false"
+        />
+        <!-- Loading overlay shown while waiting for next frame after navigation -->
+        @if (isNavigating()) {
+          <app-spinner [overlay]="true" size="lg" color="white" />
+        }
+        <!-- Yellow dot marks where the input will be filled (red when assertion mode active) -->
+        @if (overlayData()) {
+          <div
+            class="input-marker"
+            [class.assertion-mode]="!!assertionModeApi.activeMode()"
+            [style.left.px]="overlayX()"
+            [style.top.px]="overlayY()"
+          ></div>
+
+          <app-input-overlay
+            #inputOverlayEl
+            class="browser-input-overlay"
+            [style.left.px]="overlayPopupX()"
+            [style.top.px]="overlayPopupY()"
+            [inputData]="overlayData()!"
+            [enableValidation]="true"
+            (confirm)="onOverlayConfirm($event)"
+            (cancel)="onOverlayCancel()"
+          />
+        }
+        <!-- Yellow dot follows the cursor whenever any assertion mode is active -->
+        @if (assertionCursorVisible()) {
+          <div
+            class="assertion-cursor-dot"
+            [style.left.px]="assertionCursorX()"
+            [style.top.px]="assertionCursorY()"
+          ></div>
+        }
+        <!-- Static yellow dot pinned at the last-clicked point while an assertion is locked -->
+        @if (assertionModeApi.locked()) {
+          <div
+            class="assertion-cursor-dot assertion-cursor-dot--pinned"
+            [style.left.px]="assertionClickX()"
+            [style.top.px]="assertionClickY()"
+          ></div>
+        }
+        <!-- Snapshot confirmation dialog -->
+        <app-snapshot-confirm-dialog
+          [isOpen]="snapshotConfirmDialogOpen()"
+          message="Capture full-page accessibility snapshot?"
+          confirmLabel="Capture"
+          cancelLabel="Cancel"
+          (confirm)="onSnapshotConfirmDialogConfirm()"
+          (cancel)="onSnapshotConfirmDialogCancel()"
+        />
+      </div>
+    </div>
+
+  </div>
+} @else if (isNavigating()) {
+  <!-- Connected but first frame not yet received: show full-area spinner -->
+  <div class="browser-view-loading">
+    <app-spinner size="lg" color="primary" />
+    <span class="browser-view-loading-text">Opening page...</span>
+  </div>
+} @else {
+  <div class="browser-view-placeholder">
+    <span class="placeholder-text">No active recording</span>
+  </div>
+}

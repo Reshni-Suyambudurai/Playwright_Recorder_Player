@@ -1,0 +1,22 @@
+<aside class="sidebar" [class.sidebar--collapsed]="!isOpen()">
+  <nav class="sidebar-nav">
+    @for (item of navItems; track item.route) {
+      <a
+        class="sidebar-item"
+        [routerLink]="item.route"
+        routerLinkActive="sidebar-item--active"
+        [routerLinkActiveOptions]="{ exact: item.route === '/' }"
+        [attr.title]="isOpen() ? item.label : null"
+        [appTooltip]="!isOpen() ? item.label : ''"
+        tooltipPosition="right"
+      >
+        <span class="sidebar-icon">
+          <app-svg-icon [name]="item.icon" />
+        </span>
+        @if (isOpen()) {
+          <span class="sidebar-label">{{ item.label }}</span>
+        }
+      </a>
+    }
+  </nav>
+</aside>

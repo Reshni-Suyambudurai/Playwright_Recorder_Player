@@ -1,0 +1,228 @@
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+  padding: 1rem;
+  background-color: var(--bg-secondary);
+  border-bottom: 2px solid var(--border-color);
+  flex-wrap: nowrap;
+}
+
+.toolbar-left {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+/* Connect button — flex row so spinner and label sit side-by-side */
+.connect-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-width: 7rem;
+  justify-content: center;
+}
+
+.toolbar-center {
+  display: flex;
+  gap: 0.5rem;
+  flex: 1;
+  align-items: center;
+  min-width: 0;
+  flex-wrap: nowrap;
+}
+
+.toolbar-assertion-row {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  margin-right: 0.35rem;
+}
+
+.toolbar-assertion-icon {
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  background: var(--bg-primary);
+  color: var(--text-secondary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  cursor: default;
+  flex-shrink: 0;
+  transition: all 0.2s ease-in-out;
+}
+
+.toolbar-assertion-icon:hover {
+  cursor: pointer;
+  background-color: var(--bg-tertiary);
+}
+
+.toolbar-assertion-icon.active {
+  background-color: var(--bg-tertiary);
+  border-width: 2px;
+  font-weight: 600;
+}
+
+.toolbar-assertion-x {
+  font-size: 0.9rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.toolbar-assertion-glyph {
+  font-size: 0.52rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.toolbar-nav-group {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.toolbar-assertion-icon--visibility {
+  color: var(--color-success);
+  border-color: color-mix(in srgb, var(--color-success) 45%, var(--border-color));
+}
+
+.toolbar-assertion-icon--text {
+  color: #b45309;
+  border-color: color-mix(in srgb, #b45309 45%, var(--border-color));
+}
+
+.toolbar-assertion-icon--snapshot {
+  color: var(--color-warning);
+  border-color: color-mix(in srgb, var(--color-warning) 45%, var(--border-color));
+}
+
+.toolbar-assertion-icon--screenshot {
+  color: #047857;
+  border-color: color-mix(in srgb, #047857 45%, var(--border-color));
+}
+
+.btn-icon {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.btn-icon:hover:not(:disabled) {
+  background: var(--bg-hover);
+  border-color: var(--color-primary-500);
+}
+
+.btn-icon:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+
+.toolbar-right {
+  display: flex;
+  align-items: center;
+}
+
+.url-input {
+  width: min(56vw, 620px);
+  min-width: 160px;
+  padding: 0.625rem 0.875rem;
+  border: 2px solid var(--border-color);
+  border-radius: var(--rounded-md);
+  font-size: var(--text-sm);
+  font-family: var(--font-mono);
+  background-color: var(--bg-primary);
+  height:40px;
+  color: var(--text-primary);
+  transition: border-color var(--transition-fast);
+}
+
+.url-input:focus {
+  outline: none;
+  border-color: var(--color-primary-600);
+  box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.1);
+}
+
+.url-input:disabled {
+  background-color: var(--bg-tertiary);
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.status-badge {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1rem;
+  border-radius: var(--rounded-md);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  background-color: var(--bg-tertiary);
+  border: 2px solid var(--border-color);
+}
+
+.status-badge.connected {
+  background-color: rgba(16, 185, 129, 0.1);
+  border-color: var(--color-success);
+  color: var(--color-success);
+}
+
+.status-badge.disconnected {
+  background-color: rgba(239, 68, 68, 0.1);
+  border-color: var(--color-danger);
+  color: var(--color-danger);
+}
+
+.status-text {
+  white-space: nowrap;
+}
+
+@media (max-width: 1100px) {
+  .url-input {
+    width: min(48vw, 500px);
+    min-width: 140px;
+  }
+}
+
+@media (max-width: 768px) {
+  .toolbar {
+    gap: 0.6rem;
+  }
+
+  .toolbar-left {
+    gap: 0.35rem;
+  }
+
+  .toolbar-center {
+    gap: 0.35rem;
+  }
+
+  .toolbar-assertion-row {
+    gap: 0.35rem;
+    margin-right: 0;
+  }
+
+  .url-input {
+    width: 100%;
+    min-width: 0;
+  }
+}

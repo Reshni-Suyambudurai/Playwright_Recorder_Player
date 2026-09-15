@@ -1,0 +1,35 @@
+<nav class="navbar">
+  <div class="navbar-left">
+    <!-- Logo area doubles as sidebar toggle; on hover shows hamburger icon -->
+    <button
+      class="navbar-brand-toggle"
+      (click)="toggleSidebar()"
+      [title]="isSidebarOpen() ? 'Collapse sidebar' : 'Expand sidebar'"
+      aria-label="Toggle sidebar"
+    >
+      <!-- Hamburger — shown on hover via CSS -->
+      <span class="icon-hamburger"><app-svg-icon name="hamburger" /></span>
+      <!-- Original logo — shown at rest via CSS -->
+      <span class="icon-logo"><app-svg-icon name="logo" /></span>
+    </button>
+    <span class="navbar-title">
+      Recorder <span class="navbar-title-amp">&</span> Player
+    </span>
+  </div>
+
+  <div class="navbar-right">
+    <button class="theme-toggle" (click)="toggleTheme()"
+      [attr.aria-label]="isDark() ? 'Switch to light mode' : 'Switch to dark mode'"
+      [appTooltip]="isDark() ? 'Light mode' : 'Dark mode'"
+      tooltipPosition="bottom"
+    >
+      <span class="theme-icon">
+        @if (isDark()) {
+          <app-svg-icon name="sun" />
+        } @else {
+          <app-svg-icon name="moon" />
+        }
+      </span>
+    </button>
+  </div>
+</nav>

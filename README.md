@@ -1,296 +1,305 @@
-# 🎬 Playwright Recorder Player
+# Playwright Recorder & Player
 
-A web automation tool built with **FastAPI** and **Playwright**. Capture screenshots, analyze DOM, find elements by coordinates, and generate CSS selectors and XPath expressions.
+## Overview
 
----
+**Playwright Recorder & Player** is a no-code browser automation tool designed for non-technical users to record and replay end-to-end UI testing workflows and repetitive tasks.
 
-## 📋 Overview
+**Use Case**: Any non-technical person can now:
+- Record real browser interactions (clicks, typing, navigation) without writing code
+- Save recorded flows to a library
+- Replay flows anytime to automate repetitive testing tasks
+- View detailed step-by-step execution with visual validation
 
-**What it does:**
-- ✅ Launch headless Chromium browser
-- ✅ Navigate to any website
-- ✅ Capture full-page screenshots
-- ✅ Extract page DOM/HTML
-- ✅ Find elements by clicking coordinates (X, Y)
-- ✅ Generate CSS selectors and XPath expressions
-- ✅ Display element properties (tag, ID, class, attributes)
-
-**Architecture:**
-- **Backend:** FastAPI (async/sync) + Playwright (synchronous)
-- **Frontend:** Interactive HTML/CSS/JavaScript UI
-- **Browser:** Chromium (headless mode)
-- **Viewport:** Fixed at 1280×720 pixels
+**Built With**: FastAPI (backend) + Angular 21 (frontend) + Playwright (browser automation)
 
 ---
 
-## 📁 Project Structure
+## Quick Setup
 
-```
-Playwright_Launch/
-├── app/
-│   ├── main.py                    # FastAPI routes & endpoints
-│   ├── services/
-│   │   └── launchWeb.py           # Playwright browser manager (sync)
-│   ├── static/
-│   │   └── index.html             # Web UI interface
-│   └── screenshots/               # Saved screenshots
-├── requirements.txt               # Python dependencies
-├── .gitignore                     # Git ignore rules
-├── start.bat / start.sh           # Launch scripts
-└── debug.log                      # Error logs
-```
+### Prerequisites
+- **Python 3.10+**
+- **Node.js 18+** and **npm**
+- **Angular CLI** - `npm install -g @angular/cli`
+- **Visual Studio Code** (IDE used for development)
 
----
+### Installation
 
-## ⚙️ Installation & Setup
-
-### 1. Install Dependencies
+**1. Backend Setup**
 ```bash
-pip install -r requirements.txt
+cd backend
+pip install -r ../requirements.txt
+playwright install chromium
 ```
 
-### 2. Install Playwright Browsers
+**2. Frontend Setup**
 ```bash
-playwright install
+cd automation_frontend
+npm install
 ```
 
-### 3. Start the Server
+---
+
+## Running the Application
+
+### Start Backend (Terminal 1)
 ```bash
-python -m uvicorn app.main:app --reload
+cd backend
+python run.py
+# Backend runs at: http://localhost:8000
 ```
 
-### 4. Open Web Interface
-Navigate to: **http://localhost:8000**
+### Start Frontend (Terminal 2)
+```bash
+cd automation_frontend
+ng serve
+# Frontend runs at: http://localhost:4200
+```
+
+Open `http://localhost:4200` in your browser to start.
 
 ---
 
-## 🚀 Available Endpoints
+## Architecture
 
-| Method | Endpoint | Purpose |
-|--------|----------|---------|
-| `POST` | `/api/initialize` | Start browser session |
-| `POST` | `/api/open-url` | Navigate to URL |
-| `POST` | `/api/screenshot` | Capture page screenshot |
-| `GET` | `/api/dom` | Fetch page HTML content |
-| `POST` | `/api/element-at-coordinates` | Find element at X,Y position |
-| `POST` | `/api/close` | Close browser & cleanup |
-| `GET` | `/api/screenshots` | List all saved screenshots |
-| `GET` | `/api/screenshot-base64` | Get latest screenshot (base64) |
-| `GET` | `/api/health` | Health check |
+### High-Level Flow
+```
+User Interface (Browser)
+        |
+   Angular 21 (Frontend)
+        |
+   Realtime Communication
+        |
+   FastAPI Server (Backend)
+        |
+   Playwright Browser Automation
+        |
+   SQLite Database (Recording Storage)
+```
+
+### Key Components
+
+**Frontend (Angular 21):**
+- **Browser Tab**: Live screenshot streaming + interactive recording
+- **Flows Tab**: View, edit, and manage saved recordings
+- **Runs Tab**: Replay flows and monitor execution
+- Real-time visual feedback during recording and playback
+
+**Backend (FastAPI):**
+- **WebSocket Handler**: Bidirectional communication for real-time events
+- **Browser Service**: Playwright-based Chromium automation
+- **Session Manager**: Multi-session support
+- **Recording Storage**: SQLite database + JSON file backup
+- **Selector Builder**: Smart element detection (ID -> CSS -> XPath)
+- **Playback Service**: Replay recorded flows with validation
 
 ---
 
-## 🔄 Application Flow
+## Tools Used
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                     WEB INTERFACE (index.html)                  │
-│                  User clicks buttons & enters URL               │
-└────────────────────────────┬────────────────────────────────────┘
-                             │
-                             ▼
-              ┌──────────────────────────────┐
-              │   FASTAPI ROUTES (main.py)   │
-              │  - Async endpoint functions  │
-              │  - Validates input (Pydantic)│
-              │  - Comprehensive logging     │
-              └──────┬───────────────────────┘
-                     │
-                     ▼
-    ┌─────────────────────────────────────────────────────┐
-    │  FASTAPI THREAD POOL                                │
-    │  (fastapi.concurrency.run_in_threadpool)            │
-    │  - Manages blocking sync operations                 │
-    │  - Non-blocking for FastAPI                         │
-    │  - Worker thread executes sync code                 │
-    └──────────────────┬──────────────────────────────────┘
-                       │
-                       ▼
-    ┌──────────────────────────────────────────────────────┐
-    │  PLAYWRIGHT SERVICE (launchWeb.py - Sync API)        │
-    │  Pure synchronous functions (NO asyncio)             │
-    │                                                      │
-    │  ├─ initialize()        → Launch Chromium           │
-    │  ├─ open_url(url)       → Navigate page             │
-    │  ├─ take_screenshot()   → Capture screenshot        │
-    │  ├─ get_dom()           → Extract HTML              │
-    │  ├─ get_element_at_coordinates(x, y)               │
-    │  └─ close()             → Cleanup                   │
-    └──────────────────┬───────────────────────────────────┘
-                       │
-                       ▼
-        ┌──────────────────────────────────────┐
-        │   CHROMIUM BROWSER (Headless)        │
-        │   - 1280×720 viewport                │
-        │   - Executes JavaScript              │
-        │   - Generates screenshots            │
-        │   - Extracts DOM                     │
-        └──────────────────────────────────────┘
-```
-
-**Why This Architecture?**
-- ✅ Simple synchronous Playwright code (no async/await complexity)
-- ✅ Thread pool keeps FastAPI responsive (non-blocking)
-- ✅ No asyncio subprocess issues on Windows
-- ✅ Clean separation of concerns
-- ✅ Easy to debug and maintain
-
----
-
-## 📚 Key Libraries & Components
-
-### **Backend Framework**
-- **FastAPI** (0.104.1) - Modern async web framework
-- **Uvicorn** (0.24.0) - ASGI server for running FastAPI
-- **Pydantic** (2.5.0) - Data validation & serialization
-
-### **Browser Automation**
-- **Playwright** (1.40.0) - Browser control (Synchronous API)
-  - `sync_api` - Simple synchronous functions
-  - Chromium engine - Fast, reliable automation
-  - Headless mode - No visible browser window
-
-### **File Handling**
-- **Pillow** (10.1.0) - Image processing
-- **PathLib** - Cross-platform file paths
-
-### **Logging**
-- **Python logging** - Debug logs to `debug.log`
-
----
-
-## 💡 How It Works
-
-### **Synchronous Playwright Approach**
-```
-Why Sync API?
-  ✓ Simple, straightforward code (no async/await keywords)
-  ✓ No asyncio complexity
-  ✓ Better Windows compatibility (no subprocess issues)
-  ✓ Works with thread pool (FastAPI stays responsive)
-  
-Pattern Used:
-  FastAPI Route (async)
-     ↓
-  await run_in_threadpool() 
-     ↓
-  Sync Playwright service
-     ↓
-  Returns result to client
-```
-
-
-### **Workflow Example**
-```
-User clicks "Initialize"
-         ↓
-Browser: POST /api/initialize
-         ↓
-FastAPI endpoint receives request
-         ↓
-Uses threadpool to run: browser_manager.initialize()
-         ↓
-Playwright launches Chromium
-         ↓
-Returns viewport config
-         ↓
-Display success message
-```
-
----
-
-## 🔍 Finding Elements
-
-### Method 1: Click on Screenshot Grid
-1. Take a screenshot first
-2. Move mouse over the grid image
-3. Click where you want to inspect
-4. Coordinates auto-fill (X, Y)
-5. Click "🔍 Find Element"
-
-### Method 2: Manual Coordinates
-1. Enter X (0-1280)
-2. Enter Y (0-720)  
-3. Click "🔍 Find Element"
-
-### Result: Element Information
-```
-Tag Name: <input>
-ID: search-box
-Class: search-input
-Selector: #search-box
-XPath: /html[1]/body[1]/input[1]
-```
-
----
-
-## 📁 File Organization
-
-| File/Folder | Purpose |
-|-------------|---------|
-| `app/main.py` | FastAPI routes with logging |
-| `app/services/launchWeb.py` | Playwright sync service |
-| `app/static/index.html` | Interactive web UI |
-| `app/screenshots/` | Saved screenshots |
-| `debug.log` | Error & debug logs |
-| `requirements.txt` | Python dependencies |
-
----
-
-## 🛠️ Configuration
-
-### Viewport Size
-Default: **1280×720** pixels
-
-Edit in `app/services/launchWeb.py`:
-```python
-self.viewport = {"width": 1280, "height": 720}
-```
-
-### Browser Headless Mode
-Always enabled for automation.
-
----
-
-
-## 📊 Technology Stack
+### Technology Stack
 
 | Component | Technology | Version |
 |-----------|-----------|---------|
-| **Web Framework** | FastAPI | 0.104.1 |
-| **Server** | Uvicorn | 0.24.0 |
-| **Browser Automation** | Playwright (Sync) | 1.40.0 |
-| **Validation** | Pydantic | 2.5.0 |
-| **Image Processing** | Pillow | 10.1.0 |
-| **Python Version** | Python | 3.10+ |
+| **Frontend Framework** | Angular | 21 |
+| **Frontend Language** | TypeScript | Latest |
+| **Backend Framework** | FastAPI | Latest |
+| **Browser Automation** | Playwright | Latest (async) |
+| **Database** | SQLite | 3.x |
+| **Real-time Comm** | WebSocket | Native (FastAPI + Browser API) |
+| **Server** | Uvicorn (ASGI) | Latest |
+| **IDE** | Visual Studio Code | Latest |
+
+### Development Tools
+- **TypeScript** - Type-safe frontend code
+- **Pydantic v2** - Data validation (backend)
+- **aiosqlite** - Async database access
+- **pytest** - Unit and integration tests (71 tests passing)
 
 ---
 
-## ✨ Key Features
+## Data Sourcing
 
-✅ Headless browser automation (Chromium)  
-✅ Screenshot capture with auto-naming  
-✅ DOM/HTML extraction  
-✅ Element locator by X,Y coordinates  
-✅ Auto-generate CSS selectors  
-✅ Auto-generate XPath expressions  
-✅ Real-time element properties  
-✅ Interactive web interface  
-✅ RESTful API design  
-✅ Comprehensive error logging  
-✅ Thread-safe operations  
-✅ Synchronous Playwright (simple & reliable)  
+### Where Data Comes From
 
+1. **Live Browser Interactions** (Recording)
+   - User clicks, types, scrolls, navigates in the browser
+   - Playwright captures these actions in real-time
+   - Backend extracts element metadata (selectors, DOM snapshot)
+
+2. **Element Detection** (Smart Selectors)
+   - Backend analyzes the DOM to find stable selectors
+   - Priority: ID -> data-testid -> aria-label -> name -> CSS -> XPath
+   - Fallback: Element fingerprinting (tag, role, text, aria-label)
+
+3. **Storage**
+   - **SQLite Database** - Persists recording metadata
+   - **JSON Files** - Stores detailed step data (selectors, coordinates, text input)
+   - Location: `backend/storage/recordings/`
+
+4. **Validation Data** (During Playback)
+   - Live DOM inspection during replay
+   - Element matching with recorded selectors
+   - Fingerprint comparison for safe fallbacks
 
 ---
 
-## 📝 Notes
+## Demo Instructions
 
-- **Browser Mode:** Headless (no visible window)
-- **Page Load:** Waits for network idle
-- **Coordinates:** (0,0) = top-left
-- **Viewport:** Fixed 1280×720
-- **Logs:** Check `debug.log` for errors
-- **API:** All endpoints return JSON
+### Part 1: Record a Flow
+
+1. **Start the Application**
+   - Open `http://localhost:4200`
+   - You should see the "Browser" tab with a live screenshot area
+
+2. **Connect to Browser**
+   - Click "Connect" button
+   - Wait for the connection status to show "Connected" (green indicator)
+
+3. **Navigate to a Website**
+   - Enter a URL in the address bar (e.g., `https://example.com`)
+   - Click "Navigate"
+   - Live screenshot appears showing the website
+
+4. **Start Recording**
+   - Click "Start Recording" button
+   - Give your flow a name (e.g., "Test Login Flow")
+
+5. **Perform Actions** (directly on the live screenshot)
+   - **Click** anywhere on the screenshot -> a popup appears asking to confirm
+   - **Type** in text fields -> enter text in the overlay that appears
+   - **Scroll** with mouse wheel on the screenshot
+   - **Navigate** to new URLs using the address bar
+
+6. **Stop Recording**
+   - Click "Stop Recording" when done
+   - All actions are saved to the database
+
+7. **View Recorded Flow**
+   - Click the "Flows" tab
+   - Click a flow card to see all recorded steps
+   - Each step shows: action type, selector, coordinates, input text
+
+### Part 2: Replay a Flow
+
+1. **Open Flows Tab**
+   - Go to "Flows" tab
+   - Select a recorded flow from the list
+
+2. **Inspect Steps** (optional)
+   - Expand each tab section to see steps
+   - Review selectors and element details
+
+3. **Replay Flow**
+   - Click the "Runs" tab
+   - Select the recording from dropdown
+   - Click "Run" button
+   - Watch playback execute each step with live screenshot updates
+
+4. **Monitor Execution**
+   - Step counter shows progress (e.g., "Step 3 / 15")
+   - Status overlay shows current action type
+   - If an error occurs, step details appear in red
+
+5. **Pause / Resume** (during playback)
+   - Click "Pause" to pause execution
+   - Click "Resume" to continue
+   - While paused, you can interact with the page (click elements, type, scroll)
+
+### Part 3: Manage Flows
+
+1. **View Flow Library**
+   - Flows tab shows all recordings as cards
+   - Each card displays: name, step count, created date, updated date
+
+2. **Delete a Flow**
+   - Hover over a flow card
+   - Click the trash icon
+   - Confirm deletion
+
+3. **Edit Flow Steps** (in Runs tab)
+   - Select a flow in the dropdown
+   - Modify text inputs (e.g., change password before replay)
+   - Toggle "Should Run" to skip/include specific steps
+   - Click "Save to DB" to persist changes
+
+---
+
+## Demo Workflow Summary (3-5 Minutes)
+
+```
+1. Connect -> 2. Navigate to https://example.com
+3. Start Recording -> 4. Click some elements, fill a form
+5. Stop Recording -> 6. Go to Flows tab, inspect steps
+7. Go to Runs tab -> 8. Replay the flow
+9. Watch playback execute each step with validation
+```
+
+---
+
+## Features
+
+- **Live browser view** - Real-time JPEG screenshot stream over WebSocket
+- **Action recording** - Captures navigate, click, type, scroll, and key actions
+- **Multi-tab support** - Follows `target=_blank` links; tab bar in UI
+- **Flow library** - Recordings saved to SQLite; browsable in Flows page
+- **Smart selectors** - Detects stable element IDs; falls back to semantic XPath
+- **Element fingerprinting** - Validates elements during playback (targetMeta)
+- **Validation history** - Shows validation results during recording and playback
+- **Dark / light mode** - Persisted to localStorage
+- **Session lifecycle** - Clear "Session Closed" feedback
+- **Optimised scroll** - frontend debounces + accumulates scroll deltas (150 ms); sends one WS message per gesture instead of one per wheel tick
+
+---
+
+## Project Structure
+
+```
+.
+├── backend/
+│   ├── run.py                  # Entry point (sets Windows event loop policy)
+│   └── app/
+│       ├── main.py              # App factory: services, routes, WS endpoint
+│       ├── api/
+│       │   └── recording.py     # POST /recording/start|stop
+│       ├── websocket/
+│       │   ├── connection_manager.py
+│       │   └── websocket_handler.py  # Routes WS events to handlers
+│       ├── services/
+│       │   ├── browser_service.py    # Playwright operations
+│       │   ├── screenshot_service.py # FRAME event sender
+│       │   ├── dom_watcher.py        # Debounced auto-screenshot on DOM change
+│       │   ├── session_manager.py
+│       │   ├── database.py           # SQLite via aiosqlite
+│       │   └── recording_storage.py  # JSON file backup
+│       └── models/
+│           ├── session.py
+│           └── recording.py
+│
+├── database/
+│   └── recorder.db             # SQLite database (auto-created)
+│
+└── automation_frontend/
+    └── src/app/
+        ├── components/
+        │   ├── browser-view/   # Live screenshot + click/scroll/type interaction
+        │   ├── tab-bar/        # Multi-tab strip
+        │   ├── input-overlay/  # Floating type prompt
+        │   ├── toolbar/        # URL bar + Connect/Disconnect/Navigate
+        │   ├── navbar/
+        │   ├── sidebar/
+        │   └── status/         # Connection / session-closed / nav status
+        ├── pages/
+        │   ├── browser/        # / (home)
+        │   ├── flows/          # /flows - recorded flow cards + step detail
+        │   ├── runs/
+        │   └── settings/
+        ├── services/
+        │   ├── websocket.api.ts    # WS connection, all observables
+        │   ├── navigation.api.ts
+        │   ├── recordings.api.ts   # HTTP calls for flow list/detail
+        │   └── theme.api.ts
+        └── types/
+            └── websocket.ts        # All TS interfaces
+```
 
 ---
