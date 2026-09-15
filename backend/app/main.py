@@ -6,7 +6,6 @@ import logging
 import os
 import sys
 import json
-from contextlib import asynccontextmanager
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, status
 from fastapi.middleware.cors import CORSMiddleware
 from app.services.session_manager import SessionManager
@@ -43,22 +42,28 @@ def create_app():
     play_cleanup_stop_event = asyncio.Event()
     play_cleanup_task: asyncio.Task | None = None
 
-    @asynccontextmanager
-    async def lifespan(app: FastAPI):
+    # Create app (compatible with older/newer Starlette versions)
+    app = FastAPI(title="Playwright Recorder API", version="1.0.0")
+
+    # Register startup event
+    @app.on_event("startup")
+    async def startup_event():
         nonlocal play_cleanup_task
         logger.info("App startup: initialising database")
         await db.init_db()
         play_cleanup_task = asyncio.create_task(play_session_cleanup_worker(play_cleanup_stop_event))
-        yield
+
+    # Register shutdown event
+    @app.on_event("shutdown")
+    async def shutdown_event():
+        logger.info("App shutdown: cleaning up resources")
         play_cleanup_stop_event.set()
         if play_cleanup_task and not play_cleanup_task.done():
             try:
                 await play_cleanup_task
             except Exception:
                 pass
-        logger.info("App shutdown")
-
-    app = FastAPI(title="Playwright Recorder API", version="1.0.0", lifespan=lifespan)
+        logger.info("App shutdown complete")
 
     # Enable CORS
     app.add_middleware(
