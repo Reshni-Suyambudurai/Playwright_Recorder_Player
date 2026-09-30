@@ -91,11 +91,6 @@ class RecordingAPI:
                     detail={"success": False, "error": f"Session {session_id} not found", "status": "Session not found"}
                 )
 
-            # Detach DomWatcher BEFORE closing the browser to prevent TargetClosedError
-            if session.dom_watcher:
-                await session.dom_watcher.detach()
-                session.dom_watcher = None
-
             # Notify the connected client so the frontend can update its state
             if self.connection_manager:
                 client_id = getattr(session, 'client_id', None) or ""
@@ -107,9 +102,8 @@ class RecordingAPI:
                 except Exception:
                     pass  # client may already be gone
 
-            logger.info(f"Closing browser for session: {session_id}")
-            await self.browser_service.close_browser(session.browser)
-            self.session_manager.remove_session(session_id)
+            logger.info(f"Cleaning up browser resources for session: {session_id}")
+            await self.session_manager.cleanup_session(session_id)
             logger.info(f"Session stopped: {session_id}")
 
             return {"success": True, "session_id": session_id, "status": "Recording stopped"}

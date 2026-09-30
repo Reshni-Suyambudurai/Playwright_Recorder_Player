@@ -111,6 +111,14 @@
             [autoCloseMs]="runPopupAutoCloseMs()"
             [isHtml]="runPopupIsHtml()"
             (closed)="closeRunPopup()" />
+          
+          <!-- ✨ Pause Recording Save Dialog -->
+          <app-pause-recording-dialog
+            [isVisible]="pauseRecordingDialogVisible()"
+            [pauseStepCount]="state.pauseStepsCount()"
+            [recordingTitle]="detail()?.meta?.title ?? ''"
+            (onSave)="onPauseRecordingSave($event)"
+            (onCancel)="onPauseRecordingCancel()" />
         </div>
       </div><!-- /runs-right -->
 

@@ -5,9 +5,12 @@ from app.services.playback_service import PlaybackService
 
 
 class FakeElement:
-    def __init__(self, text=None):
+    def __init__(self, text=None, attributes=None, children=None, box=None):
         self.clicked = None
         self.text = text
+        self.attributes = attributes or {}
+        self.children = children or []
+        self.box = box
 
     async def click(self, button="left"):
         self.clicked = button
@@ -17,6 +20,15 @@ class FakeElement:
 
     async def text_content(self):
         return self.text
+
+    async def get_attribute(self, name):
+        return self.attributes.get(name)
+
+    async def query_selector_all(self, selector):
+        return self.children
+
+    async def bounding_box(self):
+        return self.box
 
 
 class FakePage:
@@ -37,6 +49,10 @@ class FakePage:
         if selector in self._selector_map:
             return self._selector_map[selector]
         return self._matches
+
+    async def query_selector(self, selector):
+        matches = await self.query_selector_all(selector)
+        return matches[0] if matches else None
 
 
 class FakeBrowserService:
@@ -62,6 +78,7 @@ async def test_step_click_raises_when_selector_matches_zero_elements():
         await service._step_click(step, page)
 
     assert browser_service.clicks == []
+    assert page.waited_for == (".missing", playback_module.CLICK_SELECTOR_TIMEOUT_MS)
 
 
 @pytest.mark.asyncio
@@ -210,3 +227,68 @@ async def test_step_click_zero_match_dropdown_recovery_miss_fails_strict():
         await service._step_click(step, page)
 
     assert browser_service.clicks == []
+
+
+@pytest.mark.asyncio
+async def test_step_click_replays_dropdown_selection_using_current_popup_id():
+    option = FakeElement(text="Client A")
+    controller = FakeElement(attributes={"aria-owns": "zselect-62394687-listbox"})
+    page = FakePage(selector_map={
+        "#dayclientselect1-container": [controller],
+        "#zselect-62394687-listbox": [FakeElement(children=[option])],
+    })
+    service = PlaybackService(FakeBrowserService(), None, None)
+    step = {
+        "type": "CLICK",
+        "button": "left",
+        "dropdownSelection": {
+            "controllerSelector": {
+                "strategy": "id", "value": "dayclientselect1-container", "occurrence_index": 0,
+            },
+            "text": "Client A",
+            "normalizedText": "client a",
+            "optionIndex": 0,
+        },
+    }
+
+    await service._step_click(step, page)
+
+    assert controller.clicked is None
+    assert option.clicked == "left"
+
+
+@pytest.mark.asyncio
+async def test_dropdown_selection_uses_coordinates_before_occurrence_index():
+    first_option = FakeElement(text="Wrong Client")
+    selected_option = FakeElement(text="Client A")
+    first_controller = FakeElement(
+        attributes={"aria-owns": "first-popup"},
+        box={"x": 0, "y": 0, "width": 100, "height": 40},
+    )
+    selected_controller = FakeElement(
+        attributes={"aria-owns": "selected-popup"},
+        box={"x": 150, "y": 0, "width": 100, "height": 40},
+    )
+    page = FakePage(selector_map={
+        ".client-selector": [first_controller, selected_controller],
+        "#first-popup": [FakeElement(children=[first_option])],
+        "#selected-popup": [FakeElement(children=[selected_option])],
+    })
+    service = PlaybackService(FakeBrowserService(), None, None)
+    step = {
+        "type": "CLICK",
+        "coords": {"x": 200, "y": 20},
+        "dropdownSelection": {
+            "controllerSelector": {
+                "strategy": "css", "value": ".client-selector", "occurrence_index": 0,
+            },
+            "text": "Client A",
+            "optionIndex": 0,
+        },
+    }
+
+    await service._step_click(step, page)
+
+    assert first_controller.clicked is None
+    assert selected_controller.clicked is None
+    assert selected_option.clicked == "left"

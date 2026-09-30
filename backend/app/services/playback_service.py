@@ -26,6 +26,7 @@ logger = logging.getLogger("playwright_recorder.services.playback")
 
 CLICK_RETRY_ATTEMPTS = 3
 CLICK_RETRY_DELAY_SECONDS = 0.2
+CLICK_SELECTOR_TIMEOUT_MS = 2000
 FALLBACK_STABILIZE_DELAY_SECONDS = 0.35
 
 # ─── Event type constants for playback ─────────────────────────────────────
@@ -220,6 +221,10 @@ class PlaybackService:
                 logger.info(f"[PLAY:{play_id}] [STREAM] step {idx+1}/{total} ({progress_pct}%) — {step_type}{page_info}")
                 logger.debug(f"[PLAY:{play_id}] [EVENT] PLAY_STEP_START: {step_metadata}")
 
+                # Track current step for pause recording handlers
+                session.current_step_id = step_id
+                session.current_step_index = idx
+
                 # Execute
                 step_failed = False
                 try:
@@ -250,13 +255,9 @@ class PlaybackService:
                         "error": display_err,
                         "comparison": comparison,
                     })
-                    # Capture failure state so frontend shows what went wrong
-                    # (only if capture_frames is enabled, to save bandwidth for MCP)
+                    # Capture failure state without delaying the error pause.
                     if session.capture_frames:
-                        try:
-                            await cap_mgr.request(page, CaptureReason.ERROR)
-                        except Exception:
-                            pass
+                        cap_mgr.schedule_request(page, CaptureReason.ERROR)
 
                     # Reuse normal pause flow for manual intervention on failures.
                     session.status = PlayStatus.PAUSED
@@ -327,7 +328,11 @@ class PlaybackService:
             completion_msg = "✅ Playback complete" if failed_count == 0 else f"⚠️ Playback done with {failed_count} step error(s)"
             logger.info(f"[PLAY:{play_id}] [STREAM] {completion_msg}")
             logger.info(f"[PLAY:{play_id}] DONE — {total} steps, {failed_count} failed, assertions {assertion_passed}/{assertion_total} passed")
-            
+
+            pause_steps_count = sum(
+                len(steps) for steps in session.pause_step_insertion_points.values()
+            ) if session.enable_pause_recording else 0
+
             await self._send(play_id, client_id, PLAY_DONE, {
                 "stepCount": total,
                 "failedCount": failed_count,
@@ -335,6 +340,7 @@ class PlaybackService:
                 "assertionTotal": assertion_total,
                 "assertionPassed": assertion_passed,
                 "assertionFailed": assertion_failed,
+                "pauseStepsCount": pause_steps_count,
                 "message": "Playback complete" if failed_count == 0 else f"Playback done with {failed_count} step error(s)",
             })
             logger.debug(f"[PLAY:{play_id}] [EVENT] PLAY_DONE sent to client")
@@ -365,14 +371,18 @@ class PlaybackService:
                     pass
                 session.dom_watcher = None
 
-            if session.browser:
+            if session.browser_context:
                 try:
-                    await session.browser.close()
-                    logger.info(f"[PLAY:{play_id}] browser closed")
+                    await session.browser_context.close()
                 except Exception:
                     pass
+                session.browser_context = None
+
+            if session.browser:
+                await self._browser_service.close_browser(session.browser)
+                logger.info(f"[PLAY:{play_id}] browser closed")
                 session.browser = None
-                session.page    = None
+            session.page = None
             self._active_play_id = None
 
     # ─── Step dispatcher ───────────────────────────────────────────────────
@@ -392,6 +402,9 @@ class PlaybackService:
             await page.goto(url, wait_until="domcontentloaded", timeout=15000)
 
     async def _step_click(self, step: dict, page) -> None:
+        if await self._try_dropdown_selection(step, page):
+            return
+
         selector = step.get("selector")
         pw_selector = self._resolve_pw_selector(selector)
         coords = step.get("coords")
@@ -408,7 +421,9 @@ class PlaybackService:
             # Retry lookup/click to allow SPA/React DOM settle before declaring mismatch.
             for attempt in range(CLICK_RETRY_ATTEMPTS):
                 try:
-                    await self._wait_for_selector_visible(page, pw_selector, timeout_ms=10000)
+                    await self._wait_for_selector_visible(
+                        page, pw_selector, timeout_ms=CLICK_SELECTOR_TIMEOUT_MS
+                    )
                 except Exception as exc:
                     wait_timed_out = True
                     wait_error = str(exc)
@@ -519,6 +534,98 @@ class PlaybackService:
             await self._browser_service.perform_type(page, selector, text)
         else:
             await page.keyboard.type(text)
+
+    async def _try_dropdown_selection(self, step: dict[str, Any], page) -> bool:
+        selection = step.get("dropdownSelection") or {}
+        controller_selector = selection.get("controllerSelector") or {}
+        option_text = self._normalize_text(selection.get("normalizedText") or selection.get("text"))
+        if not controller_selector or not option_text:
+            return False
+
+        pw_controller = self._resolve_pw_selector(controller_selector)
+        if not pw_controller:
+            return False
+
+        controllers = await page.query_selector_all(pw_controller)
+        controller = await self._resolve_dropdown_controller(
+            controllers,
+            step.get("coords"),
+            self._get_occurrence_index(controller_selector),
+        )
+        if controller is None:
+            return False
+
+        try:
+            popup_id = await self._wait_for_dropdown_popup_id(controller)
+            popup = await self._find_visible_dropdown_popup(page, popup_id)
+            if not popup:
+                await controller.click(button=step.get("button", "left") or "left")
+                popup_id = await self._wait_for_dropdown_popup_id(controller)
+                popup = await self._find_visible_dropdown_popup(page, popup_id)
+                if not popup:
+                    return False
+
+            candidates = await popup.query_selector_all(
+                'option, [role="option"], [role="menuitem"], li, .zdropdownlist__text'
+            )
+            value = selection.get("value")
+            for candidate in candidates:
+                if value and (await candidate.get_attribute("data-value") or await candidate.get_attribute("value")) == value:
+                    await candidate.click(button=step.get("button", "left") or "left")
+                    return True
+                if self._normalize_text(await self._extract_element_text(candidate)) == option_text:
+                    await candidate.click(button=step.get("button", "left") or "left")
+                    return True
+
+            option_index = int(selection.get("optionIndex") or 0)
+            if not value and option_index < len(candidates):
+                await candidates[option_index].click(button=step.get("button", "left") or "left")
+                return True
+        except Exception:
+            return False
+
+        return False
+
+    async def _resolve_dropdown_controller(self, controllers, coords: dict | None, occurrence_index: int):
+        if len(controllers) == 1:
+            return controllers[0]
+
+        if coords:
+            x, y = coords.get("x"), coords.get("y")
+            if x is not None and y is not None:
+                for controller in controllers:
+                    try:
+                        box = await controller.bounding_box()
+                        if box and box["x"] <= x <= box["x"] + box["width"] and box["y"] <= y <= box["y"] + box["height"]:
+                            return controller
+                    except Exception:
+                        continue
+
+        if occurrence_index < len(controllers):
+            return controllers[occurrence_index]
+        return None
+
+    async def _wait_for_dropdown_popup_id(self, controller) -> str | None:
+        for _ in range(10):
+            popup_id = await controller.get_attribute("aria-owns") or await controller.get_attribute("aria-controls")
+            if popup_id:
+                return popup_id
+            await asyncio.sleep(0.1)
+        return None
+
+    async def _find_visible_dropdown_popup(self, page, popup_id: str | None):
+        if not popup_id:
+            return None
+        for _ in range(10):
+            popup = await page.query_selector(f"#{popup_id}")
+            if popup:
+                try:
+                    if await popup.is_visible():
+                        return popup
+                except AttributeError:
+                    return popup
+            await asyncio.sleep(0.1)
+        return None
 
     async def _step_scroll(self, step: dict, page) -> None:
         coords = step.get("coords") or {}

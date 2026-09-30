@@ -21,6 +21,7 @@ PlaybackHandler.handle_event()
 """
 import asyncio
 import logging
+import time
 from datetime import datetime
 from pydantic import ValidationError
 
@@ -33,6 +34,7 @@ from app.models.playback_contracts import (
     PlaybackPauseScrollData,
     PlaybackPauseTypeData,
 )
+from app.models.recording import RecordingStep, SelectorInfo
 
 from app.services.playback_service import PlaybackService
 from app.services.browser_service import BrowserService
@@ -213,10 +215,55 @@ class PlaybackHandler:
             logger.info(f"[PLAY:{play_id}] PAUSE_CLICK ({x},{y})")
         except Exception as e:
             logger.warning(f"[PLAY:{play_id}] PAUSE_CLICK failed: {e}")
+        
+        # Capture as RecordingStep if pause recording enabled
+        if session.enable_pause_recording and session.current_step_id > 0:
+            try:
+                page_url = session.page.url
+                page_title = await session.page.title()
+                
+                # Build selector info from captured data
+                selector = None
+                target_meta = None
+                if sel_info and sel_info.get("selector"):
+                    selector_dict = sel_info.get("selector", {})
+                    selector = SelectorInfo(
+                        strategy=selector_dict.get("strategy", "css"),
+                        value=selector_dict.get("value", ""),
+                    )
+                    # Capture target metadata
+                    target_meta_dict = sel_info.get("target_meta", {})
+                    if target_meta_dict:
+                        from app.models.recording import TargetMeta
+                        target_meta = TargetMeta(**target_meta_dict)
+                
+                # Create RecordingStep for this pause click
+                pause_step = RecordingStep(
+                    id=0,  # Will be re-indexed later
+                    type="CLICK",
+                    coords={"x": int(x), "y": int(y)},
+                    button="left",
+                    selector=selector,
+                    target_meta=target_meta,
+                    page_url=page_url,
+                    page_title=page_title,
+                    timestamp=int(time.time() * 1000),
+                    should_run=True,
+                    pause=False,
+                    tab_id="tab-1",  # Default tab
+                )
+                
+                # Add to insertion point for current step
+                if session.current_step_id not in session.pause_step_insertion_points:
+                    session.pause_step_insertion_points[session.current_step_id] = []
+                session.pause_step_insertion_points[session.current_step_id].append(pause_step)
+                
+                logger.debug(f"[PLAY:{play_id}] Captured PAUSE_CLICK as step after step {session.current_step_id}")
+            except Exception as e:
+                logger.warning(f"[PLAY:{play_id}] Failed to capture pause step: {e}")
+        
         if session.capture_manager:
-            asyncio.ensure_future(
-                session.capture_manager.request(session.page, CaptureReason.PAUSE_CLICK)
-            )
+            session.capture_manager.schedule_request(session.page, CaptureReason.PAUSE_CLICK)
 
     # ── PAUSE_SCROLL — perform a scroll during pause then capture ──────────
     async def _handle_pause_scroll(self, session: PlaySession, data: PlaybackPauseScrollData) -> None:
@@ -230,10 +277,39 @@ class PlaybackHandler:
             logger.info(f"[PLAY:{session.play_id}] PAUSE_SCROLL ({x},{y}) deltaY={delta_y}")
         except Exception as e:
             logger.warning(f"[PLAY:{session.play_id}] PAUSE_SCROLL failed: {e}")
+        
+        # Capture as RecordingStep if pause recording enabled
+        if session.enable_pause_recording and session.current_step_id > 0:
+            try:
+                page_url = session.page.url
+                page_title = await session.page.title()
+                
+                # Create RecordingStep for this pause scroll
+                pause_step = RecordingStep(
+                    id=0,  # Will be re-indexed later
+                    type="SCROLL",
+                    coords={"x": int(x), "y": int(y)},
+                    delta_x=0.0,
+                    delta_y=float(delta_y),
+                    page_url=page_url,
+                    page_title=page_title,
+                    timestamp=int(time.time() * 1000),
+                    should_run=True,
+                    pause=False,
+                    tab_id="tab-1",  # Default tab
+                )
+                
+                # Add to insertion point for current step
+                if session.current_step_id not in session.pause_step_insertion_points:
+                    session.pause_step_insertion_points[session.current_step_id] = []
+                session.pause_step_insertion_points[session.current_step_id].append(pause_step)
+                
+                logger.debug(f"[PLAY:{session.play_id}] Captured PAUSE_SCROLL as step after step {session.current_step_id}")
+            except Exception as e:
+                logger.warning(f"[PLAY:{session.play_id}] Failed to capture pause scroll step: {e}")
+        
         if session.capture_manager:
-            asyncio.ensure_future(
-                session.capture_manager.request(session.page, CaptureReason.PAUSE_SCROLL)
-            )
+            session.capture_manager.schedule_request(session.page, CaptureReason.PAUSE_SCROLL)
 
     # ── PAUSE_TYPE — type into a field during pause then capture ───────────
     async def _handle_pause_type(self, session: PlaySession, data: PlaybackPauseTypeData) -> None:
@@ -248,10 +324,50 @@ class PlaybackHandler:
             logger.info(f"[PLAY:{session.play_id}] PAUSE_TYPE selector={selector.get('strategy')}={selector.get('value')} len={len(text)}")
         except Exception as e:
             logger.warning(f"[PLAY:{session.play_id}] PAUSE_TYPE failed: {e}")
+        
+        # Capture as RecordingStep if pause recording enabled
+        if session.enable_pause_recording and session.current_step_id > 0:
+            try:
+                page_url = session.page.url
+                page_title = await session.page.title()
+                
+                # Build selector info
+                selector_obj = None
+                if selector:
+                    selector_obj = SelectorInfo(
+                        strategy=selector.get("strategy", "css"),
+                        value=selector.get("value", ""),
+                    )
+                
+                # Determine if text is password
+                is_password = text.startswith("{{") and text.endswith("}}") if text else False
+                
+                # Create RecordingStep for this pause type
+                pause_step = RecordingStep(
+                    id=0,  # Will be re-indexed later
+                    type="TYPE",
+                    text=text,
+                    selector=selector_obj,
+                    is_password=is_password,
+                    page_url=page_url,
+                    page_title=page_title,
+                    timestamp=int(time.time() * 1000),
+                    should_run=True,
+                    pause=False,
+                    tab_id="tab-1",  # Default tab
+                )
+                
+                # Add to insertion point for current step
+                if session.current_step_id not in session.pause_step_insertion_points:
+                    session.pause_step_insertion_points[session.current_step_id] = []
+                session.pause_step_insertion_points[session.current_step_id].append(pause_step)
+                
+                logger.debug(f"[PLAY:{session.play_id}] Captured PAUSE_TYPE as step after step {session.current_step_id}")
+            except Exception as e:
+                logger.warning(f"[PLAY:{session.play_id}] Failed to capture pause type step: {e}")
+        
         if session.capture_manager:
-            asyncio.ensure_future(
-                session.capture_manager.request(session.page, CaptureReason.PAUSE_TYPE)
-            )
+            session.capture_manager.schedule_request(session.page, CaptureReason.PAUSE_TYPE)
 
     async def _handle_patch_steps(self, play_id: str, session: PlaySession, data: PlaybackPatchStepsData) -> None:
         patches = [patch.model_dump(exclude_none=True) for patch in data.patches]

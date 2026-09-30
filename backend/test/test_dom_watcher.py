@@ -13,7 +13,7 @@ class FakeCaptureManager:
     def start_worker(self, page):
         self.started_with = page
 
-    def stop(self):
+    async def stop(self):
         self.stopped = True
 
 

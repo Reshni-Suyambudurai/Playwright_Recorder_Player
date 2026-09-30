@@ -33,6 +33,16 @@ class TargetMeta(BaseModel):
     model_config = {"populate_by_name": True}
 
 
+class DropdownSelection(BaseModel):
+    controller_selector: SelectorInfo = Field(alias="controllerSelector")
+    text: Optional[str] = None
+    normalized_text: Optional[str] = Field(None, alias="normalizedText")
+    value: Optional[str] = None
+    option_index: int = Field(0, alias="optionIndex")
+
+    model_config = {"populate_by_name": True}
+
+
 class Coords(BaseModel):
     x: int
     y: int
@@ -78,6 +88,7 @@ class RecordingStep(BaseModel):
     store_value: bool = Field(False, alias="storeValue")
     selector: Optional[SelectorInfo] = None
     target_meta: Optional[TargetMeta] = Field(None, alias="targetMeta")
+    dropdown_selection: Optional[DropdownSelection] = Field(None, alias="dropdownSelection")
     input_validation: Optional[InputValidation] = Field(None, alias="inputValidation")
     is_trigger_new_tab: Optional[bool] = Field(None, alias="isTriggerNewTab")
     should_run: bool = Field(True, alias="shouldRun")

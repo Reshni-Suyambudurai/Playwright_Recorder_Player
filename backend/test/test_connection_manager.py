@@ -113,3 +113,25 @@ async def test_get_total_connection_count_returns_total():
     await manager.connect("s1", object())
     await manager.connect("s2", object())
     assert manager.get_total_connection_count() == 2
+
+
+@pytest.mark.asyncio
+async def test_close_all_closes_sockets_and_clears_mappings():
+    manager = ConnectionManager()
+
+    class WS:
+        def __init__(self):
+            self.closed = False
+
+        async def close(self, code, reason):
+            self.closed = True
+
+    websocket = WS()
+    await manager.connect("s1", websocket)
+    manager.register_client("s1", "c1", websocket)
+
+    await manager.close_all()
+
+    assert websocket.closed is True
+    assert manager.get_total_connection_count() == 0
+    assert manager._client_connections == {}

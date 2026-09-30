@@ -28,7 +28,7 @@ async def test_start_worker_creates_task(monkeypatch):
     mgr.start_worker(FakePage())
     await asyncio.sleep(0.02)
     assert mgr._worker_task is not None
-    mgr.stop()
+    await mgr.stop()
 
 
 @pytest.mark.asyncio
@@ -38,7 +38,7 @@ async def test_stop_clears_dirty_and_task(monkeypatch):
     monkeypatch.setattr(capture_module, "DOM_POLL_MS", 10)
     mgr._dirty = True
     mgr.start_worker(FakePage())
-    mgr.stop()
+    await mgr.stop()
     assert mgr._dirty is False
 
 
@@ -81,4 +81,16 @@ async def test_dom_capture_worker_consumes_dirty(monkeypatch):
     mgr._wake_event.set()
     await asyncio.sleep(0.05)
     assert service.calls
-    mgr.stop()
+    await mgr.stop()
+
+
+@pytest.mark.asyncio
+async def test_stop_drains_scheduled_capture_requests():
+    service = FakeScreenshotService()
+    mgr = CaptureManager(service, "s1", "c1")
+    task = mgr.schedule_request(FakePage(), CaptureReason.ACTION_SCROLL)
+
+    await mgr.stop()
+
+    assert task.done()
+    assert mgr._request_tasks == set()

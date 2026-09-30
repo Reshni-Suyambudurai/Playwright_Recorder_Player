@@ -1,6 +1,7 @@
 """
 RecordingSession model for storing session data.
 """
+import asyncio
 from dataclasses import dataclass, field
 from typing import Optional
 from enum import Enum
@@ -39,6 +40,7 @@ class RecordingSession:
     active_tab_id: str = ""
     tab_watchers: dict = field(default_factory=dict)  # tab_id → DomWatcher
     tab_meta: dict = field(default_factory=dict)      # tab_id → {title, url}
+    background_tasks: set[asyncio.Task] = field(default_factory=set)
     # Assertion mode (used during interactive assertion)
     assertion_mode: Optional[str] = None  # "visibility" | "text" | "value" | None
     

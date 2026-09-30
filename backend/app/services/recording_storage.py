@@ -58,3 +58,12 @@ class RecordingStorage:
             return None
         with open(file_path, encoding="utf-8") as f:
             return json.load(f)
+
+    def delete(self, recording_id: str) -> bool:
+        """Delete a recording JSON file if it exists."""
+        file_path = _STORAGE_DIR / f"{recording_id}.json"
+        if not file_path.exists():
+            return False
+        file_path.unlink()
+        logger.info(f"Recording file deleted: {file_path}")
+        return True

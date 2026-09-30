@@ -6,6 +6,7 @@ import time
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Optional, Any
+from app.models.recording import RecordingStep
 
 
 class PlayStatus(Enum):
@@ -55,7 +56,19 @@ class PlaySession:
     current_step_id: int = 0                  # Current step ID (1-based)
     playback_start_time: float | None = None  # When playback started
 
-    def get_elapsed_seconds(self) -> float:
+    # ✨ Pause-interrupted recording fields
+    enable_pause_recording: bool = False  # Feature flag: capture pause actions
+    captured_pause_steps: list[RecordingStep] = field(default_factory=list)  # Steps recorded during pause
+    pause_step_insertion_points: dict[int, list[RecordingStep]] = field(default_factory=dict)  # {step_id: [steps added after]}
+    original_recording_id: str | None = None  # Link to original recording
+    paused_at_step_ids: list[int] = field(default_factory=list)  # Track all pause points
+
+    def mark_pause_at_step(self, step_id: int) -> None:
+        """Mark that a pause occurred after this step."""
+        if step_id not in self.pause_step_insertion_points:
+            self.pause_step_insertion_points[step_id] = []
+        if step_id not in self.paused_at_step_ids:
+            self.paused_at_step_ids.append(step_id)
         """Get total elapsed time since playback started"""
         if not self.playback_start_time:
             return 0.0

@@ -37,6 +37,24 @@ class FakeWebSocket:
         self.messages.append(payload)
 
 
+class FakeMouse:
+    def __init__(self):
+        self.clicks = []
+
+    async def click(self, x, y):
+        self.clicks.append((x, y))
+
+
+class FakePage:
+    url = "https://example.test"
+
+    def __init__(self):
+        self.mouse = FakeMouse()
+
+    async def title(self):
+        return "Example"
+
+
 @pytest.mark.asyncio
 async def test_handle_event_hello_registers_client():
     cm = FakeConnectionManager()
@@ -63,3 +81,34 @@ async def test_handle_stop_sets_stopped_status():
     session = PlaySession(play_id="p1", recording_json={"steps": {}})
     await handler._handle_stop(session)
     assert session.status == PlayStatus.STOPPED
+
+
+@pytest.mark.asyncio
+async def test_pause_click_records_step(monkeypatch):
+    async def fake_build_selector(page, x, y):
+        return {
+            "is_input": False,
+            "selector": {"strategy": "id", "value": "reason-select"},
+        }
+
+    monkeypatch.setattr("app.websocket.playback_handler.build_selector", fake_build_selector)
+
+    handler = PlaybackHandler(FakeConnectionManager(), FakePlaybackService(), FakeBrowserService())
+    session = PlaySession(play_id="p1", recording_json={"steps": {}})
+    session.status = PlayStatus.PAUSED
+    session.page = FakePage()
+    session.enable_pause_recording = True
+    session.current_step_id = 7
+
+    await handler.handle_event(
+        "p1",
+        FakeWebSocket(),
+        session,
+        {"event_type": "PAUSE_CLICK", "data": {"x": 365, "y": 279}},
+    )
+
+    captured = session.pause_step_insertion_points[7]
+    assert len(captured) == 1
+    assert captured[0].type == "CLICK"
+    assert captured[0].button == "left"
+    assert captured[0].selector.value == "reason-select"

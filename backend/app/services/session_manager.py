@@ -1,6 +1,7 @@
 """
 SessionManager for managing recording sessions.
 """
+import asyncio
 import logging
 from typing import Optional, Dict, List
 import uuid
@@ -95,6 +96,31 @@ class SessionManager:
             return
         
         try:
+            watchers = list({
+                id(watcher): watcher
+                for watcher in [*session.tab_watchers.values(), session.dom_watcher]
+                if watcher is not None
+            }.values())
+            for watcher in watchers:
+                try:
+                    await watcher.detach()
+                except Exception as e:
+                    logger.warning(f"Error detaching watcher in session {session_id}: {e}")
+            session.tab_watchers.clear()
+            session.dom_watcher = None
+
+            background_tasks = list(session.background_tasks)
+            for task in background_tasks:
+                if not task.done():
+                    task.cancel()
+            if background_tasks:
+                await asyncio.gather(*background_tasks, return_exceptions=True)
+            session.background_tasks.clear()
+
+            if session.capture_manager and not watchers:
+                await session.capture_manager.stop()
+            session.capture_manager = None
+
             # Close all tab pages first
             for tab_id, page in list(session.tabs.items()):
                 if page:

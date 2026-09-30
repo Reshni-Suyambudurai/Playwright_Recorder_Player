@@ -4,6 +4,7 @@ WebSocket connection manager for maintaining session-to-connection mappings.
 ConnectionManager manages all WebSocket connections, mapping sessions and clients to their
  WebSocket connections so the backend can send messages to the correct frontend.
 """
+import asyncio
 from typing import Dict, List, Optional
 from fastapi import WebSocket
 from app.websocket.websocket_events import WebSocketEvent, EventType
@@ -60,6 +61,19 @@ class ConnectionManager:
         if client_id:
             key = f"{session_id}:{client_id}"
             self._client_connections.pop(key, None)
+
+    async def close_all(self) -> None:
+        """Close and forget every active WebSocket connection."""
+        websockets = list(self._connection_to_session.keys())
+        if websockets:
+            await asyncio.gather(
+                *(websocket.close(code=1001, reason="Server shutting down") for websocket in websockets),
+                return_exceptions=True,
+            )
+        self._connections.clear()
+        self._connection_to_session.clear()
+        self._client_connections.clear()
+        self._connection_to_client.clear()
 
     async def send_to_client(self, session_id: str, client_id: str, message: dict) -> bool:
         """

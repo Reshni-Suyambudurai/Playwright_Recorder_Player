@@ -13,12 +13,16 @@ from app.services.browser_service import BrowserService
 from app.services.screenshot_service import ScreenshotService
 from app.services.database import DatabaseService
 from app.api.recording import create_recording_router
-from app.api.play import create_play_router, get_play_session, play_session_cleanup_worker
+from app.api.play import (
+    create_play_router,
+    get_play_session,
+    play_session_cleanup_worker,
+    shutdown_play_sessions,
+)
 from app.websocket.connection_manager import ConnectionManager
 from app.websocket.websocket_handler import WebSocketHandler
 from app.services.playback_service import PlaybackService
 from app.websocket.playback_handler import PlaybackHandler
-from app.utils import tab_manager
 
 # ==================== Logging Setup ====================
 LOG_FILE = os.path.join(os.path.dirname(os.path.dirname(__file__)), "debug.log")
@@ -63,6 +67,15 @@ def create_app():
                 await play_cleanup_task
             except Exception:
                 pass
+
+        await connection_manager.close_all()
+        await shutdown_play_sessions()
+
+        recording_sessions = session_manager.list_all_sessions()
+        for session in recording_sessions:
+            await session_manager.cleanup_session(session.session_id)
+
+        await browser_service.shutdown()
         logger.info("App shutdown complete")
 
     # Enable CORS
@@ -89,7 +102,7 @@ def create_app():
     app.include_router(recording_router, prefix="/recording")
     logger.info("Recording router registered at /recording")
 
-    play_router = create_play_router()
+    play_router = create_play_router(db)
     app.include_router(play_router, prefix="/play")
     logger.info("Play router registered at /play")
 
@@ -128,20 +141,13 @@ def create_app():
 
         except WebSocketDisconnect:
             logger.info(f"[WS] Client disconnected from session {session_id}")
-            # Detach watchers
-            session = session_manager.get_session(session_id)
-            if session:
-                await tab_manager.detach_all_watchers(session)
-                if session.dom_watcher:
-                    await session.dom_watcher.detach()
-                    session.dom_watcher = None
-            
-            # Cleanup Playwright resources
-            await session_manager.cleanup_session(session_id)
-            await connection_manager.disconnect(websocket)
 
         except Exception as e:
             logger.error(f"[WS] Unexpected error in session {session_id}: {e}", exc_info=True)
+
+        finally:
+            await session_manager.cleanup_session(session_id)
+            await connection_manager.disconnect(websocket)
 
     # Playback WebSocket endpoint
     @app.websocket("/ws/play/{play_id}")
@@ -172,12 +178,14 @@ def create_app():
 
         except WebSocketDisconnect:
             logger.info(f"[PLAY WS] client disconnected from play_id: {play_id}")
-            if session.task and not session.task.done():
-                session.task.cancel()
-            await connection_manager.disconnect(websocket)
 
         except Exception as e:
             logger.error(f"[PLAY WS] error for play_id {play_id}: {e}", exc_info=True)
+
+        finally:
+            if session.task and not session.task.done():
+                session.task.cancel()
+                await asyncio.gather(session.task, return_exceptions=True)
             await connection_manager.disconnect(websocket)
 
     app.session_manager = session_manager

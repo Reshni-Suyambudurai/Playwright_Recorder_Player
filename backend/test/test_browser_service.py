@@ -164,6 +164,34 @@ async def test_close_browser_closes_browser_and_playwright():
 
 
 @pytest.mark.asyncio
+async def test_shutdown_closes_browsers_before_stopping_playwright():
+    service = BrowserService()
+    events = []
+
+    class FakeBrowser:
+        async def close(self):
+            events.append("browser")
+
+    class FakePW:
+        async def stop(self):
+            events.append("playwright")
+
+    first_browser = FakeBrowser()
+    second_browser = FakeBrowser()
+    service._browsers = {
+        id(first_browser): first_browser,
+        id(second_browser): second_browser,
+    }
+    service._playwright = FakePW()
+
+    await service.shutdown()
+
+    assert events.count("browser") == 2
+    assert events[-1] == "playwright"
+    assert service._playwright is None
+
+
+@pytest.mark.asyncio
 async def test_navigate_to_url_returns_success_payload():
     service = BrowserService()
     page = FakePage()

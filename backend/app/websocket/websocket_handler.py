@@ -37,7 +37,7 @@ from app.services.capture_manager import CaptureManager, CaptureReason, SettleSt
 from app.services.database import DatabaseService
 from app.services.assertion_service import AssertionService
 from app.services.snapshot_service import SnapshotService
-from app.models.recording import Recording, RecordingMeta, RecordingStep, AssertionStep, Coords, SelectorInfo, TargetMeta
+from app.models.recording import Recording, RecordingMeta, RecordingStep, AssertionStep, Coords, DropdownSelection, SelectorInfo, TargetMeta
 from app.utils.selector_builder import build_selector
 from app.utils import tab_manager
 
@@ -244,8 +244,9 @@ class WebSocketHandler:
             # Listen for new browser tabs opened by the page
             session.browser_context.on(
                 "page",
-                lambda new_page: asyncio.ensure_future(
-                    self._on_new_tab(new_page, session_id, client_id)
+                lambda new_page: self._schedule_session_task(
+                    session,
+                    self._on_new_tab(new_page, session_id, client_id),
                 ),
             )
 
@@ -280,6 +281,13 @@ class WebSocketHandler:
         except Exception as e:
             logger.error("[WS START_RECORDING] failed session=%s: %s", session_id, e, exc_info=True)
             return self._error_response("START_RECORDING_ERROR", str(e))
+
+    @staticmethod
+    def _schedule_session_task(session, coroutine) -> asyncio.Task:
+        task = asyncio.create_task(coroutine)
+        session.background_tasks.add(task)
+        task.add_done_callback(session.background_tasks.discard)
+        return task
 
     async def handle_click_action(self, session_id: str, client_id: str, data: dict) -> dict:
         """
@@ -350,6 +358,7 @@ class WebSocketHandler:
                         label=sel_info.get("label") if sel_info else None,
                         selector=SelectorInfo(**sel_info["selector"]) if sel_info and sel_info.get("selector") else None,
                         targetMeta=TargetMeta(**sel_info["target_meta"]) if sel_info and sel_info.get("target_meta") else None,
+                        dropdownSelection=DropdownSelection(**sel_info["dropdown_selection"]) if sel_info and sel_info.get("dropdown_selection") else None,
                         tab_id=session.active_tab_id or "tab-1",
                     )
                     session.recording_steps.append(step)
@@ -359,7 +368,7 @@ class WebSocketHandler:
             # Fire screenshot in background — ACTION_DONE returns immediately
             cap_mgr = session.capture_manager
             if cap_mgr:
-                asyncio.ensure_future(cap_mgr.request(page, CaptureReason.ACTION_CLICK))
+                cap_mgr.schedule_request(page, CaptureReason.ACTION_CLICK)
             logger.info(f"[✅ CLICK DONE] ACTION_DONE sent — {int((time.perf_counter()-t0)*1000)}ms after click (frame pending)")
 
             return {
@@ -415,7 +424,7 @@ class WebSocketHandler:
             # Fire screenshot in background — ACTION_DONE returns immediately
             cap_mgr = session.capture_manager
             if cap_mgr:
-                asyncio.ensure_future(cap_mgr.request(page, CaptureReason.ACTION_TYPE))
+                cap_mgr.schedule_request(page, CaptureReason.ACTION_TYPE)
             logger.info(f"[✅ TYPE DONE] ACTION_DONE sent — {int((time.perf_counter()-t0)*1000)}ms after type (frame pending)")
 
             return {"event_type": EventType.ACTION_DONE, "data": {"type": "type", "success": True}}
@@ -458,7 +467,7 @@ class WebSocketHandler:
             # Fire screenshot in background — ACTION_DONE returns immediately
             cap_mgr = session.capture_manager
             if cap_mgr:
-                asyncio.ensure_future(cap_mgr.request(page, CaptureReason.ACTION_SCROLL))
+                cap_mgr.schedule_request(page, CaptureReason.ACTION_SCROLL)
             logger.info(f"[ SCROLL DONE] ACTION_DONE sent — {int((time.perf_counter()-t0)*1000)}ms after scroll (frame pending)")
 
             return {"event_type": EventType.ACTION_DONE, "data": {"type": "scroll", "success": True}}
@@ -498,7 +507,7 @@ class WebSocketHandler:
             cap_mgr = session.capture_manager
             if cap_mgr:
                 reason = CaptureReason.ACTION_CLICK if key == "Enter" else CaptureReason.ACTION_TYPE
-                asyncio.ensure_future(cap_mgr.request(page, reason))
+                cap_mgr.schedule_request(page, reason)
             logger.info(f"[ KEY DONE] ACTION_DONE sent — {int((time.perf_counter()-t0)*1000)}ms after key (frame pending)")
             return {"event_type": EventType.ACTION_DONE, "data": {"type": "key", "success": True}}
         except Exception as e:

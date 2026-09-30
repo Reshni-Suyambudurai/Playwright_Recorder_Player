@@ -1,6 +1,7 @@
 """
 BrowserService for managing Playwright browser operations.
 """
+import asyncio
 import base64
 import logging
 import time
@@ -18,6 +19,9 @@ class BrowserService:
 
     def __init__(self):
         self._playwright = None
+        self._browsers: dict[int, Browser] = {}
+        self._lifecycle_lock = asyncio.Lock()
+        self._shutting_down = False
 
     async def launch_browser(self, viewport_width: int = VIEWPORT_WIDTH, viewport_height: int = VIEWPORT_HEIGHT, headless: bool = True) -> Tuple[Browser, BrowserContext, Page]:
         """Launch a Playwright browser at the given viewport size."""
@@ -28,13 +32,23 @@ class BrowserService:
             viewport_width,
             viewport_height,
         )
+        browser = None
         try:
-            t_pw = time.perf_counter()
-            self._playwright = await async_playwright().start()
-            logger.info("[BROWSER START] async_playwright started in %dms", int((time.perf_counter() - t_pw) * 1000))
+            async with self._lifecycle_lock:
+                if self._shutting_down:
+                    raise RuntimeError("Browser service is shutting down")
+                if self._playwright is None:
+                    t_pw = time.perf_counter()
+                    self._playwright = await async_playwright().start()
+                    logger.info("[BROWSER START] async_playwright started in %dms", int((time.perf_counter() - t_pw) * 1000))
 
-            t_launch = time.perf_counter()
-            browser = await self._playwright.chromium.launch(headless=headless)
+                t_launch = time.perf_counter()
+                browser = await self._playwright.chromium.launch(headless=headless)
+                self._browsers[id(browser)] = browser
+                try:
+                    browser.on("disconnected", lambda: self._browsers.pop(id(browser), None))
+                except AttributeError:
+                    pass
             logger.info("[BROWSER START] chromium launched in %dms", int((time.perf_counter() - t_launch) * 1000))
 
             t_context = time.perf_counter()
@@ -60,9 +74,9 @@ class BrowserService:
                 e,
                 exc_info=True,
             )
-            if self._playwright:
+            if browser is not None:
                 try:
-                    await self._playwright.stop()
+                    await self.close_browser(browser)
                 except Exception:
                     pass
             raise Exception(f"Failed to launch browser: {str(e)}")
@@ -168,11 +182,27 @@ class BrowserService:
                 logger.info("Browser closed")
             except Exception as e:
                 logger.error(f"Error closing browser: {e}")
+            finally:
+                self._browsers.pop(id(browser), None)
 
-        if self._playwright is not None:
+    async def shutdown(self) -> None:
+        """Close every managed browser before stopping the shared Playwright driver."""
+        async with self._lifecycle_lock:
+            self._shutting_down = True
+            browsers = list(self._browsers.values())
+            self._browsers.clear()
+            playwright = self._playwright
+            self._playwright = None
+
+        if browsers:
+            await asyncio.gather(
+                *(self.close_browser(browser) for browser in browsers),
+                return_exceptions=True,
+            )
+
+        if playwright is not None:
             try:
-                await self._playwright.stop()
-                self._playwright = None
+                await playwright.stop()
                 logger.info("Playwright stopped")
             except Exception as e:
                 logger.error(f"Error stopping playwright: {e}")

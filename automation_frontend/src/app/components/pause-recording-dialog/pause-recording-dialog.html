@@ -1,0 +1,66 @@
+<div class="modal-backdrop" *ngIf="isVisible" (click)="handleCancel()">
+  <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="pause-dialog-title" (click)="$event.stopPropagation()">
+    <h2 id="pause-dialog-title" class="modal-title">
+      Do you want to save the changes you made to the recording as a new flow?
+    </h2>
+
+    <div class="modal-field">
+      <label for="title" class="modal-label">Recording Name *</label>
+      <input
+        id="title"
+        type="text"
+        [(ngModel)]="title"
+        class="modal-input"
+        [disabled]="isSaving"
+      />
+    </div>
+
+    <div class="modal-field">
+      <label for="description" class="modal-label">Description</label>
+      <input
+        id="description"
+        type="text"
+        [(ngModel)]="description"
+        class="modal-input"
+        [disabled]="isSaving"
+      />
+    </div>
+
+    <div class="modal-field">
+      <label for="intent" class="modal-label">Intent</label>
+      <input
+        id="intent"
+        type="text"
+        [(ngModel)]="intent"
+        class="modal-input"
+        [disabled]="isSaving"
+      />
+    </div>
+
+    <div class="modal-actions">
+      <button
+        class="btn btn-primary dialog-action"
+        (click)="handleCancel()"
+        [disabled]="isSaving"
+      >
+        Cancel
+      </button>
+
+      <button
+        class="btn btn-primary dialog-action"
+        (click)="handleSave('save_delete_old')"
+        [disabled]="isSaving || !title.trim()"
+      >
+        Replace old flow
+      </button>
+
+      <button
+        class="btn btn-primary dialog-action"
+        (click)="handleSave('save_as_new')"
+        [disabled]="isSaving || !title.trim()"
+      >
+        {{ isSaving ? 'Saving...' : 'Save as new' }}
+      </button>
+    </div>
+  </div>
+</div>

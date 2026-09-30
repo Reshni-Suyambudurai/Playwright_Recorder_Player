@@ -14,6 +14,8 @@ class StartPlaybackRequest(BaseModel):
     source: str = "fastapi"                       # "fastapi" or "mcp"
     headless: bool = True                         # Browser headless mode
     capture_frames: bool = True                   # Capture frames for frontend
+    enable_pause_recording: bool = False          # NEW: Enable pause action capture
+    original_recording_id: str | None = None      # NEW: Link to original recording
 
 
 class StartPlaybackResponse(BaseModel):

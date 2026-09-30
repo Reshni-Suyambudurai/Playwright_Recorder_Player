@@ -91,7 +91,7 @@ class DomWatcher:
     async def detach(self) -> None:
         """Stop watching and shut down the capture worker."""
         self._active = False
-        self._capture_manager.stop()
+        await self._capture_manager.stop()
         logger.info(f"DomWatcher detached")
 
     # ── internal ──────────────────────────────────────────────────

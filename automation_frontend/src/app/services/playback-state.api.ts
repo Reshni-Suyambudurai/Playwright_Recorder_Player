@@ -20,6 +20,11 @@ export class PlaybackStateApi {
   readonly assertionPassed = signal<number>(0);
   readonly assertionTotal  = signal<number>(0);
   readonly assertionResults = signal<Map<number, 'pass' | 'fail'>>(new Map());
+  
+  // ✨ Pause recording signals
+  readonly pauseRecordingEnabled = signal<boolean>(false);
+  readonly pauseStepsCount = signal<number>(0);
+  readonly canSavePausedRecording = signal<boolean>(false);
 
   /** Reset all state before a new run starts. */
   resetForNewRun(): void {
@@ -35,6 +40,10 @@ export class PlaybackStateApi {
     this.assertionPassed.set(0);
     this.assertionTotal.set(0);
     this.assertionResults.set(new Map());
+    
+    // ✨ Reset pause recording state
+    this.pauseStepsCount.set(0);
+    this.canSavePausedRecording.set(false);
   }
 
   /**
@@ -64,12 +73,18 @@ export class PlaybackStateApi {
         break;
       }
       case 'PLAY_DONE': {
-        const d = evt.data as { stepCount: number; failedCount: number; failedSteps: FailedStep[]; message: string; assertionTotal?: number; assertionPassed?: number };
+        const d = evt.data as { stepCount: number; failedCount: number; failedSteps: FailedStep[]; message: string; assertionTotal?: number; assertionPassed?: number; pauseStepsCount?: number };
         this.totalSteps.set(d.stepCount ?? this.totalSteps());
         this.failedCount.set(d.failedCount ?? 0);
         this.failedSteps.set(d.failedSteps ?? []);
         this.assertionTotal.set(d.assertionTotal ?? 0);
         this.assertionPassed.set(d.assertionPassed ?? 0);
+        
+        // ✨ Update pause recording state
+        const pauseSteps = d.pauseStepsCount ?? 0;
+        this.pauseStepsCount.set(pauseSteps);
+        this.canSavePausedRecording.set(this.pauseRecordingEnabled() && pauseSteps > 0);
+        
         this.playStatus.set(d.failedCount > 0 ? 'done_with_errors' : 'done');
         break;
       }

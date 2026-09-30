@@ -11,6 +11,7 @@ import { StepList } from '../../components/step-list/step-list';
 import { InputOverlay } from '../../components/input-overlay/input-overlay';
 import { InputOverlayConfirmPayload } from '../../components/input-overlay/input-overlay';
 import { RunResultPopup } from '../../components/run-result-popup/run-result-popup';
+import { PauseRecordingDialog, SaveRecordingDialogData } from '../../components/pause-recording-dialog/pause-recording-dialog';
 
 dayjs.extend(customParseFormat);
 
@@ -41,7 +42,7 @@ export interface TabGroup {
 @Component({
   selector: 'app-runs',
   standalone: true,
-  imports: [SvgIcon, FormsModule, StepList, InputOverlay, RunResultPopup],
+  imports: [SvgIcon, FormsModule, StepList, InputOverlay, RunResultPopup, PauseRecordingDialog],
   templateUrl: './runs.html',
   styleUrl: './runs.css',
 })
@@ -80,6 +81,10 @@ export class Runs implements OnInit, OnDestroy {
   readonly runPopupVariant = signal<'success' | 'error'>('success');
   readonly runPopupAutoCloseMs = signal(2000);
   readonly runPopupIsHtml = signal(false);
+  
+  // ✨ Pause recording save dialog
+  readonly pauseRecordingDialogVisible = signal(false);
+  readonly isSavingPauseRecording = signal(false);
 
   // Direct DOM reference — we set img.src directly to bypass Angular zone
   private _frameImgRef = viewChild<ElementRef<HTMLImageElement>>('frameImg');
@@ -451,9 +456,16 @@ export class Runs implements OnInit, OnDestroy {
     this._disconnectPlay();
     this._lastErrorPopupKey = '';
     this._resetRuntimeState();
+    
+    // ✨ Enable pause recording for this playback session
+    this.state.pauseRecordingEnabled.set(true);
 
     try {
-      const { play_session_id } = await this.playbackApi.startPlay(payload);
+      // ✨ Pass pause recording options
+      const { play_session_id } = await this.playbackApi.startPlay(payload, {
+        enablePauseRecording: true,  // Enable pause recording by default during playback
+        originalRecordingId: this.selectedId(),
+      });
 
       this._playWs = this.playbackApi.connectWs(play_session_id, this._clientId, {
         onEvent: (evt: PlayEvent) => {
@@ -659,8 +671,18 @@ export class Runs implements OnInit, OnDestroy {
     }
 
     if (evt.event_type === 'PLAY_DONE') {
-      const data = evt.data as { stepCount: number; assertionTotal?: number; assertionPassed?: number; assertionFailed?: number };
+      const data = evt.data as { stepCount: number; assertionTotal?: number; assertionPassed?: number; assertionFailed?: number; pauseStepsCount?: number };
       this._resetRuntimeTrackingState();
+      
+      // ✨ Check if pause steps were recorded
+      if (this.state.pauseRecordingEnabled() && (data.pauseStepsCount ?? 0) > 0) {
+        this.state.pauseStepsCount.set(data.pauseStepsCount ?? 0);
+        this.state.canSavePausedRecording.set(true);
+        this.pauseRecordingDialogVisible.set(true);
+        // Don't show success popup or auto-refresh
+        return;
+      }
+      
       const assertionSummary = data.assertionTotal
         ? ` | Assertions: ${data.assertionPassed}/${data.assertionTotal} passed`
         : '';
@@ -936,5 +958,69 @@ export class Runs implements OnInit, OnDestroy {
     } finally {
       this.saving.set(false);
     }
+  }
+
+  // ✨ Pause Recording Dialog Handlers
+  async onPauseRecordingSave(data: SaveRecordingDialogData): Promise<void> {
+    this.isSavingPauseRecording.set(true);
+
+    try {
+      // Get the play session ID from the state
+      const playId = this._getPlaySessionId();
+      if (!playId) {
+        this._showRunPopup('error', 'Save Failed', 'Playback session not found.', 0);
+        return;
+      }
+
+      // Call the save endpoint
+      const result = await this.playbackApi.savePausedRecording(playId, {
+        title: data.title,
+        intent: data.intent,
+        description: data.description,
+        save_option: data.saveOption,
+      });
+
+      this.pauseRecordingDialogVisible.set(false);
+
+      if (result.success && result.recording_id) {
+        const stepSuffix = result.total_steps === 1 ? 'step' : 'steps';
+        this._showRunPopup(
+          'success',
+          '✨ Pause Recording Saved',
+          `Recording saved successfully with ${result.total_steps} ${stepSuffix}. Refreshing in 5 seconds.`,
+          5000
+        );
+        // Refresh recording list and auto-close
+        this._scheduleSuccessRefresh();
+      } else {
+        this._showRunPopup('error', 'Save Failed', result.message || 'Failed to save recording.', 0);
+      }
+    } catch (e: any) {
+      const message = e?.message ?? 'Failed to save pause recording';
+      this._showRunPopup('error', 'Save Error', message, 0);
+    } finally {
+      this.isSavingPauseRecording.set(false);
+    }
+  }
+
+  onPauseRecordingCancel(): void {
+    this.pauseRecordingDialogVisible.set(false);
+    // Show success popup and refresh
+    this._showRunPopup(
+      'success',
+      'Playback Complete',
+      'Pause actions were not saved. Refreshing in 5 seconds.',
+      5000
+    );
+    this._scheduleSuccessRefresh();
+  }
+
+  private _getPlaySessionId(): string | null {
+    // Extract from WebSocket URL if available
+    if (this._playWs && this._playWs.url) {
+      const match = this._playWs.url.match(/\/ws\/play\/([^?\/]+)/);
+      if (match && match[1]) return match[1];
+    }
+    return null;
   }
 }

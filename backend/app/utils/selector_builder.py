@@ -23,12 +23,35 @@ page.evaluate() executes JavaScript inside the browser page and returns the resu
 """
 import asyncio
 import logging
+import re
 from playwright.async_api import Page
 
 logger = logging.getLogger("playwright_recorder.utils.selector_builder")
 
+_GENERATED_ID_PATTERNS = (
+    r"(?:^|[-_:])[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}(?=$|[-_:])",
+    r"(?:^|[-_:])[0-9a-f]{16,}(?=$|[-_:])",
+    r"(?:^|[-_:])\d{10,}(?=$|[-_:])",
+)
+_GENERATED_ID_REGEXES = tuple(re.compile(pattern, re.IGNORECASE) for pattern in _GENERATED_ID_PATTERNS)
+
+
+def is_stable_id(value: str | None) -> bool:
+    if not value or ":" in value or value.endswith("-"):
+        return False
+    if value.lower() in {"__next", "__nuxt", "root", "app"}:
+        return False
+    if re.match(r"^(mui|headlessui|radix)-", value, re.IGNORECASE):
+        return False
+    return not any(pattern.search(value) for pattern in _GENERATED_ID_REGEXES)
+
+
+_GENERATED_ID_CHECK_JS = "\n        ".join(
+    f"if (/{pattern}/i.test(value)) return false;" for pattern in _GENERATED_ID_PATTERNS
+)
+
 # JS that runs inside the browser to inspect the element at (x, y)
-_INSPECT_JS = r"""
+_INSPECT_JS_TEMPLATE = r"""
 (args) => {
     const { x, y } = args;
     const el = document.elementFromPoint(x, y);
@@ -41,6 +64,7 @@ _INSPECT_JS = r"""
         if (value.endsWith('-')) return false;
         if (/^__next$/i.test(value) || /^__nuxt$/i.test(value) || /^root$/i.test(value) || /^app$/i.test(value)) return false;
         if (/^(mui|headlessui|radix)-/i.test(value)) return false;
+        __GENERATED_ID_CHECKS__
         return true;
     }
 
@@ -305,6 +329,48 @@ _INSPECT_JS = r"""
     } catch(_) {}
     sel.occurrence_index = occurrenceIndex;
 
+    function buildDropdownSelection(rawNode) {
+        const popup = rawNode.closest('[role="listbox"], [role="menu"], .zdropdownlist');
+        if (!popup || !popup.id) return null;
+
+        const option = rawNode.closest(
+            'option, [role="option"], [role="menuitem"], li, .zdropdownlist__text'
+        );
+        if (!option || !popup.contains(option)) return null;
+
+        const controller = document.querySelector(
+            `[aria-controls="${CSS.escape(popup.id)}"], [aria-owns="${CSS.escape(popup.id)}"]`
+        );
+        if (!controller) return null;
+
+        const controllerSelector = buildSelector(controller);
+        let controllerOccurrenceIndex = 0;
+        try {
+            const query = controllerSelector.strategy === 'id'
+                ? `#${CSS.escape(controllerSelector.value)}`
+                : controllerSelector.strategy === 'css' ? controllerSelector.value : '';
+            if (query) controllerOccurrenceIndex = Math.max(0, Array.from(document.querySelectorAll(query)).indexOf(controller));
+        } catch (_) {}
+        controllerSelector.occurrence_index = controllerOccurrenceIndex;
+
+        const optionNodes = Array.from(popup.querySelectorAll(
+            'option, [role="option"], [role="menuitem"], li, .zdropdownlist__text'
+        ));
+        const optionIndex = Math.max(0, optionNodes.indexOf(option));
+        const text = (option.textContent || '').trim().replace(/\s+/g, ' ');
+        if (!text) return null;
+
+        return {
+            controllerSelector,
+            text,
+            normalizedText: normalizeText(text),
+            value: option.getAttribute('data-value') || option.getAttribute('value') || null,
+            optionIndex,
+        };
+    }
+
+    const dropdownSelection = buildDropdownSelection(el);
+
     // For dropdown containers, extract ONLY the selected option text (not all options)
     function getDropdownSelectedText(container) {
         const role = (container.getAttribute('role') || '').toLowerCase();
@@ -389,10 +455,12 @@ _INSPECT_JS = r"""
         is_password: inputType === 'password',
         selector: sel,
         target_meta: targetMeta,
+        dropdown_selection: dropdownSelection,
         frame_selector: null
     };
 }
 """
+_INSPECT_JS = _INSPECT_JS_TEMPLATE.replace("__GENERATED_ID_CHECKS__", _GENERATED_ID_CHECK_JS)
 
 
 async def build_selector(page: Page, x: int, y: int) -> dict | None:

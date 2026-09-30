@@ -52,9 +52,23 @@ export class PlaybackApi {
   constructor(private http: HttpClient) {}
 
   /** POST /play/start — returns the play_session_id */
-  async startPlay(recordingJson: object): Promise<{ play_session_id: string }> {
+  async startPlay(recordingJson: object, options?: { 
+    enablePauseRecording?: boolean; 
+    originalRecordingId?: string;
+    source?: string;
+    headless?: boolean;
+    captureFrames?: boolean;
+  }): Promise<{ play_session_id: string }> {
+    const body = {
+      recording_json: recordingJson,
+      source: options?.source ?? 'fastapi',
+      headless: options?.headless ?? true,
+      capture_frames: options?.captureFrames ?? true,
+      enable_pause_recording: options?.enablePauseRecording ?? false,
+      original_recording_id: options?.originalRecordingId ?? null,
+    };
     return firstValueFrom(
-      this.http.post<{ play_session_id: string }>(`${API_BASE}/play/start`, recordingJson)
+      this.http.post<{ play_session_id: string }>(`${API_BASE}/play/start`, body)
     );
   }
 
@@ -103,5 +117,17 @@ export class PlaybackApi {
       data: { patches },
     }));
     return true;
+  }
+
+  /** POST /play/{playId}/save_paused_recording — save merged recording with pause steps */
+  async savePausedRecording(playId: string, data: {
+    title: string;
+    intent: string;
+    description: string;
+    save_option: 'save_as_new' | 'save_delete_old' | 'cancel';
+  }): Promise<{ success: boolean; recording_id?: string; total_steps?: number; message: string }> {
+    return firstValueFrom(
+      this.http.post<any>(`${API_BASE}/play/${playId}/save_paused_recording`, data)
+    );
   }
 }

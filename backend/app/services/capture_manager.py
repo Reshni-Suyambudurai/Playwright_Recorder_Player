@@ -108,6 +108,7 @@ class CaptureManager:
         self._dirty: bool = False          # set by mutations, cleared by worker after capture
         self._page   = None                # page reference for the worker loop
         self._worker_task: asyncio.Task | None = None
+        self._request_tasks: set[asyncio.Task] = set()
         self._burst_count = 0              # DOM-watcher frames sent so far in the current unbroken burst
         self._last_dirty_at: float = 0.0   # monotonic time of the last dirty signal seen
         self._burst_index = 0              # session-wide count of bursts started (for log tracking)
@@ -127,18 +128,36 @@ class CaptureManager:
         """
         self._page = page
         if self._worker_task is None or self._worker_task.done():
-            self._worker_task = asyncio.ensure_future(self._dom_capture_worker())
+            self._worker_task = asyncio.create_task(self._dom_capture_worker())
             logger.info(f"[CAPTURE] DOM worker started (poll={DOM_POLL_MS}ms) session={self._session_id}")
 
-    def stop(self) -> None:
+    def schedule_request(self, page, reason: CaptureReason) -> asyncio.Task:
+        """Schedule and track a capture request so cleanup can await it."""
+        task = asyncio.create_task(self.request(page, reason))
+        self._request_tasks.add(task)
+        task.add_done_callback(self._request_tasks.discard)
+        return task
+
+    async def stop(self) -> None:
         """
         Stop the DOM capture worker.
         Called by DomWatcher.detach() or session cleanup.
         """
-        if self._worker_task and not self._worker_task.done():
-            self._worker_task.cancel()
+        worker_task = self._worker_task
+        request_tasks = list(self._request_tasks)
+        if worker_task and not worker_task.done():
+            worker_task.cancel()
             logger.info(f"[CAPTURE] DOM worker stopped session={self._session_id}")
+        for task in request_tasks:
+            if not task.done():
+                task.cancel()
+
+        pending = [task for task in [worker_task, *request_tasks] if task is not None]
+        if pending:
+            await asyncio.gather(*pending, return_exceptions=True)
+
         self._worker_task = None
+        self._request_tasks.clear()
         self._dirty = False
         self._burst_count = 0
         self._last_dirty_at = 0.0
