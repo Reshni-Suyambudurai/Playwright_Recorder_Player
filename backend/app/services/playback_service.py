@@ -24,9 +24,8 @@ from app.websocket.connection_manager import ConnectionManager
 
 logger = logging.getLogger("playwright_recorder.services.playback")
 
-CLICK_RETRY_ATTEMPTS = 3
 CLICK_RETRY_DELAY_SECONDS = 0.2
-CLICK_SELECTOR_TIMEOUT_MS = 2000
+CLICK_SELECTOR_TIMEOUTS_MS = (5000, 3000, 2000)
 FALLBACK_STABILIZE_DELAY_SECONDS = 0.35
 
 # ─── Event type constants for playback ─────────────────────────────────────
@@ -419,10 +418,10 @@ class PlaybackService:
             match_count = 0
 
             # Retry lookup/click to allow SPA/React DOM settle before declaring mismatch.
-            for attempt in range(CLICK_RETRY_ATTEMPTS):
+            for attempt, timeout_ms in enumerate(CLICK_SELECTOR_TIMEOUTS_MS):
                 try:
                     await self._wait_for_selector_visible(
-                        page, pw_selector, timeout_ms=CLICK_SELECTOR_TIMEOUT_MS
+                        page, pw_selector, timeout_ms=timeout_ms
                     )
                 except Exception as exc:
                     wait_timed_out = True
@@ -447,7 +446,7 @@ class PlaybackService:
                     except Exception as exc:
                         click_error = exc
 
-                if attempt < CLICK_RETRY_ATTEMPTS - 1:
+                if attempt < len(CLICK_SELECTOR_TIMEOUTS_MS) - 1:
                     await asyncio.sleep(CLICK_RETRY_DELAY_SECONDS)
 
             if match_count == 0:

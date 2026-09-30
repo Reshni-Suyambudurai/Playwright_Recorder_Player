@@ -36,10 +36,12 @@ class FakePage:
         self._matches = matches or []
         self._selector_map = selector_map or {}
         self.waited_for = None
+        self.selector_timeouts = []
         self.url = url
 
     async def wait_for_selector(self, selector, timeout=None):
         self.waited_for = (selector, timeout)
+        self.selector_timeouts.append(timeout)
         if not self._matches:
             raise Exception("selector not found")
         return self._matches[0]
@@ -78,7 +80,7 @@ async def test_step_click_raises_when_selector_matches_zero_elements():
         await service._step_click(step, page)
 
     assert browser_service.clicks == []
-    assert page.waited_for == (".missing", playback_module.CLICK_SELECTOR_TIMEOUT_MS)
+    assert page.selector_timeouts == list(playback_module.CLICK_SELECTOR_TIMEOUTS_MS)
 
 
 @pytest.mark.asyncio
